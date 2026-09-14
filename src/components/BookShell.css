@@ -1,0 +1,95 @@
+.book-shell {
+  --book-paper: #fff9e9;
+  --book-cover: #7fada6;
+  position: relative;
+  isolation: isolate;
+  width: 1120px;
+  height: 688px;
+}
+
+.book-shell__cover {
+  position: absolute;
+  inset: 6px -10px -19px;
+  border: 1px solid #709a95;
+  border-radius: 17px 19px 22px 19px;
+  background: var(--book-cover);
+  box-shadow:
+    0 3px 0 #638e89,
+    0 9px 12px -6px #47445d40,
+    0 28px 35px -16px #47445d45,
+    0 48px 65px -30px #47445d38;
+}
+
+.book-shell__spread {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  height: 100%;
+}
+
+.book-shell__page {
+  position: relative;
+  min-width: 0;
+  background-color: var(--book-paper);
+  border: 1px solid #e9e0cc;
+  /* Offset layers suggest cut paper without a heavy striped texture. */
+  box-shadow:
+    0 2px 0 #eee5d2,
+    0 3px 0 #d8d0bd,
+    0 5px 0 #faf2df,
+    0 6px 0 #ded5c1,
+    0 8px 0 #f4ecd9,
+    0 9px 0 #d8d0bd,
+    0 11px 0 #eee5d2;
+}
+
+.book-shell__page--left {
+  border-radius: 12px 3px 3px 16px / 12px 3px 3px 22px;
+  background-image: linear-gradient(
+    90deg,
+    #e8dcc22b,
+    transparent 7%,
+    #fffdf53d 65%,
+    #e7dbc133 91%,
+    #b5a68b40 100%
+  );
+}
+
+.book-shell__page--right {
+  border-radius: 3px 12px 16px 3px / 3px 12px 22px 3px;
+  background-image: linear-gradient(
+    90deg,
+    #b5a68b38,
+    #e7dbc126 8%,
+    #fffdf54d 30%,
+    transparent 93%,
+    #e8dcc22b
+  );
+}
+
+.book-shell__content {
+  position: relative;
+  height: 100%;
+  padding: 56px 60px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+
+.book-shell__spine {
+  position: absolute;
+  inset: 0 auto -12px 50%;
+  width: 42px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #9e907512 34%,
+    #8d806333 47%,
+    #83785e45 49%,
+    #fffbee80 53%,
+    #b5a68b0a 68%,
+    transparent
+  );
+  border-radius: 0 0 45% 45%;
+}

@@ -1,75 +1,49 @@
-# React + TypeScript + Vite
+# Catalogue UI lab
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Issue #1: a static desktop book shell, designed for a 1440 × 900 viewport.
 
-Currently, two official plugins are available:
+## Development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```sh
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+## Checks
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```sh
+npm run lint
+npm run test:run
+npm run build
 ```
+
+The five focused tests use Vitest and React server rendering to check labelled
+structure, reading order, independent content slots, hidden decoration, and the
+empty application composition. They do not assert CSS classes or pixel values.
+
+## Component structure
+
+`App` owns the pastel environment and the main landmark. `BookShell` owns a
+1120 × 688 desktop spread, with two labelled page sections and decorative cover
+and spine layers. Each page has generous padding and an overflow container.
+
+```tsx
+import { BookShell } from './components/BookShell'
+
+<BookShell
+  label="Catalogue spread"
+  leftPage={<YourLeftPage />}
+  rightPage={<YourRightPage />}
+/>
+```
+
+Both slots are optional; the lab deliberately renders blank pages. Page content
+owns its headings and interactions. The shell uses plain CSS grid, gradients,
+border radii and layered shadows, with no image assets or runtime dependencies
+beyond React. The surrounding environment is separate from the reusable shell.
+
+The stage has a desktop minimum width of 1280px and minimum height of 900px.
+Smaller viewports overflow intentionally; mobile and tablet layouts are outside
+this issue. There is no catalogue content, navigation, animation or application
+logic. The subtle paper curvature is illustrated with shading, rather than 3D
+geometry.
