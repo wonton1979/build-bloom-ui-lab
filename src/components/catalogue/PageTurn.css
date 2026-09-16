@@ -1,0 +1,26 @@
+.catalogue-turn {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  transform-style: preserve-3d;
+}
+
+.catalogue-turn > .catalogue-turn__face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  /* A single leaf; the stationary pages retain the stack of paper edges. */
+  box-shadow: none;
+}
+
+.catalogue-turn__face--back {
+  transform: rotateY(180deg);
+}
+
+.catalogue-turn__shadow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: 0 4px 18px #493c31;
+  opacity: 0;
+}

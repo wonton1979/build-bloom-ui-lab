@@ -1,0 +1,38 @@
+.city-bookmark {
+  position: absolute;
+  z-index: 0;
+  top: var(--bookmark-top, 20%);
+  right: -12%;
+  display: block;
+  width: 48%;
+  transform: translateX(0);
+  clip-path: inset(0 0 0 72%);
+  transition: transform 240ms ease, clip-path 240ms ease;
+  pointer-events: auto;
+}
+
+.city-bookmark img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.city-bookmark:hover,
+.city-bookmark:focus-visible {
+  transform: translateX(calc(60% + var(--bookmark-extra-reveal, 0px)));
+  clip-path: inset(0);
+  z-index: 2;
+}
+
+.city-bookmark:focus-visible {
+  outline: 3px solid #f4d9a0;
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .city-bookmark { transition: none; }
+}
+
+@media (max-width: 760px) {
+  .city-bookmark { display: none; }
+}

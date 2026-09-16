@@ -1,0 +1,176 @@
+.account-modal__surface {
+  position: relative;
+  width: min(980px, 100%);
+  max-height: calc(100dvh - 64px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  border: 1px solid #d9d1b9;
+  border-radius: 16px;
+  background: #fff9e9;
+  color: #493c31;
+  box-shadow: 0 24px 60px #24342b66;
+}
+
+.account-modal__accessible-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.account-experience {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  min-height: 650px;
+}
+
+.account-experience__welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 48px 22px 36px;
+  background: #f2eddc;
+  border-right: 1px solid #e5ddc8;
+  text-align: center;
+}
+
+.account-experience__brand {
+  margin: 0;
+  color: #416b66;
+  font: 700 22px/1.4 'Segoe Print', 'Comic Sans MS', cursive;
+}
+
+.account-experience__story {
+  margin: 0;
+  font: 400 26px/1.35 Georgia, serif;
+  color: #58644e;
+}
+
+.account-experience__art {
+  display: block;
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+}
+
+.account-experience__caption {
+  max-width: 220px;
+  margin: 0;
+  color: #69614f;
+  font: 16px/1.6 'Segoe Print', 'Comic Sans MS', cursive;
+}
+
+.account-experience__task {
+  align-self: center;
+  min-width: 0;
+  padding: 60px 44px 36px;
+}
+
+.account-experience__heading { position: relative; margin-bottom: 28px; }
+.account-experience__flower { width: 36px; height: 38px; object-fit: contain; margin-bottom: 8px; }
+.account-experience__eyebrow { margin: 0 0 12px; font-size: 12px; letter-spacing: 0.04em; color: #686453; }
+.account-experience__heading h2 {
+  margin: 0 0 12px;
+  color: #3e6962;
+  font: 700 clamp(28px, 3.1vw, 38px)/1.25 'Segoe Print', 'Comic Sans MS', cursive;
+  white-space: pre-line;
+}
+.account-experience__heading h2:focus-visible { outline: 2px solid #527f78; outline-offset: 5px; }
+.account-experience__heading > p:last-child { margin: 0; font-size: 15px; line-height: 1.6; color: #69614f; }
+
+.account-form__fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.account-form__field { display: grid; grid-column: 1 / -1; gap: 7px; min-width: 0; font-size: 14px; font-weight: 600; }
+.account-form__field input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid #b9bba8;
+  border-radius: 6px;
+  background: #fffdf6;
+  color: #493c31;
+  font: 400 16px/1.4 system-ui, sans-serif;
+  scroll-margin-block: 24px;
+}
+.account-form__field input:focus-visible { outline: 2px solid #527f78; outline-offset: 2px; }
+.account-form__input-wrap { position: relative; display: block; }
+.account-form__input-wrap input { padding-right: 48px; }
+.account-form__password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #527f78;
+  font-size: 0;
+  cursor: pointer;
+}
+.account-form__password-toggle:hover { background: #527f7814; }
+.account-form__password-toggle:focus-visible { outline: 2px solid #527f78; outline-offset: 1px; }
+.account-form__submit {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 24px;
+  border: 1px solid #416b66;
+  border-radius: 7px;
+  background: #527f78;
+  color: #fffdf6;
+  font: 600 16px/1.4 system-ui, sans-serif;
+  cursor: pointer;
+}
+.account-form__submit:hover { background: #416b66; }
+.account-form__submit:focus-visible, .account-experience__switch button:focus-visible { outline: 2px solid #527f78; outline-offset: 4px; }
+.account-experience__switch { margin: 28px 0 0; padding-top: 22px; border-top: 1px solid #e5ddc8; font-size: 14px; line-height: 1.7; color: #69614f; }
+.account-experience__switch button {
+  min-height: 44px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: #3e6962;
+  font: 600 14px/1.5 system-ui, sans-serif;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.account-experience[data-account-mode='create'] { min-height: 0; }
+
+@media (min-width: 701px) and (max-width: 900px) {
+  .account-experience { grid-template-columns: minmax(0, 0.65fr) minmax(0, 1fr); }
+  .account-experience__task { padding-inline: 28px; }
+  .account-experience__welcome { padding-inline: 16px; }
+  .account-experience__story { font-size: 22px; }
+}
+
+@media (max-width: 700px) {
+  .account-experience { display: block; min-height: 0; }
+  .account-experience__welcome { align-items: flex-start; padding: 22px 72px 18px 28px; border-right: 0; border-bottom: 1px solid #e5ddc8; }
+  .account-experience__brand { font-size: 18px; text-align: left; }
+  .account-experience__story, .account-experience__art, .account-experience__caption { display: none; }
+  .account-experience__task { max-width: 480px; margin-inline: auto; padding: 28px; }
+  .account-experience__heading { margin-bottom: 24px; }
+  .account-experience__flower { width: 28px; height: 30px; }
+}
+
+@media (max-width: 600px) {
+  .account-modal__surface { width: 100%; height: 100dvh; max-height: 100%; border: 0; border-radius: 0; }
+  .account-experience__task { padding-bottom: max(32px, env(safe-area-inset-bottom)); }
+}
+
+@media (max-width: 380px) {
+  .account-experience__task { padding-inline: 20px; }
+}
