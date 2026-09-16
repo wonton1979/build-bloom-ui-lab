@@ -5,6 +5,8 @@ type BookShellProps = {
   leftPage?: ReactNode
   rightPage?: ReactNode
   label?: string
+  pageTurn?: ReactNode
+  bookOverlay?: ReactNode
 }
 
 /** A fixed desktop spread. Page content owns its headings and interactions. */
@@ -12,6 +14,8 @@ export function BookShell({
   leftPage,
   rightPage,
   label = 'Open catalogue book',
+  pageTurn,
+  bookOverlay,
 }: BookShellProps) {
   return (
     <section className="book-shell" aria-label={label}>
@@ -25,6 +29,8 @@ export function BookShell({
         </section>
       </div>
       <div className="book-shell__spine" aria-hidden="true" />
+      {bookOverlay}
+      {pageTurn}
     </section>
   )
 }

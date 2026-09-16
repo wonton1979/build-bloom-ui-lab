@@ -1,0 +1,185 @@
+/* Content-only insets reclaim part of the shell's generous empty-page padding.
+   The shell geometry, stage and viewport sizing remain owned by existing CSS. */
+.opening-page {
+  width: calc(100% + 76px);
+  height: calc(100% + 72px);
+  margin: -36px -38px;
+  container-type: inline-size;
+  color: #493c31;
+  font-family: 'Segoe Print', 'Comic Sans MS', cursive;
+}
+
+.opening-page p,
+.opening-page h1,
+.opening-page h2 {
+  margin: 0;
+}
+
+.opening-welcome__composition {
+  position: relative;
+  height: 100%;
+  min-height: 100%;
+}
+
+.opening-welcome__motto {
+  position: absolute;
+  top: 5%;
+  left: 2%;
+  width: 28%;
+  color: #925037;
+  font-size: 4cqw;
+  line-height: 1.6;
+}
+
+.opening-welcome__brand {
+  position: relative;
+  z-index: 1;
+  width: 73%;
+  margin-left: auto;
+  padding-top: 4%;
+  text-align: center;
+}
+
+.opening-welcome__brand h1 {
+  font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+  font-size: 15cqw;
+  font-weight: 800;
+  line-height: 1.03;
+  letter-spacing: -0.06em;
+  text-shadow: 0 2px 0 #fff9e9, 0 3px 0 #92694540;
+}
+
+.opening-welcome__build span:nth-child(1) { color: #367da0; }
+.opening-welcome__build span:nth-child(2) { color: #db8652; }
+.opening-welcome__build span:nth-child(3) { color: #e4b64c; }
+.opening-welcome__build span:nth-child(4) { color: #739b62; }
+.opening-welcome__build span:nth-child(5) { color: #579b87; }
+
+.opening-welcome__ampersand {
+  font-size: 0.65em;
+  color: #82a754;
+}
+
+.opening-welcome__bloom {
+  display: block;
+  color: #e99480;
+  font-weight: 600;
+}
+
+.opening-welcome__brand p {
+  margin-top: 4%;
+  font-size: 4cqw;
+  line-height: 1.5;
+}
+
+.opening-welcome__art {
+  position: absolute;
+  inset: 43% 0 8%;
+}
+
+.catalogue-artwork {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.catalogue-artwork-placeholder {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 45% 52% 38% 42%;
+  background: var(--chapter-colour, #dce7d6);
+  color: #58725b;
+}
+
+.opening-welcome__art .catalogue-artwork-placeholder {
+  border: 1px dashed #8b9d8059;
+  background: linear-gradient(#dbeaf080, #dce7d699);
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 3cqw;
+  letter-spacing: 0.06em;
+}
+
+.opening-welcome__caption {
+  position: absolute;
+  bottom: 1%;
+  width: 100%;
+  text-align: center;
+  font-size: 3.5cqw;
+}
+
+.opening-welcome__caption span { color: #799c55; }
+
+.catalogue-index__layout {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 3%;
+  height: 100%;
+}
+
+.catalogue-index__heading {
+  text-align: center;
+  padding-inline: 8%;
+}
+
+.catalogue-index__heading h2 {
+  padding: 1% 3%;
+  border-radius: 35% 12% 28% 8%;
+  background: #f6e3c1;
+  font-size: 7.5cqw;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.catalogue-index__heading p {
+  margin-top: 3%;
+  font-size: 3.4cqw;
+}
+
+/* Four light, unboxed vignettes introduce the full category spreads. */
+.catalogue-preview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 6% 7%;
+  min-height: 0;
+  margin: 0;
+  padding: 2% 0;
+  list-style: none;
+}
+
+.catalogue-preview li { min-width: 0; min-height: 0; }
+
+.catalogue-preview figure {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 4px;
+  height: 100%;
+  margin: 0;
+  text-align: center;
+}
+
+.catalogue-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+}
+
+.catalogue-preview figcaption {
+  justify-self: center;
+  padding: 0 0.5em;
+  border-radius: 40% 12% 30% 18%;
+  background: var(--preview-colour);
+  font-size: clamp(12px, 4cqw, 17px);
+  line-height: 1.5;
+}
+
+.catalogue-preview__invitation {
+  text-align: center;
+  font-size: clamp(11px, 3.4cqw, 14px);
+}

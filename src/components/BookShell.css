@@ -1,10 +1,16 @@
 .book-shell {
   --book-paper: #fff9e9;
   --book-cover: #7fada6;
+  --page-surface-inset-x: 22px;
+  --page-surface-inset-y: 20px;
   position: relative;
   isolation: isolate;
-  width: 1120px;
-  height: 688px;
+  width: var(--book-width, 1120px);
+  max-width: calc(100% - 48px);
+  aspect-ratio: 9 / 5;
+  /* The preferred ratio defines the height, never the active page's contents. */
+  min-height: 0;
+  contain: size;
 }
 
 .book-shell__cover {
@@ -21,15 +27,20 @@
 }
 
 .book-shell__spread {
-  position: relative;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr);
   height: 100%;
 }
 
 .book-shell__page {
   position: relative;
   min-width: 0;
+  min-height: 0;
+  height: 100%;
   background-color: var(--book-paper);
   border: 1px solid #e9e0cc;
   /* Offset layers suggest cut paper without a heavy striped texture. */
@@ -70,8 +81,10 @@
 .book-shell__content {
   position: relative;
   height: 100%;
+  min-height: 0;
   padding: 56px 60px;
   overflow: auto;
+  overflow-x: hidden;
   overflow-wrap: anywhere;
 }
 
@@ -93,3 +106,23 @@
   );
   border-radius: 0 0 45% 45%;
 }
+
+/* Existing small-screen geometry: stacked pages inside one scrollable frame. */
+@media (max-width: 760px) {
+  .catalogue-stage .book-shell {
+    aspect-ratio: auto;
+    height: calc(100svh - 120px);
+  }
+
+  .catalogue-stage .book-shell__spread {
+    display: block;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: 12px;
+  }
+
+  .catalogue-stage .book-shell__page { height: auto; }
+  .catalogue-stage .book-shell__content { height: 500px; padding: 56px 60px; }
+  .catalogue-stage .book-shell__spine { display: none; }
+}
+

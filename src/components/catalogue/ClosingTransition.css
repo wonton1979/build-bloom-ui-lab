@@ -1,0 +1,52 @@
+/* Measure the actual closed endpoint in the same grid cell as the resting book. */
+.closing-transition__target {
+  display: grid;
+  grid-area: 1 / 1;
+  justify-items: center;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* The settled cover is mounted before overlay cleanup, but must not cast a
+   second identical shadow while the overlay still owns the presentation. */
+.catalogue-stage:has(> .closing-transition) > .closed-catalogue {
+  visibility: hidden;
+}
+
+@media (min-width: 1200px) {
+  .closing-transition__target > .closed-catalogue {
+    width: var(--closed-page-width);
+  }
+}
+
+.closing-transition {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+}
+
+.closing-transition__frame,
+.closing-transition__moving-edge {
+  position: absolute;
+  pointer-events: none;
+}
+
+.closing-transition__sheet {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+}
+
+.closing-transition__front {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+}
+
+.closing-transition__front > .closed-catalogue {
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}

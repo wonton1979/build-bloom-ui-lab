@@ -40,12 +40,18 @@ describe('BookShell', () => {
     expect(markup).not.toMatch(/tabindex|<button|<a\s/)
   })
 
-  it('composes an empty shell inside the application main landmark', () => {
+  it('composes the closed catalogue inside the application main landmark', () => {
     const markup = renderToStaticMarkup(<App />)
-    const main = markup.match(/<main[^>]*aria-label="Catalogue">([\s\S]*?)<\/main>/)?.[1]
+    const main = markup.match(/<main[^>]*aria-label="Catalogue"[^>]*>([\s\S]*?)<\/main>/)?.[1]
 
     expect(main).toBeDefined()
-    expect(main).toContain('aria-label="Open catalogue book"')
-    expect(main?.replace(/<[^>]*>/g, '')).toBe('')
+    expect(main).toContain('Open Build &amp; Bloom catalogue')
+    expect(main).toContain('categories/cover/build-bloom-cover')
+    expect(main).not.toContain('branding/build-bloom-title')
+    expect(main).not.toContain('Small Pieces, Big Stories.')
+    expect(main).not.toContain('Build a brighter,')
+    expect(main).not.toContain('Open the catalogue →')
+    expect(main).not.toContain('Our Catalogue')
+    expect(main).toContain('style="visibility:hidden" aria-hidden="true" inert=""')
   })
 })

@@ -1,0 +1,158 @@
+/* Slot-only content layout. Every spread uses the same physical BookShell. */
+.spread-page {
+  position: relative;
+  width: calc(100% + 76px);
+  height: calc(100% + 72px);
+  margin: -36px -38px;
+  padding-bottom: 32px;
+  container-type: inline-size;
+  color: #493c31;
+  font-family: 'Segoe Print', 'Comic Sans MS', cursive;
+}
+
+.spread-page > .opening-page {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+.spread-page--welcome { padding-bottom: 0; }
+
+.spread-page__navigation {
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+}
+
+.spread-page--right .spread-page__navigation { left: auto; right: 0; }
+
+.spread-page__navigation button {
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 0;
+  background: transparent;
+  color: #654e37;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.spread-page__navigation button:hover { text-decoration: underline; text-underline-offset: 4px; }
+.spread-page__navigation button:disabled { cursor: wait; opacity: 0.6; }
+
+.category-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.category-page__heading {
+  flex-shrink: 0;
+  padding-bottom: 8px;
+  text-align: center;
+}
+
+.category-page__heading h2 {
+  display: inline;
+  margin: 0;
+  padding: 0 12px;
+  border-radius: 35% 12% 28% 8%;
+  background: #f6e3c1;
+  font-size: clamp(18px, 6.5cqw, 28px);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.category-page__heading p { margin: 4px 0 0; font-size: 12px; }
+
+.category-page__entries {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+
+.category-page__entries li { flex: 1; min-height: 0; }
+
+.category-entry {
+  display: grid;
+  grid-template-columns: 44% minmax(0, 1fr) 12px;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  min-height: 44px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.category-entry__art {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  min-height: 0;
+  padding: 4px;
+}
+
+.category-entry__art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+  transform: scale(var(--category-image-scale));
+}
+
+.category-entry__copy { min-width: 0; }
+
+.category-entry__label {
+  padding: 0.05em 0.4em;
+  border-radius: 40% 12% 30% 18%;
+  background: var(--category-colour);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  font-size: clamp(14px, 4.4cqw, 19px);
+  line-height: 1.45;
+}
+
+.category-entry__tagline {
+  display: block;
+  margin: 4px 0 0 5px;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.category-entry__arrow { font-family: 'Segoe UI', sans-serif; color: #785f45; }
+.category-entry:hover .category-entry__label { text-decoration: underline; text-underline-offset: 4px; }
+
+.category-entry:focus-visible,
+.spread-page__navigation button:focus-visible {
+  outline: 2px solid #326993;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.catalogue-spread-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@container (max-width: 310px) {
+  .category-entry__tagline { display: none; }
+  .category-page__heading p { display: none; }
+}
+
+/* Content-only touch spacing; responsive shell geometry lives in BookShell.css. */
+@media (max-width: 760px) {
+  .spread-page__navigation button { min-height: 44px; }
+  .category-page__entries { gap: 20px; }
+}

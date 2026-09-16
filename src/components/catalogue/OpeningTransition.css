@@ -1,0 +1,36 @@
+.opening-transition {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+}
+
+.opening-transition__frame {
+  position: absolute;
+}
+
+/* A child of the real rotating left page, never positioned in stage space. */
+.opening-transition__moving-edge {
+  position: absolute;
+  pointer-events: none;
+}
+
+.opening-transition__sheet {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+}
+
+.opening-transition__front {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+}
+
+/* Reuse the approved closed surface, including its artwork fit and spine. */
+.opening-transition__front > .closed-catalogue {
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}

@@ -1,0 +1,176 @@
+.closed-catalogue {
+  --cover: #527F78;
+  position: relative;
+  width: min(52vw, 820px);
+  aspect-ratio: 9 / 10;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #493c31;
+  cursor: pointer;
+  filter: drop-shadow(0 24px 20px #47445d45);
+  text-align: left;
+}
+
+.closed-catalogue__trigger {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.closed-catalogue__bookmark-layer {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.closed-catalogue__bookmark-layer .city-bookmark {
+  pointer-events: auto;
+}
+
+.closed-catalogue__pages,
+.closed-catalogue__cover,
+.closed-catalogue__back-cover,
+.closed-catalogue__spine {
+  position: absolute;
+  pointer-events: none;
+}
+
+.closed-catalogue__cover,
+.closed-catalogue__back-cover {
+  inset: 0;
+  border-radius: 9px 11px 12px 9px;
+}
+
+.closed-catalogue__back-cover {
+  inset: 5px -6px -8px -5px;
+  z-index: 0;
+  border: 1px solid #416b66;
+  background: #486f6a;
+  box-shadow: 0 6px 0 #3f625e, 0 18px 19px -12px #47445d55;
+}
+
+.closed-catalogue__pages {
+  inset: 6px 1px 4px 8px;
+  z-index: 1;
+  border: 1px solid #d5c9b2;
+  border-radius: 10px 14px 16px 11px;
+  background:
+    repeating-linear-gradient(0deg, #fff9e9 0 2px, #e3d8c3 3px 4px),
+    #fff9e9;
+  box-shadow: inset 0 0 0 2px #f4ecd9, 0 2px 0 #cfc2aa;
+}
+
+.closed-catalogue__cover {
+  z-index: 2;
+  overflow: hidden;
+  border: 1px solid #416b66;
+  background: var(--cover);
+  box-shadow: inset 6px 0 0 #416b6655;
+}
+
+.closed-catalogue__artwork {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.closed-catalogue__spine {
+  inset: 0 auto 0 -2px;
+  z-index: 3;
+  width: 7%;
+  min-width: 34px;
+  border: 1px solid #3f625e;
+  border-radius: 18px 5px 5px 18px;
+  background: linear-gradient(90deg, #3f625e, #6b9991 48%, #486f6a 88%);
+  box-shadow: inset 4px 0 5px #304f4b66, 3px 0 4px #304f4b40;
+}
+
+.closed-catalogue__motto,
+.closed-catalogue__promise,
+.closed-catalogue__invitation {
+  position: absolute;
+  z-index: 2;
+  font-family: 'Segoe Print', 'Comic Sans MS', cursive;
+}
+
+.closed-catalogue__motto {
+  top: 8%;
+  left: 0;
+  width: 100%;
+  color: #fff9e9;
+  font-size: clamp(14px, 1.7vw, 25px);
+  text-align: center;
+}
+
+.closed-catalogue__brand {
+  position: absolute;
+  z-index: 2;
+  top: 14%;
+  left: 17%;
+  width: 66%;
+  height: 29%;
+  object-fit: contain;
+}
+
+.closed-catalogue__promise {
+  top: 43%;
+  left: 10%;
+  width: 80%;
+  color: #fff9e9;
+  font-size: clamp(12px, 1.5vw, 21px);
+  line-height: 1.35;
+  text-align: center;
+}
+
+.closed-catalogue__art {
+  position: absolute;
+  right: 4%;
+  bottom: 1%;
+  z-index: 1;
+  width: 92%;
+  height: 50%;
+  object-fit: contain;
+}
+
+.closed-catalogue:hover { filter: drop-shadow(0 27px 22px #47445d55); }
+.closed-catalogue__trigger:focus-visible { outline: 3px solid #f4d9a0; outline-offset: 8px; }
+.closed-catalogue:active { filter: drop-shadow(0 20px 18px #47445d45); }
+
+@media (max-width: 600px) {
+  .closed-catalogue { width: 86vw; }
+}
+
+/* Keep the measured-page sizing for non-mobile medium layouts, while leaving
+   the existing mobile cover sizing untouched. */
+@media (min-width: 761px) and (max-width: 1199px) {
+  .closed-catalogue {
+    width: min(36vw, var(--closed-page-width, 520px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .closed-catalogue { transition: none; }
+}
+
+/* The resting desktop cover is one measured physical page, before activation. */
+@media (min-width: 1200px) {
+  .catalogue-stage > .closed-catalogue {
+    width: var(--closed-page-width);
+  }
+
+}
