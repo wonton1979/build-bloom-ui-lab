@@ -8,6 +8,8 @@ import type { CatalogueCategory } from './categories'
 import './CategoryCatalogue.css'
 import type { CatalogueSpread } from './catalogueSpread'
 import { spreadAfterAction } from './catalogueSpread'
+import { VehiclesProductPage } from './VehiclesProductPage'
+import { useVehicles } from '../../features/catalogue/useVehicles'
 
 export type { CatalogueSpread } from './catalogueSpread'
 
@@ -17,12 +19,13 @@ type CatalogueProps = {
   onClose: () => void
 }
 
-function CategoryEntry({ category }: { category: CatalogueCategory }) {
+function CategoryEntry({ category, onVehicles }: { category: CatalogueCategory; onVehicles?: () => void }) {
   return (
     <li>
       <a
         className="category-entry"
         href={category.href}
+        onClick={category.id === 'vehicles' && onVehicles ? (event) => { event.preventDefault(); onVehicles() } : undefined}
         style={{
           '--category-colour': category.colour,
           '--category-image-scale': category.imageScale ?? 1,
@@ -47,10 +50,11 @@ function CategoryEntry({ category }: { category: CatalogueCategory }) {
   )
 }
 
-export function CataloguePageContent({ categories, heading, start }: {
+export function CataloguePageContent({ categories, heading, start, onVehicles }: {
   categories: readonly CatalogueCategory[]
   heading?: string
   start: number
+  onVehicles?: () => void
 }) {
   return (
     <nav className="category-page" aria-label={heading ?? 'Catalogue categories continued'}>
@@ -61,7 +65,7 @@ export function CataloguePageContent({ categories, heading, start }: {
         </div>
       )}
       <ol className="category-page__entries" start={start}>
-        {categories.map((category) => <CategoryEntry key={category.id} category={category} />)}
+        {categories.map((category) => <CategoryEntry key={category.id} category={category} onVehicles={onVehicles} />)}
       </ol>
     </nav>
   )
@@ -75,6 +79,8 @@ const [pageOne, pageTwo, pageThree, pageFour] = cataloguePages
 export function CategoryCatalogue({ spread, onSpreadChange, onClose }: CatalogueProps) {
   const opening = spread === 'opening'
   const primary = spread === 'categories-primary'
+  const vehicles = spread === 'vehicles'
+  const { state: vehiclesState, retry } = useVehicles(vehicles)
   const back = spreadAfterAction(spread, 'backward')
   const forward = spreadAfterAction(spread, 'forward')
   const [turn, setTurn] = useState<'forward' | 'backward' | null>(null)
@@ -97,17 +103,18 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose }: Catalogue
     onSpreadChange('categories-primary')
     setTurn(null)
   }
-  const leftContent = opening ? <OpeningWelcomePage /> : (
+  const leftContent = vehicles ? <VehiclesProductPage side="feature" state={vehiclesState} onRetry={retry} /> : opening ? <OpeningWelcomePage /> : (
     <CataloguePageContent
       categories={primary ? pageOne : pageThree}
       heading={primary ? 'Our Catalogue' : 'More little worlds'}
       start={primary ? 1 : 8}
     />
   )
-  const rightContent = opening ? <CatalogueIndexPage /> : (
+  const rightContent = vehicles ? <VehiclesProductPage side="supporting" state={vehiclesState} onRetry={retry} /> : opening ? <CatalogueIndexPage /> : (
     <CataloguePageContent
       categories={primary ? pageTwo : pageFour}
       start={primary ? 4 : 11}
+      onVehicles={() => { if (!turn) onSpreadChange('vehicles') }}
     />
   )
   const turningPage = turn ? (
@@ -140,11 +147,13 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose }: Catalogue
     <BookShell
       bookOverlay={undefined}
       leftPage={
-        <div className={opening ? 'spread-page spread-page--welcome' : 'spread-page'}>
+        <div className={opening ? 'spread-page spread-page--welcome' : vehicles ? 'spread-page spread-page--vehicles' : 'spread-page'}>
           {underlayLeft}
           {!opening && (
             <div className="spread-page__navigation">
-              {spread === 'categories-primary' ? (
+              {vehicles ? (
+                <button type="button" onClick={() => onSpreadChange('categories-more')}>← Back to Categories</button>
+              ) : spread === 'categories-primary' ? (
                 <button type="button" disabled={Boolean(turn)} onClick={onClose}>← Close Book</button>
               ) : (
                 <button type="button" disabled={Boolean(turn)} onClick={() => beginTurn('backward', back)}>← Back</button>
@@ -154,9 +163,9 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose }: Catalogue
         </div>
       }
       rightPage={
-        <div className="spread-page spread-page--right">
+        <div className={`spread-page spread-page--right${vehicles ? ' spread-page--vehicles' : ''}`}>
           {underlayRight}
-          {spread !== 'categories-more' && (
+          {!vehicles && spread !== 'categories-more' && (
             <div className="spread-page__navigation">
               <button type="button" disabled={Boolean(turn)} onClick={() => beginTurn('forward', forward)}>
                 {opening ? 'Discover all 13 worlds →' : 'More →'}
