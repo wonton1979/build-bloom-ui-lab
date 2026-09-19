@@ -10,9 +10,10 @@ import './App.css'
 import { AccountModal } from './components/homepage/AccountModal'
 import { BookOwnedCart } from './components/catalogue/BookOwnedCart'
 import { BookOwnedUser } from './components/catalogue/BookOwnedUser'
+import { CustomerInformationFallback } from './components/homepage/CustomerInformationFallback'
 
 function App() {
-  const [view, setView] = useState<'live' | 'reference'>('live')
+  const [view] = useState<'live' | 'reference'>('live')
   const [catalogueOpen, setCatalogueOpen] = useState(false)
   const [opening, setOpening] = useState(false)
   const [closing, setClosing] = useState<'turning' | 'landed' | null>(null)
@@ -130,17 +131,6 @@ function App() {
 
   return (
     <>
-      {import.meta.env.DEV && (
-        <div className="lab-review-controls" role="group" aria-label="Design review view">
-          <span>UI Lab · Design review</span>
-          <button type="button" aria-pressed={view === 'live'} onClick={() => setView('live')}>
-            Live BookShell
-          </button>
-          <button type="button" aria-pressed={view === 'reference'} onClick={() => setView('reference')}>
-            Opening Spread Reference
-          </button>
-        </div>
-      )}
       {showReference ? (
         <main className="lab-reference-stage" aria-label="Opening spread design reference">
           <img
@@ -165,6 +155,7 @@ function App() {
             <button type="button" onClick={() => setAccountOpen(true)}>Account</button>
             <button type="button">Cart</button>
           </div>
+          {!catalogueOpen && !opening && !closing && <CustomerInformationFallback />}
           <span className="catalogue-spread-status" role="status">
             {typeof spread !== 'string' ? (spread.kind === 'details' ? 'Product details' : '') : spread === 'opening' ? 'Opening spread' : spread === 'categories-primary' ? 'Catalogue spread 1 of 2' : 'Catalogue spread 2 of 2'}
           </span>
