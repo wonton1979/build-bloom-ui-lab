@@ -141,6 +141,10 @@
   grid-area: 1 / 1;
 }
 
+/* The open book owns hits on its paper, above transparent User/Cart image
+   bounds (5) and below the opening/closing overlays (8). */
+.catalogue-stage__open-underlay { z-index: 6; }
+
 @media (max-width: 600px) {
   .catalogue-stage {
     --book-width: min(

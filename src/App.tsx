@@ -166,7 +166,7 @@ function App() {
             <button type="button">Cart</button>
           </div>
           <span className="catalogue-spread-status" role="status">
-            {spread === 'vehicles' ? 'Vehicles product spread' : spread === 'opening' ? 'Opening spread' : spread === 'categories-primary' ? 'Catalogue spread 1 of 2' : 'Catalogue spread 2 of 2'}
+            {typeof spread !== 'string' ? (spread.kind === 'details' ? 'Product details' : '') : spread === 'opening' ? 'Opening spread' : spread === 'categories-primary' ? 'Catalogue spread 1 of 2' : 'Catalogue spread 2 of 2'}
           </span>
             <div className="catalogue-stage__open-underlay" style={{ visibility: catalogueOpen ? 'visible' : 'hidden' }} aria-hidden={!catalogueOpen} inert={!catalogueOpen || opening}>
               {catalogueOpen ? <CategoryCatalogue

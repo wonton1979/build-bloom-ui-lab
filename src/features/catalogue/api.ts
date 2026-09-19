@@ -1,13 +1,20 @@
 /** Public catalogue contract shared with colorful-life-frontend /products. */
 export interface ProductListing {
   id: number
+  legoProductId: number
+  createdAt: string
+  isFeatureProduct: boolean
+  catalogueArtworkUrl: string | null
+  catalogueArtworkPublicId: string | null
   condition: 'NEW' | 'USED_LIKE_NEW'
   originalPrice: string
   salePrice: string | null
   colorfulLifeCategory: string | null
   legoProduct: {
+    id: number
     setNumber: string
     title: string
+    description: string | null
     theme: string
     pieceCount: number | null
     ageRecommendation: string | null
@@ -22,7 +29,7 @@ interface ProductsResponse {
 
 // The UI lab has no existing HTTP client. Keep the public GET contract and
 // VITE_API_BASE_URL convention of the main frontend, without adding axios.
-export async function getProducts(filters: { colorfulLifeCategory: string }, signal?: AbortSignal): Promise<ProductListing[]> {
+export async function getProducts(filters: { category: string }, signal?: AbortSignal): Promise<ProductListing[]> {
   const base = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
   const items: ProductListing[] = []
   let page = 1
