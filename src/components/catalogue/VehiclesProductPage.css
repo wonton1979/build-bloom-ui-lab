@@ -12,15 +12,21 @@
 .vehicles-page__heading p { margin: 4px 0 0; font-size: clamp(13px, 3.7cqw, 17px); color: #7a6045; }
 /* This page has no bottom navigation; its existing footer space can hold art. */
 .vehicles-page--supporting { height: calc(100% + 32px); padding: 10px 22px 0; }
+.spread-page--product-navigation .vehicles-page--supporting { height: 100%; }
+.spread-page--product-navigation .vehicle-product__art--supporting { min-height: 110px; }
 .vehicles-page--supporting .vehicles-page__heading { padding: 0; }
 .vehicles-page--supporting h2 { font-size: clamp(18px, 5.3cqw, 25px); }
-.vehicles-supporting-products { display: flex; flex: 1; flex-direction: column; gap: 12px; min-height: 0; padding-top: 8px; }
+.vehicles-supporting-products { display: grid; flex: 1; grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 12px; min-height: 0; padding-top: 8px; }
+.vehicles-feature-product { display: flex; flex: 1; min-height: 0; }
 .vehicles-supporting-products > .vehicles-page__message { display: flex; flex: 1; align-items: center; margin: 0; min-height: 0; }
 .vehicle-product--supporting { display: flex; flex: 1; flex-direction: column; }
 
 .vehicle-product { min-height: 0; }
 .vehicle-product--feature { display: flex; flex: 1; flex-direction: column; }
 .vehicle-product__art { display: block; width: 100%; object-fit: contain; }
+.vehicle-product__art-button { padding: 0; border: 0; background: transparent; cursor: pointer; }
+.vehicle-product__art-button:focus-visible { outline: 2px solid #326993; outline-offset: 3px; border-radius: 4px; }
+.vehicle-product__art-button img { display: block; width: 100%; height: 100%; object-fit: contain; }
 /* Native alpha reveals BookShell's actual paper and gutter shading. No panel,
    masking, blend mode, or simulated paper colour is applied to the artwork. */
 .vehicle-product__art--feature { flex: 1; min-height: 0; height: 0; margin: 2px 0; }
@@ -38,7 +44,23 @@
 .vehicle-product__price { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; margin: 0; font-size: 22px; color: #4d644f; }
 .vehicle-product__price del { font: 12px 'Segoe UI', system-ui, sans-serif; color: #786b5e; }
 .vehicle-product__details { padding: 4px 0; border: 0; background: transparent; color: #6b5947; font: inherit; font-size: 13px; }
-.vehicle-product__details:disabled { cursor: default; }
+.vehicle-product__details { cursor: pointer; }
+.vehicle-product__details:hover { text-decoration: underline; text-underline-offset: 4px; }
+.vehicle-product__details:focus-visible { outline: 2px solid #326993; outline-offset: 3px; }
+.product-details { padding: 10px; }
+.product-details h2 { margin: 0 0 16px; font-size: 23px; font-weight: 500; color: #4d644f; }
+.product-details__gallery { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+/* Keep the stage independent of the photograph's intrinsic grid sizing. */
+.product-details__main-image { display: flex; align-items: center; justify-content: center; width: 100%; height: clamp(200px, 75cqw, 320px); }
+.product-details__main-image img { display: block; width: auto; height: auto; max-width: 75%; max-height: 85%; object-fit: contain; }
+.product-details__thumbnails { display: flex; justify-content: center; gap: 8px; max-width: 100%; overflow-x: auto; padding: 2px 2px 4px; }
+.product-details__thumbnail { flex: 0 0 42px; width: 42px; height: 42px; padding: 2px; border: 1px solid rgba(77, 100, 79, 0.45); border-radius: 4px; background: rgba(246, 227, 193, 0.35); cursor: pointer; }
+.product-details__thumbnail img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.product-details__thumbnail.is-selected { border-color: #4d644f; box-shadow: 0 0 0 1px #4d644f; }
+.product-details__thumbnail:focus-visible { outline: 2px solid #326993; outline-offset: 2px; }
+.product-details__empty { min-height: 250px; display: grid; place-items: center; margin: 0; }
+.product-details__description { white-space: pre-line; font: 14px/1.6 'Segoe UI', system-ui, sans-serif; }
+.spread-page--vehicles:has(> .product-details) { height: auto; min-height: calc(100% + 72px); }
 .vehicles-page__message { margin: 30px 10px; font-size: 14px; }
 .vehicles-page__message button { color: inherit; font: inherit; background: transparent; border: 0; text-decoration: underline; cursor: pointer; }
 .vehicle-product--supporting .vehicle-product__number { font-size: 10px; margin-bottom: 2px; }
@@ -55,6 +77,17 @@
   .vehicle-product__footer { flex-wrap: wrap; }
   .vehicle-product__facts { margin-top: 6px; }
   .vehicles-page--supporting { height: auto; min-height: 100%; padding-bottom: 12px; }
+  .spread-page--product-navigation .vehicles-page--supporting { height: auto; }
+  .vehicles-supporting-products { grid-template-rows: none; }
   .vehicle-product--supporting { flex: none; }
   .vehicle-product__art--supporting { flex: none; height: 140px; }
+}
+
+/* Allow long standard-page content to push its own navigation down inside the
+   existing scrollable paper. BookShell geometry and scrolling stay unchanged. */
+@media (max-width: 1100px) {
+  .spread-page--vehicles:has(> .vehicles-page--supporting) { height: auto; min-height: 440px; }
+}
+@media (max-width: 760px) {
+  .spread-page--vehicles { padding-bottom: 44px; }
 }

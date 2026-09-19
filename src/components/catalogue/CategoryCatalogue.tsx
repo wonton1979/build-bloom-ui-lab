@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { BookShell } from '../BookShell'
 import { PageTurn } from './PageTurn'
@@ -7,8 +7,9 @@ import { CatalogueIndexPage } from './CatalogueIndexPage'
 import type { CatalogueCategory } from './categories'
 import './CategoryCatalogue.css'
 import type { CatalogueSpread } from './catalogueSpread'
-import { spreadAfterAction } from './catalogueSpread'
-import { VehiclesProductPage } from './VehiclesProductPage'
+import { productLocation, sameSpread, spreadAfterAction } from './catalogueSpread'
+import { planProductSpreads } from '../../features/catalogue/productSpreads'
+import { CatalogueProductDetails, VehiclesProductPage } from './VehiclesProductPage'
 import { useVehicles } from '../../features/catalogue/useVehicles'
 
 export type { CatalogueSpread } from './catalogueSpread'
@@ -75,106 +76,101 @@ import { cataloguePages } from './cataloguePages'
 
 const [pageOne, pageTwo, pageThree, pageFour] = cataloguePages
 
-/** The same shell persists; only its two content slots change. */
+/** The same shell persists; category and product turns share one coordinator. */
 export function CategoryCatalogue({ spread, onSpreadChange, onClose }: CatalogueProps) {
-  const opening = spread === 'opening'
-  const primary = spread === 'categories-primary'
-  const vehicles = spread === 'vehicles'
-  const { state: vehiclesState, retry } = useVehicles(vehicles)
-  const back = spreadAfterAction(spread, 'backward')
-  const forward = spreadAfterAction(spread, 'forward')
-  const [turn, setTurn] = useState<'forward' | 'backward' | null>(null)
+  const productsOpen = typeof spread !== 'string'
+  const { state: vehiclesState, retry } = useVehicles(productsOpen)
+  const listings = vehiclesState.status === 'ready' ? vehiclesState.listings : []
+  const productSpreads = planProductSpreads(listings)
+  const current: CatalogueSpread = typeof spread !== 'string' && spread.kind === 'products'
+    ? { ...spread, index: Math.max(0, Math.min(spread.index, productSpreads.length - 1)) }
+    : spread
+  const [turn, setTurn] = useState<{ direction: 'forward' | 'backward'; from: CatalogueSpread; to: CatalogueSpread } | null>(null)
+  const locked = useRef(false)
+  const unlockFrame = useRef<number | null>(null)
+  useEffect(() => () => { if (unlockFrame.current !== null) cancelAnimationFrame(unlockFrame.current) }, [])
+
+  const navigate = (next: CatalogueSpread) => {
+    if (!locked.current) onSpreadChange(next)
+  }
   const beginTurn = (direction: 'forward' | 'backward', next: CatalogueSpread) => {
-    if (turn || next === spread) return
-    if (opening || typeof window === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (locked.current || sameSpread(next, current)) return
+    if (current === 'opening' || typeof window === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       onSpreadChange(next)
       return
     }
-    setTurn(direction)
+    locked.current = true
+    setTurn({ direction, from: current, to: next })
   }
   const finishTurn = () => {
     if (!turn) return
-    if (turn === 'forward') {
-      // Commit the destination beneath the frozen Page 3 back face first.
-      onSpreadChange('categories-more')
-      window.requestAnimationFrame(() => setTurn(null))
-      return
-    }
-    onSpreadChange('categories-primary')
-    setTurn(null)
+    onSpreadChange(turn.to)
+    // Hold the frozen faces through the React handoff, as in the category turn.
+    unlockFrame.current = window.requestAnimationFrame(() => {
+      setTurn(null)
+      locked.current = false
+      unlockFrame.current = null
+    })
   }
-  const leftContent = vehicles ? <VehiclesProductPage side="feature" state={vehiclesState} onRetry={retry} /> : opening ? <OpeningWelcomePage /> : (
-    <CataloguePageContent
-      categories={primary ? pageOne : pageThree}
-      heading={primary ? 'Our Catalogue' : 'More little worlds'}
-      start={primary ? 1 : 8}
-    />
-  )
-  const rightContent = vehicles ? <VehiclesProductPage side="supporting" state={vehiclesState} onRetry={retry} /> : opening ? <CatalogueIndexPage /> : (
-    <CataloguePageContent
-      categories={primary ? pageTwo : pageFour}
-      start={primary ? 4 : 11}
-      onVehicles={() => { if (!turn) onSpreadChange('vehicles') }}
-    />
-  )
-  const turningPage = turn ? (
-    <PageTurn direction={turn} onComplete={finishTurn}
-      front={
-        <div className="spread-page">
-          <CataloguePageContent
-            categories={turn === 'forward' ? pageTwo : pageThree}
-            heading={turn === 'forward' ? undefined : 'More little worlds'}
-            start={turn === 'forward' ? 4 : 8}
-          />
-        </div>
-      }
-      back={
-        <div className="spread-page">
-          <CataloguePageContent
-            categories={turn === 'forward' ? pageThree : pageTwo}
-            heading={turn === 'forward' ? 'More little worlds' : undefined}
-            start={turn === 'forward' ? 8 : 4}
-          />
-        </div>
-      }
-    />
-  ) : null
+  const forward = spreadAfterAction(current, 'forward', productSpreads.length)
+  const backward = spreadAfterAction(current, 'backward', productSpreads.length)
+  const hasForward = current !== 'categories-more' && !sameSpread(current, forward)
+  const firstProduct = typeof current !== 'string' && current.kind === 'products' && current.index === 0
+  const details = typeof current !== 'string' && current.kind === 'details'
 
-  const underlayLeft = turn === 'backward' ? <CataloguePageContent categories={pageOne} heading="Our Catalogue" start={1} /> : leftContent
-  const underlayRight = turn === 'forward' ? <CataloguePageContent categories={pageFour} start={11} /> : rightContent
+  const pageContent = (location: CatalogueSpread, side: 'left' | 'right') => {
+    if (typeof location !== 'string') {
+      if (location.kind === 'details') return <CatalogueProductDetails side={side} listing={listings.find(item => item.id === location.listingId)} />
+      return <VehiclesProductPage side={side} spread={productSpreads[location.index]} status={vehiclesState.status} onRetry={retry}
+        onViewDetails={(listingId) => navigate({ kind: 'details', listingId, returnTo: location })} />
+    }
+    if (location === 'opening') return side === 'left' ? <OpeningWelcomePage /> : <CatalogueIndexPage />
+    const primary = location === 'categories-primary'
+    return <CataloguePageContent categories={side === 'left' ? (primary ? pageOne : pageThree) : (primary ? pageTwo : pageFour)}
+      heading={side === 'left' ? (primary ? 'Our Catalogue' : 'More little worlds') : undefined}
+      start={side === 'left' ? (primary ? 1 : 8) : (primary ? 4 : 11)}
+      onVehicles={() => navigate(productLocation())} />
+  }
+  const pageClass = (location: CatalogueSpread, side: 'left' | 'right') => {
+    const product = typeof location !== 'string'
+    const next = spreadAfterAction(location, 'forward', productSpreads.length)
+    const navigation = side === 'left' || !sameSpread(location, next)
+    return `spread-page${side === 'right' ? ' spread-page--right' : ''}${location === 'opening' && side === 'left' ? ' spread-page--welcome' : ''}${product ? ' spread-page--vehicles' : ''}${product && navigation ? ' spread-page--product-navigation' : ''}`
+  }
+  const frozenPage = (location: CatalogueSpread, side: 'left' | 'right') => (
+    <div className={pageClass(location, side)}>{pageContent(location, side)}</div>
+  )
+  const source = turn?.from ?? current
+  const left = turn?.direction === 'backward' ? turn.to : source
+  const right = turn?.direction === 'forward' ? turn.to : source
+  const backLabel = details ? '← Back to Vehicles' : firstProduct ? '← Back to Categories' : '← Back'
 
   return (
-    <BookShell
-      bookOverlay={undefined}
-      leftPage={
-        <div className={opening ? 'spread-page spread-page--welcome' : vehicles ? 'spread-page spread-page--vehicles' : 'spread-page'}>
-          {underlayLeft}
-          {!opening && (
-            <div className="spread-page__navigation">
-              {vehicles ? (
-                <button type="button" onClick={() => onSpreadChange('categories-more')}>← Back to Categories</button>
-              ) : spread === 'categories-primary' ? (
-                <button type="button" disabled={Boolean(turn)} onClick={onClose}>← Close Book</button>
-              ) : (
-                <button type="button" disabled={Boolean(turn)} onClick={() => beginTurn('backward', back)}>← Back</button>
-              )}
-            </div>
-          )}
-        </div>
-      }
-      rightPage={
-        <div className={`spread-page spread-page--right${vehicles ? ' spread-page--vehicles' : ''}`}>
-          {underlayRight}
-          {!vehicles && spread !== 'categories-more' && (
-            <div className="spread-page__navigation">
-              <button type="button" disabled={Boolean(turn)} onClick={() => beginTurn('forward', forward)}>
-                {opening ? 'Discover all 13 worlds →' : 'More →'}
-              </button>
-            </div>
-          )}
-        </div>
-      }
-      pageTurn={turningPage}
-    />
+    <>
+      {typeof current !== 'string' && current.kind === 'products' && <span className="catalogue-spread-status" role="status">
+        Vehicles product spread {current.index + 1} of {Math.max(1, productSpreads.length)}
+      </span>}
+      <BookShell
+        leftPage={<div className={pageClass(left, 'left')} data-product-index={typeof current !== 'string' && current.kind === 'products' ? current.index : undefined}>
+          {pageContent(left, 'left')}
+          {current !== 'opening' && <div className="spread-page__navigation">
+            {current === 'categories-primary'
+              ? <button type="button" disabled={Boolean(turn)} onClick={onClose}>← Close Book</button>
+              : <button type="button" disabled={Boolean(turn)} onClick={() => firstProduct || details ? navigate(backward) : beginTurn('backward', backward)}>{backLabel}</button>}
+          </div>}
+        </div>}
+        rightPage={<div className={pageClass(right, 'right')}>
+          {pageContent(right, 'right')}
+          {hasForward && <div className="spread-page__navigation">
+            <button type="button" disabled={Boolean(turn)} onClick={() => beginTurn('forward', forward)}>
+              {typeof current !== 'string' ? 'More Vehicles →' : current === 'opening' ? 'Discover all 13 worlds →' : 'More →'}
+            </button>
+          </div>}
+        </div>}
+        pageTurn={turn ? <PageTurn direction={turn.direction} onComplete={finishTurn}
+          front={frozenPage(turn.from, turn.direction === 'forward' ? 'right' : 'left')}
+          back={frozenPage(turn.to, turn.direction === 'forward' ? 'left' : 'right')} /> : null}
+      />
+    </>
   )
 }

@@ -1,18 +1,12 @@
-import featureArtwork from '../../assets/categories/vehicles/vehicle-77256-feature.png'
-import astonMartinArtwork from '../../assets/categories/vehicles/vehicle-77245-standard.png'
-import bmwArtwork from '../../assets/categories/vehicles/vehicle-42226-standard.png'
+import { useState } from 'react'
 import type { ProductListing } from '../../features/catalogue/api'
-import { selectVehicle } from '../../features/catalogue/vehicles'
+import type { ProductSpread } from '../../features/catalogue/productSpreads'
 import type { VehiclesState } from '../../features/catalogue/useVehicles'
 import './VehiclesProductPage.css'
 
 const pounds = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' })
-const supportingSlots = [
-  { setNumber: '77245', artwork: astonMartinArtwork },
-  { setNumber: '42226', artwork: bmwArtwork },
-] as const
 
-function ProductCopy({ listing }: { listing: ProductListing }) {
+function ProductCopy({ listing, onViewDetails }: { listing: ProductListing; onViewDetails?: (id: number) => void }) {
   const { legoProduct: product } = listing
   const age = product.ageRecommendation?.trim()
   return (
@@ -29,49 +23,105 @@ function ProductCopy({ listing }: { listing: ProductListing }) {
           {listing.salePrice !== null && <del aria-label="Original price">{pounds.format(Number(listing.originalPrice))}</del>}
           <span aria-label={listing.salePrice !== null ? 'Sale price' : 'Price'}>{pounds.format(Number(listing.salePrice ?? listing.originalPrice))}</span>
         </p>
-        {/* TODO: connect to in-book product details when that interaction exists. */}
-        <button type="button" className="vehicle-product__details" disabled title="Product details coming soon">View Details →</button>
+        {onViewDetails && <button type="button" className="vehicle-product__details"
+          aria-label={`View details for ${product.title}`} onClick={() => onViewDetails(listing.id)}>View Details →</button>}
       </div>
     </div>
   )
 }
 
-export function VehiclesProductPage({ side, state, onRetry }: {
-  side: 'feature' | 'supporting'
-  state: VehiclesState
+function CatalogueArtwork({ listing, feature, onViewDetails }: { listing: ProductListing; feature: boolean; onViewDetails: (id: number) => void }) {
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
+  const url = listing.catalogueArtworkUrl
+  const className = `vehicle-product__art vehicle-product__art--${feature ? 'feature' : 'supporting'}`
+  // Photography and local migration assets are not fallbacks. A replaced
+  // backend URL gets a fresh load attempt, independently of a previous failure.
+  return url?.trim() && failedUrl !== url ? (
+    <button type="button" className={`${className} vehicle-product__art-button`} aria-label={`View details for ${listing.legoProduct.title}`}
+      onClick={() => onViewDetails(listing.id)}>
+      <img src={url} alt={`Illustrated ${listing.legoProduct.title}`} onError={() => setFailedUrl(url)} />
+    </button>
+  ) : <span className={className} aria-hidden="true" data-artwork-state="empty" />
+}
+
+export function VehiclesProductPage({ side, spread, status, onRetry, onViewDetails }: {
+  side: 'left' | 'right'
+  spread?: ProductSpread
+  status: VehiclesState['status']
   onRetry: () => void
+  onViewDetails: (id: number) => void
 }) {
-  const feature = side === 'feature'
-  const listing = state.status === 'ready' ? selectVehicle(state.listings, '77256') : undefined
+  const feature = side === 'left' ? spread?.feature : undefined
+  const products = feature ? [feature] : (spread?.[side] ?? [])
   return (
-    <section className={`vehicles-page vehicles-page--${side}`} aria-labelledby={`vehicles-${side}-heading`}>
+    <section className={`vehicles-page vehicles-page--${feature ? 'feature' : 'supporting'}`} aria-labelledby={`vehicles-${side}-heading`}>
       <header className="vehicles-page__heading">
-        <h2 id={`vehicles-${side}-heading`}>{feature ? 'Vehicles' : 'More amazing vehicles'}</h2>
+        <h2 id={`vehicles-${side}-heading`}>{side === 'left' ? 'Vehicles' : 'More amazing vehicles'}</h2>
         {feature && <p>Built for the thrill</p>}
       </header>
-      {state.status === 'loading' && <p className="vehicles-page__message" role="status">Opening the garage…</p>}
-      {state.status === 'error' && <div className="vehicles-page__message" role="alert">
+      {status === 'loading' && <p className="vehicles-page__message" role="status">Opening the garage…</p>}
+      {status === 'error' && <div className="vehicles-page__message" role="alert">
         <p>We couldn’t load the vehicles.</p>
         <button type="button" onClick={onRetry}>Try again</button>
       </div>}
-      {feature && state.status === 'ready' && !listing && <p className="vehicles-page__message">This vehicle is currently unavailable.</p>}
-      {feature && listing && <article className="vehicle-product vehicle-product--feature" aria-label={listing.legoProduct.title}>
-        <img className="vehicle-product__art vehicle-product__art--feature" src={featureArtwork}
-          alt={`Illustrated ${listing.legoProduct.title}`} width={1536} height={1024} />
-        <ProductCopy listing={listing} />
-      </article>}
-      {!feature && state.status === 'ready' && <div className="vehicles-supporting-products">
-        {supportingSlots.map(({ setNumber, artwork }) => {
-          const supporting = selectVehicle(state.listings, setNumber)
-          return supporting ? (
-            <article key={setNumber} className="vehicle-product vehicle-product--supporting" aria-label={supporting.legoProduct.title}>
-              <img className="vehicle-product__art vehicle-product__art--supporting" src={artwork}
-                alt={`Illustrated ${supporting.legoProduct.title}`} width={1536} height={1024} />
-              <ProductCopy listing={supporting} />
-            </article>
-          ) : <p key={setNumber} className="vehicles-page__message">Set {setNumber} is currently unavailable.</p>
-        })}
+      {status === 'ready' && !spread && side === 'left' && <p className="vehicles-page__message">No vehicles are available at the moment.</p>}
+      {status === 'ready' && <div className={feature ? 'vehicles-feature-product' : 'vehicles-supporting-products'}>
+        {products.map(listing => <article key={listing.id} data-listing-id={listing.id}
+          className={`vehicle-product vehicle-product--${feature ? 'feature' : 'supporting'}`} aria-label={listing.legoProduct.title}>
+          <CatalogueArtwork listing={listing} feature={Boolean(feature)} onViewDetails={onViewDetails} />
+          <ProductCopy listing={listing} onViewDetails={onViewDetails} />
+        </article>)}
       </div>}
     </section>
+  )
+}
+
+/** Minimal in-book details. Listing photography retains its API ordering and
+ * remains separate from catalogue artwork; no commerce workflow is added. */
+export function CatalogueProductDetails({ listing, side }: { listing?: ProductListing; side: 'left' | 'right' }) {
+  if (!listing) return <p className="vehicles-page__message">This product is currently unavailable.</p>
+  return side === 'left' ? (
+    <section className="product-details" aria-label="Product photographs">
+      <h2>Take a closer look</h2>
+      <ProductGallery listing={listing} />
+    </section>
+  ) : (
+    <article className="product-details" data-detail-listing-id={listing.id} aria-label={listing.legoProduct.title}>
+      <h2>Product details</h2>
+      <ProductCopy listing={listing} />
+      <p className="product-details__description">{listing.legoProduct.description ?? 'No description available.'}</p>
+      <p>Condition: {listing.condition === 'NEW' ? 'New' : 'Used, like new'}</p>
+    </article>
+  )
+}
+
+function ProductGallery({ listing }: { listing: ProductListing }) {
+  const [selectedIndex, setSelectedIndex] = useState(0)
+  const selected = listing.listingImages[selectedIndex]
+
+  if (!listing.listingImages.length) {
+    return <p className="product-details__empty">No product photographs available.</p>
+  }
+
+  return (
+    <div className="product-details__gallery" aria-label="Product image gallery">
+      <div className="product-details__main-image">
+        <img src={selected.url} alt={selected.altText ?? listing.legoProduct.title} />
+      </div>
+      <div className="product-details__thumbnails" role="group" aria-label="Choose product image">
+        {listing.listingImages.map((image, index) => (
+          <button
+            key={`${image.url}-${index}`}
+            type="button"
+            className={`product-details__thumbnail${index === selectedIndex ? ' is-selected' : ''}`}
+            aria-label={`Show product image ${index + 1}`}
+            aria-pressed={index === selectedIndex}
+            onClick={() => setSelectedIndex(index)}
+          >
+            <img src={image.url} alt="" aria-hidden="true" />
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }
