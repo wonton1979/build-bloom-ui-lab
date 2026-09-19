@@ -1,0 +1,44 @@
+.customer-information-fallback {
+  display: none;
+}
+
+/* The notebook remains readable through wide, shallow desktop crops. Show the
+   fallback only once the crop is deep enough to make its title unreliable. */
+@media (min-width: 761px) and (max-width: 1500px) and (max-aspect-ratio: 3 / 2) {
+  .customer-information-fallback {
+    position: absolute;
+    z-index: 4;
+    left: clamp(24px, calc(50% - (var(--book-width) / 2) - 156px), 180px);
+    bottom: 13%;
+    display: block;
+    width: clamp(176px, 15vw, 218px);
+    padding: 11px 14px 12px;
+    border: 1px solid #d3c09c;
+    border-radius: 2px 3px 4px 2px;
+    background: #fff6df;
+    color: #4d665d;
+    box-shadow: 3px 5px 0 #d9c39d, 7px 10px 13px #5b463328;
+    font: 500 clamp(14px, 1.35vw, 19px)/1.25 'Segoe Print', 'Comic Sans MS', cursive;
+    letter-spacing: 0.01em;
+    text-align: center;
+    cursor: pointer;
+    transform: rotate(-1.5deg);
+    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+  }
+
+  .customer-information-fallback:hover {
+    background: #fff9e9;
+    box-shadow: 4px 7px 0 #d9c39d, 8px 12px 15px #5b46333d;
+    transform: rotate(-1.5deg) translateY(-2px);
+  }
+
+  .customer-information-fallback:focus-visible {
+    outline: 3px solid #527f78;
+    outline-offset: 5px;
+  }
+
+  .customer-information-fallback:active {
+    box-shadow: 2px 3px 0 #d9c39d, 4px 6px 9px #5b463328;
+    transform: rotate(-1.5deg) translateY(1px);
+  }
+}
