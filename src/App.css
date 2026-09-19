@@ -158,8 +158,8 @@
 /* Large desktop keeps the catalogue readable before secondary objects. */
 @media (min-width: 1200px) {
   .catalogue-stage {
-    /* Asymmetric stage space lifts the entire book by 36px without scaling it. */
-    padding-bottom: 72px;
+    /* Keep the desktop book slightly below the tabletop sign without changing its size. */
+    padding-bottom: 24px;
     --book-width: min(
       75vw,
       calc(62svh * 9 / 5),
