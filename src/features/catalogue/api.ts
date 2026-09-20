@@ -9,6 +9,7 @@ export interface ProductListing {
   condition: 'NEW' | 'USED_LIKE_NEW'
   originalPrice: string
   salePrice: string | null
+  availableStock: number
   colorfulLifeCategory: string | null
   legoProduct: {
     id: number

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { CatalogueProductDetails, VehiclesProductPage } from './VehiclesProductPage'
 import { listing } from '../../features/catalogue/catalogueFixtures'
 import { planProductSpreads } from '../../features/catalogue/productSpreads'
+import { CartContext } from '../../features/cart/CartContext'
 
 const renderPage = (products: ReturnType<typeof listing>[], index = 0, side: 'left' | 'right' = 'left') =>
   renderToStaticMarkup(<VehiclesProductPage side={side} spread={planProductSpreads(products)[index]} status="ready" onRetry={vi.fn()} onViewDetails={vi.fn()} />)
@@ -63,6 +64,33 @@ describe('dynamic catalogue products and dedicated artwork', () => {
     expect(markup).not.toContain('catalogue.png')
     expect(JSON.stringify(product.listingImages)).toBe(before)
     expect(renderToStaticMarkup(<CatalogueProductDetails listing={product} side="right" />)).toContain('Description 8')
+  })
+
+  it('adds a restrained listing-specific Add to cart control to the details page', () => {
+    const product = listing(18)
+    const markup = renderToStaticMarkup(<CatalogueProductDetails listing={product} side="right" onAddToCart={vi.fn()} />)
+    expect(markup).toContain('Add to cart')
+    expect(markup).toContain('product-details__add')
+    expect(markup).toContain('viewBox="0 0 24 24"')
+    expect(markup).toContain('Condition: New')
+  })
+
+  it('renders available stock beside Condition and derives In cart from shared CartContext', () => {
+    const product = listing(19, { availableStock: 4 })
+    const markup = renderToStaticMarkup(<CartContext.Provider value={{
+      items: [{ productListingId: product.id, listing: product, quantity: 2 }], addListing: vi.fn(),
+    }}><CatalogueProductDetails listing={product} side="right" onAddToCart={vi.fn()} /></CartContext.Provider>)
+    expect(markup).toContain('Condition: New · Stock: 4')
+    expect(markup).toContain('In cart: 2')
+    expect(markup).not.toContain('>Stock: 4</')
+  })
+
+  it('renders out-of-stock and disables the add control without adding another stock row', () => {
+    const product = listing(20, { availableStock: 0 })
+    const markup = renderToStaticMarkup(<CatalogueProductDetails listing={product} side="right" onAddToCart={vi.fn()} />)
+    expect(markup).toContain('Condition: New · Out of stock')
+    expect(markup).toContain('class="product-details__add" disabled')
+    expect(markup).not.toContain('>Stock: 0</')
   })
 
   it('starts with the first API image and renders compact thumbnails in API order', () => {

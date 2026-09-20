@@ -60,6 +60,13 @@
 .product-details__thumbnail:focus-visible { outline: 2px solid #326993; outline-offset: 2px; }
 .product-details__empty { min-height: 250px; display: grid; place-items: center; margin: 0; }
 .product-details__description { white-space: pre-line; font: 14px/1.6 'Segoe UI', system-ui, sans-serif; }
+.product-details__add { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; padding: 7px 2px; border: 0; border-bottom: 1px solid transparent; background: transparent; color: #3e6962; font: 600 16px/1.4 'Segoe Print', 'Comic Sans MS', cursive; cursor: pointer; }
+.product-details__add svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
+.product-details__add:hover { border-bottom-color: currentColor; }
+.product-details__add:disabled { opacity: 0.62; cursor: not-allowed; }
+.product-details__add:disabled:hover { border-bottom-color: transparent; }
+.product-details__cart-quantity { font: 13px/1.3 'Segoe UI', system-ui, sans-serif; color: #6b5947; }
+.product-details__add:focus-visible { outline: 2px solid #326993; outline-offset: 4px; border-radius: 3px; }
 .spread-page--vehicles:has(> .product-details) { height: auto; min-height: calc(100% + 72px); }
 .vehicles-page__message { margin: 30px 10px; font-size: 14px; }
 .vehicles-page__message button { color: inherit; font: inherit; background: transparent; border: 0; text-decoration: underline; cursor: pointer; }
