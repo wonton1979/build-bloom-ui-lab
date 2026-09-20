@@ -1,0 +1,3 @@
+.botanical-divider { display: flex; align-items: center; gap: 14px; width: 100%; }
+.botanical-divider::before, .botanical-divider::after { content: ''; flex: 1; height: 1px; background: #b9aa8a; opacity: .72; }
+.botanical-divider img { display: block; flex: 0 0 22px; width: 22px; height: auto; pointer-events: none; }

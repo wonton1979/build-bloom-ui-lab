@@ -100,6 +100,7 @@
 .guest-cart-bubble { position: absolute; left: -23%; bottom: 30%; z-index: 7; width: clamp(180px, 28%, 230px); padding: 12px 14px; border: 1px solid #c6a87a; border-radius: 18px; background: #fff9e9; color: #493c31; box-shadow: 0 5px 12px #47445d35; font: 600 clamp(12px, 1.2vw, 15px)/1.25 'Segoe Print', 'Comic Sans MS', cursive; text-align: left; cursor: pointer; }
 .guest-cart-bubble > span { position: absolute; right: 12%; bottom: -8px; width: 16px; height: 16px; background: #fff9e9; border-right: 1px solid #c6a87a; border-bottom: 1px solid #c6a87a; transform: rotate(45deg); }
 .guest-cart-bubble:focus-visible { outline: 3px solid #fff3c9; outline-offset: 4px; }
+.user-dialogue-bubble { cursor: default; }
 @media (min-width: 1200px) { .user-cart-group { left: 38%; } }
 @media (max-width: 760px) { .user-cart-group { display: none; } }
 
@@ -115,6 +116,7 @@
 
 .account-modal__close {
   position: absolute;
+  z-index: 10;
   top: 16px;
   right: 18px;
   width: 42px;

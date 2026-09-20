@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import openingSpreadReference from './assets/reference/opening-spread-master.png'
 import { CategoryCatalogue } from './components/catalogue/CategoryCatalogue'
 import { ClosedCatalogue } from './components/catalogue/ClosedCatalogue'
@@ -8,9 +8,12 @@ import { BookShell } from './components/BookShell'
 import type { CatalogueSpread } from './components/catalogue/catalogueSpread'
 import './App.css'
 import { AccountModal } from './components/homepage/AccountModal'
+import { CartModal } from './components/cart/CartModal'
 import { BookOwnedCart } from './components/catalogue/BookOwnedCart'
 import { BookOwnedUser } from './components/catalogue/BookOwnedUser'
 import { CustomerInformationFallback } from './components/homepage/CustomerInformationFallback'
+import { useAuth } from './features/auth/AuthProvider'
+import { USER_ACCOUNT_HINT, USER_WELCOME_GREETING_MS, USER_WELCOME_HINT_MS, welcomeGreeting } from './components/catalogue/userWelcome'
 
 function App() {
   const [view] = useState<'live' | 'reference'>('live')
@@ -20,12 +23,19 @@ function App() {
   const [closedRect, setClosedRect] = useState<DOMRect | null>(null)
   const [spread, setSpread] = useState<CatalogueSpread>('categories-primary')
   const [accountOpen, setAccountOpen] = useState(false)
+  const [cartOpen, setCartOpen] = useState(false)
   const [guestHint, setGuestHint] = useState<'user' | 'cart' | null>(null)
+  const [userDialogue, setUserDialogue] = useState<string | null>(null)
   const guestHintTimer = useRef<number | null>(null)
+  const userDialogueTimer = useRef<number | null>(null)
+  const userDialogueRun = useRef(0)
   const pendingBookmarkHref = useRef<string | null>(null)
   const stageRef = useRef<HTMLElement>(null)
+  const cartOpenerRef = useRef<HTMLElement | null>(null)
   const previousSpread = useRef(spread)
   const previouslyOpen = useRef(false)
+  const previousAuthStatus = useRef<string | undefined>(undefined)
+  const { state: authState } = useAuth()
   const showReference = import.meta.env.DEV && view === 'reference'
   const showGuestHint = (source: 'user' | 'cart') => {
     if (guestHintTimer.current !== null) window.clearTimeout(guestHintTimer.current)
@@ -40,9 +50,57 @@ function App() {
     guestHintTimer.current = null
     setGuestHint(null)
   }
+  const cancelUserDialogue = () => {
+    userDialogueRun.current += 1
+    if (userDialogueTimer.current !== null) window.clearTimeout(userDialogueTimer.current)
+    userDialogueTimer.current = null
+    setUserDialogue(null)
+  }
+  const startUserWelcome = (firstName: string | null | undefined) => {
+    const run = ++userDialogueRun.current
+    if (userDialogueTimer.current !== null) window.clearTimeout(userDialogueTimer.current)
+    setUserDialogue(welcomeGreeting(firstName))
+    userDialogueTimer.current = window.setTimeout(() => {
+      if (run !== userDialogueRun.current) return
+      setUserDialogue(USER_ACCOUNT_HINT)
+      userDialogueTimer.current = window.setTimeout(() => {
+        if (run !== userDialogueRun.current) return
+        userDialogueTimer.current = null
+        setUserDialogue(null)
+      }, USER_WELCOME_HINT_MS)
+    }, USER_WELCOME_GREETING_MS)
+  }
+  const openAccount = () => {
+    cancelUserDialogue()
+    dismissGuestHint()
+    setAccountOpen(true)
+  }
+  const openCart = () => {
+    if (authState.status !== 'authenticated') { showGuestHint('cart'); return }
+    cartOpenerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    dismissGuestHint()
+    setCartOpen(true)
+  }
+  const closeCart = useCallback(() => {
+    setCartOpen(false)
+    requestAnimationFrame(() => {
+      const opener = cartOpenerRef.current
+      if (opener?.isConnected && opener.getClientRects().length) opener.focus({ preventScroll: true })
+      else Array.from(stageRef.current?.querySelectorAll<HTMLElement>('.stage-cart, .mobile-quick-controls button:last-child') ?? [])
+        .find(element => element.getClientRects().length > 0)?.focus({ preventScroll: true })
+    })
+  }, [])
   useEffect(() => () => {
     if (guestHintTimer.current !== null) window.clearTimeout(guestHintTimer.current)
+    if (userDialogueTimer.current !== null) window.clearTimeout(userDialogueTimer.current)
+    userDialogueRun.current += 1
   }, [])
+  useEffect(() => {
+    if (previousAuthStatus.current === 'authenticating' && authState.status === 'authenticated') {
+      startUserWelcome(authState.user.firstName)
+    }
+    previousAuthStatus.current = authState.status
+  }, [authState])
   useLayoutEffect(() => {
     const stage = stageRef.current
     const page = stage?.querySelector<HTMLElement>('.book-shell__page--right')
@@ -139,21 +197,25 @@ function App() {
           />
         </main>
       ) : (
-        <main className="catalogue-stage" data-book-state={catalogueOpen || closing ? 'open' : 'closed'} aria-label="Catalogue" ref={stageRef} tabIndex={-1} inert={Boolean(closing) || accountOpen}>
+        <main className="catalogue-stage" data-book-state={catalogueOpen || closing ? 'open' : 'closed'} aria-label="Catalogue" ref={stageRef} tabIndex={-1} inert={Boolean(closing) || accountOpen || cartOpen}>
           <div className="user-cart-group" aria-label="Catalogue tools">
             <BookOwnedUser
-              onOpenAccount={() => { dismissGuestHint(); setAccountOpen(true) }}
-              onGuestHint={() => showGuestHint('user')}
+              onOpenAccount={openAccount}
+              onGuestHint={() => { if (authState.status === 'signedOut') showGuestHint('user') }}
             />
-            <BookOwnedCart onGuestClick={() => showGuestHint('cart')} />
-            {guestHint && <button className="guest-cart-bubble" type="button" onClick={() => { dismissGuestHint(); setAccountOpen(true) }}>
+            <BookOwnedCart onGuestClick={openCart} />
+            {guestHint && <button className="guest-cart-bubble" type="button" onClick={openAccount}>
               {guestHint === 'user' ? <>Hi! Sign in or<br />create an account.</> : <>Hi! Sign in to<br />use your cart.</>}
               <span aria-hidden="true" />
             </button>}
+            {userDialogue && <div className="guest-cart-bubble user-dialogue-bubble" role="status" aria-live="polite">
+              {userDialogue}
+              <span aria-hidden="true" />
+            </div>}
           </div>
           <div className="mobile-quick-controls" aria-label="Quick navigation">
-            <button type="button" onClick={() => setAccountOpen(true)}>Account</button>
-            <button type="button">Cart</button>
+            <button type="button" onClick={openAccount}>Account</button>
+            <button type="button" onClick={authState.status === 'authenticated' ? openCart : undefined}>Cart</button>
           </div>
           {!catalogueOpen && !opening && !closing && <CustomerInformationFallback />}
           <span className="catalogue-spread-status" role="status">
@@ -177,6 +239,7 @@ function App() {
         </main>
       )}
       {!showReference && accountOpen && <AccountModal onClose={closeAccount} />}
+      {!showReference && cartOpen && authState.status === 'authenticated' && <CartModal onClose={closeCart} />}
     </>
   )
 }

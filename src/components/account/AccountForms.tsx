@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import cottage from '../../assets/illustrations/opening-welcome-illustration.png'
 import flower from '../../assets/decorations/catalogue-title-flower.png'
+import { useAuth } from '../../features/auth/AuthProvider'
 import './AccountExperience.css'
 
 export type AccountMode = 'signin' | 'create'
@@ -38,14 +39,20 @@ type AccountViewProps = {
   onModeChange: (mode: AccountMode) => void
   draft?: Draft
   onFieldChange?: (name: FieldName, value: string) => void
+  onSubmit?: (event: FormEvent<HTMLFormElement>) => void
+  error?: string
+  submitting?: boolean
 }
 
-/** Static frontend only: credentials stay in memory and submission does nothing. */
-function preventAccountSubmission(event: FormEvent<HTMLFormElement>) {
-  event.preventDefault()
-}
+const passwordRules = [
+  [/^.{8,}$/, 'at least 8 characters'],
+  [/[a-z]/, 'a lowercase letter'],
+  [/[A-Z]/, 'an uppercase letter'],
+  [/[0-9]/, 'a digit'],
+  [/[^A-Za-z0-9]/, 'a special character'],
+] as const
 
-export function AccountView({ mode, onModeChange, draft = emptyDraft, onFieldChange }: AccountViewProps) {
+export function AccountView({ mode, onModeChange, draft = emptyDraft, onFieldChange, onSubmit, error, submitting }: AccountViewProps) {
   const creating = mode === 'create'
   const [visible, setVisible] = useState<Record<'password' | 'confirmPassword', boolean>>({ password: false, confirmPassword: false })
   return (
@@ -63,7 +70,8 @@ export function AccountView({ mode, onModeChange, draft = emptyDraft, onFieldCha
           <h2 id="account-task-title" tabIndex={-1}>{creating ? 'A little world,\nwith you in it.' : 'Welcome back!'}</h2>
           <p>{creating ? 'Create your account. Let’s start your next little story.' : 'Come on in. Your next little story is waiting.'}</p>
         </header>
-        <form key={mode} className="account-form" aria-labelledby="account-task-title" onSubmit={preventAccountSubmission} noValidate>
+        {error && <p className="account-form__message account-form__message--error" role="alert">{error}</p>}
+        <form key={mode} className="account-form" aria-labelledby="account-task-title" onSubmit={onSubmit} noValidate>
           <div className="account-form__fields">
             {fields[mode].map(({ name, label, type, autoComplete }) => {
               const id = `account-${mode}-${name}`
@@ -86,7 +94,7 @@ export function AccountView({ mode, onModeChange, draft = emptyDraft, onFieldCha
               )
             })}
           </div>
-          <button className="account-form__submit" type="submit">{creating ? 'Create Account' : 'Sign In'}</button>
+          <button className="account-form__submit" type="submit" disabled={submitting}>{submitting ? 'Please wait…' : creating ? 'Create Account' : 'Sign In'}</button>
         </form>
         <p className="account-experience__switch">
           {creating ? 'Already part of our little world?' : 'New to our little world?'}{' '}
@@ -104,6 +112,10 @@ export function AccountForms() {
   const [drafts, setDrafts] = useState({ signin: emptyDraft, create: emptyDraft })
   const container = useRef<HTMLDivElement>(null)
   const previousMode = useRef(mode)
+  const { state, authenticate } = useAuth()
+  const [formError, setFormError] = useState<string>()
+  const submitting = state.status === 'authenticating'
+  const serverError = state.status === 'signedOut' ? state.error : state.status === 'error' ? state.message : state.status === 'verificationRequired' ? state.message : undefined
   useLayoutEffect(() => {
     if (previousMode.current !== mode) {
       container.current?.querySelector<HTMLElement>('#account-task-title')?.focus({ preventScroll: true })
@@ -112,10 +124,24 @@ export function AccountForms() {
       previousMode.current = mode
     }
   }, [mode])
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const current = drafts[mode]
+    if (!current.email.trim()) return setFormError('Enter your email address.')
+    if (!current.password) return setFormError('Enter your password.')
+    if (mode === 'create') {
+      const failedRule = passwordRules.find(([rule]) => !rule.test(current.password))
+      if (failedRule) return setFormError(`Your password needs ${failedRule[1]}.`)
+      if (current.password !== current.confirmPassword) return setFormError('Your passwords do not match.')
+    }
+    setFormError(undefined)
+    await authenticate(mode === 'create' ? 'signup' : 'signin', { email: current.email, password: current.password })
+  }
   return (
     <div ref={container}>
       <AccountView mode={mode} onModeChange={setMode} draft={drafts[mode]}
-        onFieldChange={(name, value) => setDrafts((current) => ({ ...current, [mode]: { ...current[mode], [name]: value } }))} />
+        onSubmit={submit} error={formError || serverError} submitting={submitting}
+        onFieldChange={(name, value) => { setFormError(undefined); setDrafts((current) => ({ ...current, [mode]: { ...current[mode], [name]: value } })) }} />
     </div>
   )
 }
