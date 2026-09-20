@@ -79,10 +79,12 @@ describe('Category catalogue', () => {
   it('maps forward and backward actions across the category spread sequence', () => {
     expect(spreadAfterAction('categories-primary', 'forward')).toBe('categories-more')
     expect(spreadAfterAction('categories-more', 'backward')).toBe('categories-primary')
-    expect(spreadAfterAction('categories-primary', 'backward')).toBe('opening')
+    expect(spreadAfterAction('categories-primary', 'backward')).toBe('front-matter')
+    expect(spreadAfterAction('front-matter', 'forward')).toBe('categories-primary')
+    expect(spreadAfterAction('front-matter', 'backward')).toBe('front-matter')
     expect(spreadAfterAction('opening', 'forward')).toBe('categories-primary')
-    expect(renderSpread('categories-primary')).toContain('← Close Book')
-    expect(renderSpread('categories-primary')).not.toContain('← Back')
+    expect(renderSpread('front-matter')).toContain('← Close Book')
+    expect(renderSpread('categories-primary')).toContain('← Back to Contents')
     expect(renderSpread('categories-more')).toContain('← Back')
   })
 

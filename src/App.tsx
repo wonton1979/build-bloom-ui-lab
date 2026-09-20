@@ -24,7 +24,7 @@ function App() {
   const [opening, setOpening] = useState(false)
   const [closing, setClosing] = useState<'turning' | 'landed' | null>(null)
   const [closedRect, setClosedRect] = useState<DOMRect | null>(null)
-  const [spread, setSpread] = useState<CatalogueSpread>('categories-primary')
+  const [spread, setSpread] = useState<CatalogueSpread>('front-matter')
   const [accountOpen, setAccountOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const [guestHint, setGuestHint] = useState<'user' | 'cart' | null>(null)
@@ -150,7 +150,7 @@ function App() {
     }
   }
   const closeCatalogue = () => {
-    if (!catalogueOpen || opening || closing || spread !== 'categories-primary') return
+    if (!catalogueOpen || opening || closing || spread !== 'front-matter') return
     if (window.matchMedia('(prefers-reduced-motion: reduce), (max-width: 760px)').matches) {
       setCatalogueOpen(false)
       return
@@ -227,7 +227,7 @@ function App() {
           </div>
           {!catalogueOpen && !opening && !closing && <CustomerInformationFallback />}
           <span className="catalogue-spread-status" role="status">
-            {typeof spread !== 'string' ? (spread.kind === 'details' ? 'Product details' : '') : spread === 'opening' ? 'Opening spread' : spread === 'categories-primary' ? 'Catalogue spread 1 of 2' : 'Catalogue spread 2 of 2'}
+            {typeof spread !== 'string' ? (spread.kind === 'details' ? 'Product details' : '') : spread === 'front-matter' ? 'Welcome and Contents' : spread === 'opening' ? 'Opening spread' : spread === 'categories-primary' ? 'Catalogue spread 1 of 2' : 'Catalogue spread 2 of 2'}
           </span>
             <div className="catalogue-stage__open-underlay" style={{ visibility: catalogueOpen ? 'visible' : 'hidden' }} aria-hidden={!catalogueOpen} inert={!catalogueOpen || opening}>
               {catalogueOpen ? <CategoryCatalogue

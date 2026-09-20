@@ -1,5 +1,5 @@
 export type ProductLocation = { kind: 'products'; category: 'VEHICLES'; index: number }
-export type CatalogueSpread = 'opening' | 'categories-primary' | 'categories-more'
+export type CatalogueSpread = 'front-matter' | 'opening' | 'categories-primary' | 'categories-more'
   | ProductLocation
   | { kind: 'details'; listingId: number; returnTo: ProductLocation }
 
@@ -18,7 +18,8 @@ export function spreadAfterAction(spread: CatalogueSpread, action: 'forward' | '
     return spread.index + 1 < productSpreadCount ? { ...spread, index: spread.index + 1 } : spread
   }
   if (action === 'forward') {
-    return spread === 'opening' ? 'categories-primary' : 'categories-more'
+    return spread === 'front-matter' || spread === 'opening' ? 'categories-primary' : 'categories-more'
   }
-  return spread === 'categories-more' ? 'categories-primary' : 'opening'
+  if (spread === 'front-matter') return spread
+  return spread === 'categories-more' ? 'categories-primary' : 'front-matter'
 }

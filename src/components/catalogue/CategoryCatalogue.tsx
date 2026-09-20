@@ -4,6 +4,7 @@ import { BookShell } from '../BookShell'
 import { PageTurn } from './PageTurn'
 import { OpeningWelcomePage } from './OpeningWelcomePage'
 import { CatalogueIndexPage } from './CatalogueIndexPage'
+import { FrontMatterContentsPage, FrontMatterWelcomePage } from './FrontMatterSpread'
 import type { CatalogueCategory } from './categories'
 import './CategoryCatalogue.css'
 import type { CatalogueSpread } from './catalogueSpread'
@@ -127,6 +128,7 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
         onViewDetails={(listingId) => navigate({ kind: 'details', listingId, returnTo: location })} />
     }
     if (location === 'opening') return side === 'left' ? <OpeningWelcomePage /> : <CatalogueIndexPage />
+    if (location === 'front-matter') return side === 'left' ? <FrontMatterWelcomePage /> : <FrontMatterContentsPage onCatalogue={() => beginTurn('forward', 'categories-primary')} turning={Boolean(turn)} />
     const primary = location === 'categories-primary'
     return <CataloguePageContent categories={side === 'left' ? (primary ? pageOne : pageThree) : (primary ? pageTwo : pageFour)}
       heading={side === 'left' ? (primary ? 'Our Catalogue' : 'More little worlds') : undefined}
@@ -137,7 +139,7 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
     const product = typeof location !== 'string'
     const next = spreadAfterAction(location, 'forward', productSpreads.length)
     const navigation = side === 'left' || !sameSpread(location, next)
-    return `spread-page${side === 'right' ? ' spread-page--right' : ''}${location === 'opening' && side === 'left' ? ' spread-page--welcome' : ''}${product ? ' spread-page--vehicles' : ''}${product && navigation ? ' spread-page--product-navigation' : ''}`
+    return `spread-page${side === 'right' ? ' spread-page--right' : ''}${location === 'front-matter' ? ' spread-page--front-matter' : ''}${location === 'opening' && side === 'left' ? ' spread-page--welcome' : ''}${product ? ' spread-page--vehicles' : ''}${product && navigation ? ' spread-page--product-navigation' : ''}`
   }
   const frozenPage = (location: CatalogueSpread, side: 'left' | 'right') => (
     <div className={pageClass(location, side)}>{pageContent(location, side)}</div>
@@ -145,7 +147,7 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
   const source = turn?.from ?? current
   const left = turn?.direction === 'backward' ? turn.to : source
   const right = turn?.direction === 'forward' ? turn.to : source
-  const backLabel = details ? '← Back to Vehicles' : firstProduct ? '← Back to Categories' : '← Back'
+  const backLabel = details ? '← Back to Vehicles' : firstProduct ? '← Back to Categories' : current === 'categories-primary' ? '← Back to Contents' : '← Back'
 
   return (
     <>
@@ -156,14 +158,14 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
         leftPage={<div className={pageClass(left, 'left')} data-product-index={typeof current !== 'string' && current.kind === 'products' ? current.index : undefined}>
           {pageContent(left, 'left')}
           {current !== 'opening' && <div className="spread-page__navigation">
-            {current === 'categories-primary'
+            {current === 'front-matter'
               ? <button type="button" disabled={Boolean(turn)} onClick={onClose}>← Close Book</button>
               : <button type="button" disabled={Boolean(turn)} onClick={() => firstProduct || details ? navigate(backward) : beginTurn('backward', backward)}>{backLabel}</button>}
           </div>}
         </div>}
         rightPage={<div className={pageClass(right, 'right')}>
           {pageContent(right, 'right')}
-          {hasForward && <div className="spread-page__navigation">
+          {hasForward && current !== 'front-matter' && <div className="spread-page__navigation">
             <button type="button" disabled={Boolean(turn)} onClick={() => beginTurn('forward', forward)}>
               {typeof current !== 'string' ? 'More Vehicles →' : current === 'opening' ? 'Discover all 13 worlds →' : 'More →'}
             </button>
