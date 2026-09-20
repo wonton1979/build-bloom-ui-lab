@@ -1,0 +1,167 @@
+/* My Account only. Hub and authentication-form styles remain independent. */
+.account-modal__surface.account-modal__surface--personal {
+  width: min(1280px, 100%);
+  border: 1px solid #ddc8a6;
+  border-radius: 20px;
+  background: radial-gradient(ellipse at 0 0, #d6b47726, transparent 45%), radial-gradient(ellipse at 100% 100%, #d6b47724, transparent 50%), #fcf4e2;
+  box-shadow: inset 0 0 0 5px #fffaf0b3, inset 0 0 32px #c5a16a30, 0 24px 60px #24342b66;
+}
+.my-account {
+  --account-handwriting: 'Segoe Print', 'Comic Sans MS', cursive;
+  position: relative;
+  isolation: isolate;
+  padding: 24px 36px 0;
+  color: #493f32;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.my-account :where(img) { display: block; height: auto; pointer-events: none; user-select: none; }
+.my-account button { cursor: pointer; }
+.my-account button:disabled { cursor: wait; opacity: .6; }
+.my-account :is(button, input):focus-visible { outline: 2px solid #527f78; outline-offset: 3px; }
+.my-account__back { position: absolute; top: 26px; left: 38px; min-height: 44px; border: 0; padding: 4px 0; background: none; color: #365d56; font: 600 15px/1.5 var(--account-handwriting); }
+.my-account__back:hover { text-decoration: underline; text-underline-offset: 4px; }
+.my-account__heading { display: flex; justify-content: center; align-items: flex-end; gap: 16px; margin: 0 auto 26px; padding-inline: 165px; text-align: center; }
+.my-account__heading > img { width: 78px; margin-bottom: 2px; }
+.my-account__heading h2 { margin: 0; color: #285e57; font: 700 42px/1.45 var(--account-handwriting); }
+.my-account__heading p { margin: 1px 0 0; color: #716955; font-size: 14px; }
+.my-account__columns { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, .94fr) minmax(0, 1.06fr); align-items: stretch; gap: 24px; }
+.my-account__panel {
+  position: relative;
+  min-width: 0;
+  min-height: 514px;
+  padding: 22px 26px 30px;
+  border: 1px solid #dfcfb2;
+  border-radius: 17px 13px 16px 12px;
+  background: radial-gradient(ellipse at top left, #e4c99414, transparent 65%), #fffaf0a3;
+  box-shadow: inset 0 0 0 2px #fffdf580, inset 0 0 18px #dbc39726, 0 3px 9px #79592917;
+}
+.my-account__section-heading { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.my-account__section-heading > img { flex: 0 0 auto; width: 44px; max-height: 51px; object-fit: contain; }
+.my-account__section-heading h3 { margin: 0; color: #325f56; font: 700 23px/1.4 var(--account-handwriting); }
+.my-account__section-heading p { margin: 2px 0 0; color: #78715f; font-size: 13px; }
+.personal-information > .my-account__section-heading { margin-bottom: 32px; }
+.my-account__field, .account-personal-information__details dt { position: relative; display: grid; gap: 6px; min-width: 0; font-weight: 500; }
+.my-account__field input, .account-personal-information__details dd {
+  width: 100%; min-width: 0; min-height: 42px; margin: 0; padding: 9px 12px;
+  border: 1px solid #d2c6b1; border-radius: 5px; background: #fffdf7b3;
+  box-shadow: inset 0 1px 3px #755c3510; color: #3e4238;
+  font: 400 15px/1.5 'Segoe UI', system-ui, sans-serif; overflow-wrap: anywhere;
+}
+.my-account__field input[readonly], .account-personal-information__details .personal-information__email { background: #e8e1d3b3; color: #706d61; }
+.my-account__readonly-note { float: right; color: #807967; font-size: 12px; font-weight: 400; }
+.my-account__field > .my-account__readonly-note { position: absolute; top: 0; right: 0; }
+.account-personal-information__form, .account-personal-information__details dl { display: grid; gap: 22px; margin: 0; }
+.account-personal-information__details dl > div { display: grid; gap: 6px; }
+.account-personal-information__details dt { display: block; }
+.account-personal-information__actions { position: relative; z-index: 1; display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 12px; margin-top: 26px; padding-left: 48px; }
+.account-personal-information__form .account-personal-information__actions { margin-top: 4px; }
+.my-account__button { min-height: 38px; padding: 7px 17px; border: 1px solid #d2c1a4; border-radius: 6px; background: #fcf6e9; box-shadow: 0 2px 3px #80684512; color: #665039; font: 600 14px/1.5 var(--account-handwriting); }
+.my-account__button:hover:not(:disabled) { background: #f1e8d6; }
+.my-account__button--primary { border-color: #38665f; background: #527f78; color: #fffbed; box-shadow: inset 0 0 0 1px #ffffff12, 0 2px 4px #435b4821; }
+.my-account__button--primary:hover:not(:disabled) { background: #416d66; }
+.account-personal-information__actions .my-account__button { min-height: 44px; padding-inline: 24px; }
+.account-personal-information__actions .my-account__button--primary { min-width: 180px; }
+.personal-information__floral { position: absolute; left: 12px; bottom: 12px; width: 57px; opacity: .8; }
+.my-account__error { margin: 12px 0; padding: 10px 12px; border: 1px solid #c7957f; border-radius: 5px; background: #fff0e6; color: #804936; overflow-wrap: anywhere; }
+.saved-addresses { padding-inline: 22px; }
+.saved-addresses__heading { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
+.saved-addresses__heading > .my-account__section-heading { flex: 1 1 225px; }
+.saved-addresses__heading > button { flex: 0 0 auto; margin-top: 2px; padding-inline: 12px; }
+.saved-addresses__body { max-height: 490px; overflow-y: auto; overscroll-behavior: contain; padding: 3px 4px 5px; margin-inline: -4px; scrollbar-width: thin; scrollbar-color: #b9bba8 transparent; }
+.saved-addresses__list { display: grid; gap: 12px; }
+.saved-addresses__notice { padding: 30px 18px; border: 1px dashed #d4c5ac; border-radius: 8px; text-align: center; color: #756b59; }
+.saved-address { display: grid; grid-template-columns: 30px minmax(0, 1fr) minmax(115px, auto); gap: 6px 12px; padding: 14px; border: 1px solid #dfd1b9; border-radius: 7px; background: #faf7eef2; }
+.saved-address--default { border-color: #85a79b; background: #f3f4e9; }
+.saved-address__illustration { grid-row: 1 / 3; width: 30px; margin-top: 4px; }
+.saved-address__defaults { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.saved-address__defaults:empty { display: none; }
+.saved-address__defaults span { padding: 2px 8px; border: 1px solid #c5d6bd; border-radius: 5px; background: #e0ead5; color: #446b4b; font-size: 12px; font-weight: 600; }
+.saved-address__copy { grid-column: 2; min-width: 0; overflow-wrap: anywhere; color: #42483f; font-size: 13px; line-height: 1.45; }
+.saved-address__copy strong { font-weight: 600; }
+.saved-address__copy p { margin: 3px 0 0; }
+.saved-address__actions { grid-column: 3; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; gap: 6px; }
+.saved-address__actions > .my-account__button { font: 400 12px/1.4 'Segoe UI', system-ui, sans-serif; min-height: 32px; padding: 5px 8px; }
+.saved-address__edit-actions { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 4px; }
+.saved-address__edit-actions > .my-account__button { min-height: 32px; font-size: 12px; padding: 4px 12px; }
+.saved-address__delete { min-height: 32px; border: 0; padding: 4px 0; background: transparent; color: #82664f; font: inherit; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
+.saved-addresses__form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #dacbb0; }
+.saved-addresses__form h4 { grid-column: 1 / -1; margin: 0; color: #325f56; font: 700 20px/1.5 var(--account-handwriting); }
+.saved-addresses__form .my-account__field:nth-of-type(-n+3) { grid-column: 1 / -1; }
+.saved-addresses__choices { grid-column: 1 / -1; display: grid; gap: 8px; }
+.saved-addresses__choices label { display: flex; align-items: center; gap: 8px; }
+.saved-addresses__choices input { accent-color: #527f78; width: 16px; height: 16px; }
+.saved-addresses__form-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 10px; }
+.my-account__footer { position: relative; z-index: 2; height: 175px; display: flex; justify-content: center; align-items: center; pointer-events: none; }
+.my-account__boy-dog { position: absolute; width: 275px; left: -28px; bottom: 0; }
+.my-account__books { position: absolute; width: 125px; right: -28px; bottom: 0; }
+.my-account__sentiment { display: flex; align-items: center; justify-content: center; gap: 12px; max-width: calc(100% - 470px); margin-left: 50px; }
+.my-account__sentiment > img { width: 48px; }
+.my-account__sentiment > .my-account__heart { width: 15px; }
+.my-account__sentiment p { flex: 0 1 auto; margin: 0; text-align: center; color: #766047; font: 400 17px/1.55 var(--account-handwriting); }
+@media (max-width: 1100px) {
+  .my-account { padding-inline: 24px; }
+  .my-account__heading { padding-inline: 120px; gap: 10px; }
+  .my-account__heading > img { width: 56px; }
+  .my-account__heading h2 { font-size: 36px; }
+  .my-account__back { left: 24px; font-size: 13px; }
+  .my-account__columns { gap: 18px; }
+  .my-account__panel { padding-inline: 20px; }
+  .my-account__section-heading h3 { font-size: 21px; }
+  .saved-addresses__heading > .my-account__section-heading { flex-basis: 100%; }
+  .saved-addresses__heading > button { margin-left: 56px; }
+  .saved-address { grid-template-columns: 27px minmax(0, 1fr); gap: 6px 9px; }
+  .saved-address__illustration { width: 27px; }
+  .saved-address__actions { grid-column: 2; flex-direction: row; flex-wrap: wrap; }
+  .saved-address__edit-actions { margin-top: 0; }
+  .my-account__sentiment { max-width: calc(100% - 320px); margin-left: 65px; gap: 8px; }
+  .my-account__sentiment > img { width: 32px; }
+  .my-account__sentiment p { font-size: 15px; }
+  .my-account__boy-dog { width: 220px; left: -16px; }
+  .my-account__books { width: 105px; right: -16px; }
+}
+@media (max-width: 800px) {
+  .my-account { padding: 72px 24px 0; }
+  .my-account__heading { padding-inline: 0; margin-bottom: 24px; }
+  .my-account__columns { grid-template-columns: minmax(0, 1fr); }
+  .my-account__panel { min-height: 0; }
+  .saved-addresses__heading > .my-account__section-heading { flex-basis: 220px; }
+  .saved-addresses__heading > button { margin-left: 0; }
+  .saved-address { grid-template-columns: 30px minmax(0, 1fr) minmax(110px, auto); }
+  .saved-address__actions { grid-column: 3; flex-direction: column; }
+  .saved-addresses__body { max-height: none; overflow: visible; }
+  .my-account__footer { height: 180px; }
+  .my-account__sentiment { max-width: 230px; margin-left: 10px; align-self: flex-start; margin-top: 24px; }
+  .my-account__sentiment > img:not(.my-account__heart) { display: none; }
+  .my-account__boy-dog { width: 175px; }
+  .my-account__books { width: 85px; }
+}
+@media (max-width: 600px) {
+  .account-modal__surface.account-modal__surface--personal { width: 100%; border: 0; border-radius: 0; }
+  .my-account { padding-inline: 16px; }
+  .my-account__back { left: 20px; }
+  .my-account__heading { gap: 8px; }
+  .my-account__heading > img { width: 35px; }
+  .my-account__heading h2 { font-size: 32px; }
+  .my-account__heading p { font-size: 12px; }
+  .my-account__panel { padding: 20px 18px 26px; }
+  .my-account__section-heading { gap: 10px; }
+  .my-account__section-heading > img { width: 36px; }
+  .my-account__section-heading h3 { font-size: 20px; }
+  .my-account__section-heading p { font-size: 12px; }
+  .personal-information > .my-account__section-heading { margin-bottom: 24px; }
+  .account-personal-information__actions { padding-left: 0; }
+  .account-personal-information__actions .my-account__button--primary { min-width: 0; }
+  .personal-information__floral { display: none; }
+  .saved-addresses__heading > .my-account__section-heading { flex-basis: 100%; }
+  .saved-addresses__heading > button { margin-left: 46px; }
+  .saved-address { grid-template-columns: 26px minmax(0, 1fr); gap: 8px; padding: 12px; }
+  .saved-address__illustration { width: 26px; }
+  .saved-address__actions { grid-column: 2; flex-direction: row; }
+  .saved-addresses__form { grid-template-columns: minmax(0, 1fr); }
+  .my-account__footer { height: 190px; }
+  .my-account__sentiment { max-width: 230px; margin: 16px 0 0; gap: 8px; }
+  .my-account__sentiment p { font-size: 14px; }
+  .my-account__boy-dog { width: 155px; left: -8px; }
+  .my-account__books { width: 74px; right: -8px; }
+}

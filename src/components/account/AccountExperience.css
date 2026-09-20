@@ -161,6 +161,8 @@
 .account-hub__cat-books { display: block; width: 440px; height: 224px; object-fit: contain; object-position: center; pointer-events: none; }
 .account-hub__cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
 .account-hub-card { position: relative; min-height: 232px; overflow: hidden; padding: 26px 28px; border: 1px solid #cbb998; border-radius: 12px; background: #fffdf6; box-shadow: 0 8px 16px #47445d18; }
+.account-hub-card__action { position: absolute; z-index: 3; inset: 0; border: 0; border-radius: inherit; background: transparent; cursor: pointer; }
+.account-hub-card__action:focus-visible { outline: 3px solid #527f78; outline-offset: -5px; }
 .account-hub-card__copy { position: relative; z-index: 2; display: flex; flex-direction: column; min-height: 178px; margin-left: 43%; padding: 12px 0 4px; }
 .account-hub-card h3 { margin: 0 0 12px; color: #3e6962; font: 700 26px/1.2 'Segoe Print', 'Comic Sans MS', cursive; }
 .account-hub-card p { max-width: 235px; margin: 0; color: #69614f; font-size: 16px; line-height: 1.55; }

@@ -20,9 +20,9 @@ export class AuthApiError extends Error {
   }
 }
 
-const apiBase = () => (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
+export const apiBase = () => (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 
-async function requestJson<T>(path: string, init: RequestInit = {}, token?: string): Promise<T> {
+export async function requestJson<T>(path: string, init: RequestInit = {}, token?: string): Promise<T> {
   const headers = new Headers(init.headers)
   headers.set('Content-Type', 'application/json')
   if (token) headers.set('Authorization', `Bearer ${token}`)
@@ -47,6 +47,15 @@ export function signIn(email: string, password: string) {
 
 export function getCurrentUser(token: string) {
   return requestJson<CurrentUser>('/users/me', { method: 'GET' }, token)
+}
+
+export type UpdateCurrentUser = Partial<Pick<CurrentUser, 'firstName' | 'lastName' | 'phone'>>
+
+export function updateCurrentUser(token: string, profile: UpdateCurrentUser) {
+  return requestJson<CurrentUser>('/users/me', {
+    method: 'PATCH',
+    body: JSON.stringify(profile),
+  }, token)
 }
 
 export function readStoredToken(): string | null {

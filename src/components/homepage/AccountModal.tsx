@@ -1,4 +1,4 @@
-import { type RefObject, useEffect, useRef } from 'react'
+import { type RefObject, useEffect, useRef, useState } from 'react'
 import { AccountForms } from '../account/AccountForms'
 import { useAuth } from '../../features/auth/AuthProvider'
 import catBooks from '../../assets/account/account-hub-cat-books.png'
@@ -8,8 +8,9 @@ import ordersParcel from '../../assets/account/account-hub-orders-parcel.png'
 import foliageBottomLeft from '../../assets/account/account-hub-foliage-bottom-left.png'
 import foliageBottomRight from '../../assets/account/account-hub-foliage-bottom-right.png'
 import dividerLeaf from '../../assets/shared/hr-leaf.png'
+import { PersonalInformation } from '../account/PersonalInformation'
 
-export function AuthenticatedAccountHub({ email, onSignOut }: { email: string; onSignOut: () => void }) {
+export function AuthenticatedAccountHub({ email, onSignOut, onOpenAccount }: { email: string; onSignOut: () => void; onOpenAccount?: () => void }) {
   return (
     <div className="account-experience account-experience--authenticated">
       <div className="account-experience__task">
@@ -29,6 +30,7 @@ export function AuthenticatedAccountHub({ email, onSignOut }: { email: string; o
               <p>Personal details, addresses &amp; preferences</p>
             </div>
             <img className="account-hub-card__feature account-hub-card__feature--house" src={accountHouse} alt="" aria-hidden="true" />
+            {onOpenAccount && <button className="account-hub-card__action" type="button" aria-label="Open My Account" onClick={onOpenAccount} />}
           </article>
           <article className="account-hub-card" aria-labelledby="account-hub-orders-title">
             <img className="account-hub-card__sprig account-hub-card__sprig--orders" src={cardSprig} alt="" aria-hidden="true" />
@@ -59,6 +61,7 @@ export function AccountModal({ onClose }: { onClose: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const previousStatus = useRef<string | undefined>(undefined)
   const { state, logout } = useAuth()
+  const [view, setView] = useState<'hub' | 'personal'>('hub')
   useEffect(() => {
     closeRef.current?.focus()
     const onKeyDown = (event: KeyboardEvent) => {
@@ -68,17 +71,18 @@ export function AccountModal({ onClose }: { onClose: () => void }) {
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [onClose])
   useEffect(() => {
-    if (previousStatus.current === 'authenticating' && state.status === 'authenticated') onClose()
+    if (previousStatus.current === 'authenticating' && state.status === 'authenticated') { setView('hub'); onClose() }
     previousStatus.current = state.status
   }, [onClose, state.status])
+  const activeView = state.status === 'authenticated' ? view : 'hub'
   return (
     <div className="account-modal" role="dialog" aria-modal="true" aria-labelledby="account-modal-title" onMouseDown={(event) => {
       if (event.target === event.currentTarget) onClose()
     }}>
-      <section className={`account-modal__surface${state.status === 'authenticated' ? ' account-modal__surface--hub' : ''}`}>
+      <section className={`account-modal__surface${state.status === 'authenticated' ? activeView === 'personal' ? ' account-modal__surface--personal' : ' account-modal__surface--hub' : ''}`}>
         <AccountModalCloseButton closeRef={closeRef} onClose={onClose} />
         <h1 id="account-modal-title" className="account-modal__accessible-title">My Account</h1>
-        {state.status === 'authenticated' ? <AuthenticatedAccountHub email={state.user.email} onSignOut={() => { logout(); onClose() }} /> : <AccountForms />}
+        {state.status === 'authenticated' ? activeView === 'personal' ? <PersonalInformation onBack={() => setView('hub')} /> : <AuthenticatedAccountHub email={state.user.email} onOpenAccount={() => setView('personal')} onSignOut={() => { logout(); onClose() }} /> : <AccountForms />}
       </section>
     </div>
   )
