@@ -11,6 +11,7 @@ import { productLocation, sameSpread, spreadAfterAction } from './catalogueSprea
 import { planProductSpreads } from '../../features/catalogue/productSpreads'
 import { CatalogueProductDetails, VehiclesProductPage } from './VehiclesProductPage'
 import { useVehicles } from '../../features/catalogue/useVehicles'
+import type { ProductListing } from '../../features/catalogue/api'
 
 export type { CatalogueSpread } from './catalogueSpread'
 
@@ -18,6 +19,7 @@ type CatalogueProps = {
   spread: CatalogueSpread
   onSpreadChange: (spread: CatalogueSpread) => void
   onClose: () => void
+  onAddToCart?: (listing: ProductListing) => void
 }
 
 function CategoryEntry({ category, onVehicles }: { category: CatalogueCategory; onVehicles?: () => void }) {
@@ -77,7 +79,7 @@ import { cataloguePages } from './cataloguePages'
 const [pageOne, pageTwo, pageThree, pageFour] = cataloguePages
 
 /** The same shell persists; category and product turns share one coordinator. */
-export function CategoryCatalogue({ spread, onSpreadChange, onClose }: CatalogueProps) {
+export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart }: CatalogueProps) {
   const productsOpen = typeof spread !== 'string'
   const { state: vehiclesState, retry } = useVehicles(productsOpen)
   const listings = vehiclesState.status === 'ready' ? vehiclesState.listings : []
@@ -120,7 +122,7 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose }: Catalogue
 
   const pageContent = (location: CatalogueSpread, side: 'left' | 'right') => {
     if (typeof location !== 'string') {
-      if (location.kind === 'details') return <CatalogueProductDetails side={side} listing={listings.find(item => item.id === location.listingId)} />
+      if (location.kind === 'details') return <CatalogueProductDetails side={side} listing={listings.find(item => item.id === location.listingId)} onAddToCart={onAddToCart} />
       return <VehiclesProductPage side={side} spread={productSpreads[location.index]} status={vehiclesState.status} onRetry={retry}
         onViewDetails={(listingId) => navigate({ kind: 'details', listingId, returnTo: location })} />
     }

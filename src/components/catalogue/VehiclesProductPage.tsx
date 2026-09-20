@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { ProductListing } from '../../features/catalogue/api'
 import type { ProductSpread } from '../../features/catalogue/productSpreads'
 import type { VehiclesState } from '../../features/catalogue/useVehicles'
+import { useCart } from '../../features/cart/CartContext'
 import './VehiclesProductPage.css'
 
 const pounds = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' })
@@ -78,7 +79,7 @@ export function VehiclesProductPage({ side, spread, status, onRetry, onViewDetai
 
 /** Minimal in-book details. Listing photography retains its API ordering and
  * remains separate from catalogue artwork; no commerce workflow is added. */
-export function CatalogueProductDetails({ listing, side }: { listing?: ProductListing; side: 'left' | 'right' }) {
+export function CatalogueProductDetails({ listing, side, onAddToCart }: { listing?: ProductListing; side: 'left' | 'right'; onAddToCart?: (listing: ProductListing) => void }) {
   if (!listing) return <p className="vehicles-page__message">This product is currently unavailable.</p>
   return side === 'left' ? (
     <section className="product-details" aria-label="Product photographs">
@@ -86,13 +87,25 @@ export function CatalogueProductDetails({ listing, side }: { listing?: ProductLi
       <ProductGallery listing={listing} />
     </section>
   ) : (
-    <article className="product-details" data-detail-listing-id={listing.id} aria-label={listing.legoProduct.title}>
+    <ProductDetailsContent listing={listing} onAddToCart={onAddToCart} />
+  )
+}
+
+function ProductDetailsContent({ listing, onAddToCart }: { listing: ProductListing; onAddToCart?: (listing: ProductListing) => void }) {
+  const { items } = useCart()
+  const cartQuantity = items.find(item => item.productListingId === listing.id)?.quantity ?? 0
+  const atLimit = listing.availableStock === 0 || cartQuantity >= listing.availableStock
+  return <article className="product-details" data-detail-listing-id={listing.id} aria-label={listing.legoProduct.title}>
       <h2>Product details</h2>
       <ProductCopy listing={listing} />
       <p className="product-details__description">{listing.legoProduct.description ?? 'No description available.'}</p>
-      <p>Condition: {listing.condition === 'NEW' ? 'New' : 'Used, like new'}</p>
+      <p>Condition: {listing.condition === 'NEW' ? 'New' : 'Used, like new'} · {listing.availableStock > 0 ? `Stock: ${listing.availableStock}` : 'Out of stock'}</p>
+      {onAddToCart && <button type="button" className="product-details__add" disabled={atLimit} onClick={() => onAddToCart(listing)}>
+        <span>Add to cart</span>
+        <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M4 5h2l1.5 10h10L20 8H7M10 19.5h.01M17 19.5h.01" /></svg>
+        {cartQuantity > 0 && <span className="product-details__cart-quantity">In cart: {cartQuantity}{atLimit && ' · Maximum available'}</span>}
+      </button>}
     </article>
-  )
 }
 
 function ProductGallery({ listing }: { listing: ProductListing }) {

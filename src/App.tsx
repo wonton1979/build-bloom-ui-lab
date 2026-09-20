@@ -9,10 +9,13 @@ import type { CatalogueSpread } from './components/catalogue/catalogueSpread'
 import './App.css'
 import { AccountModal } from './components/homepage/AccountModal'
 import { CartModal } from './components/cart/CartModal'
+import { CartItems } from './components/cart/CartItems'
 import { BookOwnedCart } from './components/catalogue/BookOwnedCart'
 import { BookOwnedUser } from './components/catalogue/BookOwnedUser'
 import { CustomerInformationFallback } from './components/homepage/CustomerInformationFallback'
 import { useAuth } from './features/auth/AuthProvider'
+import { useCart } from './features/cart/CartContext'
+import type { ProductListing } from './features/catalogue/api'
 import { USER_ACCOUNT_HINT, USER_WELCOME_GREETING_MS, USER_WELCOME_HINT_MS, welcomeGreeting } from './components/catalogue/userWelcome'
 
 function App() {
@@ -36,6 +39,7 @@ function App() {
   const previouslyOpen = useRef(false)
   const previousAuthStatus = useRef<string | undefined>(undefined)
   const { state: authState } = useAuth()
+  const { items: cartItems, addListing } = useCart()
   const showReference = import.meta.env.DEV && view === 'reference'
   const showGuestHint = (source: 'user' | 'cart') => {
     if (guestHintTimer.current !== null) window.clearTimeout(guestHintTimer.current)
@@ -80,6 +84,10 @@ function App() {
     cartOpenerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     dismissGuestHint()
     setCartOpen(true)
+  }
+  const addToCart = (listing: ProductListing) => {
+    if (authState.status !== 'authenticated') { showGuestHint('cart'); return }
+    addListing(listing)
   }
   const closeCart = useCallback(() => {
     setCartOpen(false)
@@ -226,6 +234,7 @@ function App() {
                 spread={spread}
                 onSpreadChange={setSpread}
                 onClose={closeCatalogue}
+                onAddToCart={addToCart}
               /> : <BookShell />}
             </div>
           {!catalogueOpen && <ClosedCatalogue onOpen={openCatalogue} onBookmark={openCityBookmark} />}
@@ -239,7 +248,8 @@ function App() {
         </main>
       )}
       {!showReference && accountOpen && <AccountModal onClose={closeAccount} />}
-      {!showReference && cartOpen && authState.status === 'authenticated' && <CartModal onClose={closeCart} />}
+      {!showReference && cartOpen && authState.status === 'authenticated' && <CartModal onClose={closeCart}
+        content={cartItems.length ? { kind: 'filled', items: <CartItems items={cartItems} /> } : { kind: 'empty' }} />}
     </>
   )
 }
