@@ -34,3 +34,13 @@ export function addCartItem(token: string, productListingId: number, quantity = 
     method: 'POST', body: JSON.stringify({ productListingId, quantity }),
   })
 }
+
+export function updateCartItem(token: string, productListingId: number, quantity: number) {
+  return requestJson<PersistentCart>(`/cart/items/${productListingId}`, token, {
+    method: 'PATCH', body: JSON.stringify({ quantity }),
+  })
+}
+
+export function deleteCartItem(token: string, productListingId: number) {
+  return requestJson<PersistentCart>(`/cart/items/${productListingId}`, token, { method: 'DELETE' })
+}

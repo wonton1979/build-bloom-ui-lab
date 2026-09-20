@@ -2,9 +2,16 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { CartItems } from '../../components/cart/CartItems'
 import { listing } from '../catalogue/catalogueFixtures'
-import { addListingOnce, cartTotalPence, formatGbp, lineAmountPence, listingUnitPricePence, priceToPence } from './CartContext'
+import { addListingOnce, cartTotalPence, formatGbp, lineAmountPence, listingUnitPricePence, priceToPence, quantityWithinStock } from './CartContext'
+import { mapCart } from './CartProvider'
 
 describe('frontend cart listing identity', () => {
+  it('maps an authoritative backend cart response to the shared filled-cart state', () => {
+    const product = listing(26)
+    const items = mapCart({ items: [{ productListingId: product.id, quantity: 2, productListing: product }] })
+    expect(items).toEqual([{ productListingId: product.id, quantity: 2, listing: product }])
+    expect(renderToStaticMarkup(<CartItems items={items} />)).toContain('Quantity: 2')
+  })
   it('stores a listing by ProductListing id and increments supported quantity', () => {
     const first = listing(21, { legoProductId: 900 })
     const sameProductDifferentListing = listing(22, { legoProductId: 900 })
@@ -23,6 +30,14 @@ describe('frontend cart listing identity', () => {
     expect(twice[0].quantity).toBe(2)
     expect(capped[0].quantity).toBe(2)
     expect(addListingOnce([], listing(24, { availableStock: 0 }))).toHaveLength(0)
+  })
+
+  it('guards exact quantity mutations against stock limits and zero', () => {
+    const product = listing(25, { availableStock: 3 })
+    expect(quantityWithinStock({ listing: product }, 1)).toBe(true)
+    expect(quantityWithinStock({ listing: product }, 3)).toBe(true)
+    expect(quantityWithinStock({ listing: product }, 4)).toBe(false)
+    expect(quantityWithinStock({ listing: product }, 0)).toBe(false)
   })
 
   it('calculates decimal GBP values deterministically in integer pence', () => {
