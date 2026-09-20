@@ -1,30 +1,29 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
-import { CatalogueProductDetails, VehiclesProductPage } from './VehiclesProductPage'
+import { CatalogueProduct, CatalogueProductDetails, VehiclesProductPage } from './VehiclesProductPage'
 import { listing } from '../../features/catalogue/catalogueFixtures'
 import { planProductSpreads } from '../../features/catalogue/productSpreads'
 import { CartContext } from '../../features/cart/CartContext'
 
 const renderPage = (products: ReturnType<typeof listing>[], index = 0, side: 'left' | 'right' = 'left') =>
-  renderToStaticMarkup(<VehiclesProductPage side={side} spread={planProductSpreads(products)[index]} status="ready" onRetry={vi.fn()} onViewDetails={vi.fn()} />)
+  renderToStaticMarkup(<VehiclesProductPage side={side} spread={planProductSpreads(products)[index]} categoryName="Vehicles" status="ready" onRetry={vi.fn()} onViewDetails={vi.fn()} />)
 
 describe('dynamic catalogue products and dedicated artwork', () => {
-  it('preserves first-spread feature and two-standard hierarchy', () => {
+  it('starts normal browsing with the first non-featured products without an empty hero slot', () => {
     const products = [listing(1, { isFeatureProduct: true }), listing(2), listing(3), listing(4)]
-    expect(renderPage(products)).toContain('vehicle-product--feature')
-    expect(renderPage(products)).toContain('API product 1')
+    expect(renderPage(products)).not.toContain('vehicle-product--feature')
+    expect(renderPage(products)).not.toContain('API product 1')
+    expect(renderPage(products)).toContain('API product 2')
+    expect(renderPage(products)).toContain('API product 3')
     const right = renderPage(products, 0, 'right')
-    expect(right.match(/<article /g)).toHaveLength(2)
-    expect(right).toContain('API product 2')
-    expect(right).toContain('API product 3')
-    expect(right).not.toContain('API product 4')
-    expect(renderPage(products, 1)).toContain('API product 4')
-    expect(renderPage(products, 1)).not.toContain('vehicle-product--feature')
+    expect(right.match(/<article /g)).toHaveLength(1)
+    expect(right).toContain('API product 4')
+    expect(right).not.toContain('API product 1')
   })
 
   it('renders the exact backend artwork URL and naturally consumes a replacement URL', () => {
     for (const url of ['https://delivery.example/art-v1.png', 'https://delivery.example/replacement.png']) {
-      const markup = renderPage([listing(1, { isFeatureProduct: true, catalogueArtworkUrl: url })])
+      const markup = renderToStaticMarkup(<CatalogueProduct listing={listing(1, { isFeatureProduct: true, catalogueArtworkUrl: url })} feature onViewDetails={vi.fn()} />)
       expect(markup).toContain(`src="${url}"`)
       expect(markup).not.toContain('/assets/categories/vehicles')
       expect(markup).not.toContain('/photograph-')
@@ -34,7 +33,7 @@ describe('dynamic catalogue products and dedicated artwork', () => {
   })
 
   it.each([true, false])('keeps a product, metadata and working Details button with missing artwork (feature=%s)', isFeatureProduct => {
-    const markup = renderPage([listing(77, { isFeatureProduct })])
+    const markup = renderToStaticMarkup(<CatalogueProduct listing={listing(77, { isFeatureProduct })} feature={isFeatureProduct} onViewDetails={vi.fn()} />)
     expect(markup).toContain('API product 77')
     expect(markup).toContain('123 pieces')
     expect(markup).toContain('Ages 9+')
@@ -48,9 +47,9 @@ describe('dynamic catalogue products and dedicated artwork', () => {
   it('renders later standards and their Details actions without artwork or a known set number', () => {
     const products = [listing(1, { isFeatureProduct: true }), ...Array.from({ length: 6 }, (_, i) => listing(i + 2))]
     const markup = renderPage(products, 1) + renderPage(products, 1, 'right')
-    expect(markup.match(/<article /g)).toHaveLength(4)
-    expect(markup.match(/View Details →/g)).toHaveLength(4)
-    for (const id of [4, 5, 6, 7]) expect(markup).toContain(`data-listing-id="${id}"`)
+    expect(markup.match(/<article /g)).toHaveLength(2)
+    expect(markup.match(/View Details →/g)).toHaveLength(2)
+    for (const id of [6, 7]) expect(markup).toContain(`data-listing-id="${id}"`)
   })
 
   it('keeps photography separate in the in-book details view and preserves image order', () => {
@@ -113,10 +112,10 @@ describe('dynamic catalogue products and dedicated artwork', () => {
   })
 
   it('renders empty, loading and error states without manufactured product data', () => {
-    expect(renderPage([])).toContain('No vehicles are available')
+    expect(renderPage([])).toContain('No more builds')
     for (const status of ['loading', 'error'] as const) {
-      const markup = renderToStaticMarkup(<VehiclesProductPage side="left" status={status} onRetry={vi.fn()} onViewDetails={vi.fn()} />)
-      expect(markup).toContain(status === 'loading' ? 'Opening the garage' : 'Try again')
+      const markup = renderToStaticMarkup(<VehiclesProductPage side="left" categoryName="Vehicles" status={status} onRetry={vi.fn()} onViewDetails={vi.fn()} />)
+      expect(markup).toContain(status === 'loading' ? 'Opening the collection' : 'Try again')
       expect(markup).not.toContain('£25.99')
     }
   })

@@ -3,7 +3,7 @@ import type { ProductListing } from './api'
 
 export function listing(id: number, overrides: Partial<ProductListing> = {}): ProductListing {
   return {
-    id, legoProductId: id + 1000, colorfulLifeCategory: 'VEHICLES',
+    id, legoProductId: id + 1000, category: { id: 11, name: 'Vehicles', subtitle: 'Built for the thrill', description: 'Test editorial copy', imageUrl: null },
     isFeatureProduct: false, catalogueArtworkUrl: null, catalogueArtworkPublicId: null,
     createdAt: '2026-01-01T00:00:00.000Z', condition: 'NEW', originalPrice: '25.99', salePrice: null,
     availableStock: 5,
