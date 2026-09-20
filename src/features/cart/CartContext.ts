@@ -9,7 +9,9 @@ export interface CartItem {
 
 export interface CartContextValue {
   items: CartItem[]
-  addListing: (listing: ProductListing) => void
+  addListing: (listing: ProductListing) => Promise<void>
+  isLoading: boolean
+  error: string | null
 }
 
 /** Parse backend decimal strings without using floating-point arithmetic. */
@@ -36,7 +38,7 @@ export function formatGbp(pence: number): string {
   return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(pence / 100)
 }
 
-export const CartContext = createContext<CartContextValue>({ items: [], addListing: () => {} })
+export const CartContext = createContext<CartContextValue>({ items: [], addListing: async () => {}, isLoading: false, error: null })
 
 export function addListingOnce(items: readonly CartItem[], listing: ProductListing): CartItem[] {
   if (listing.availableStock <= 0) return [...items]

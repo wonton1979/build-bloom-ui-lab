@@ -77,6 +77,11 @@
 .vehicle-product--supporting .vehicle-product__price { font-size: 18px; }
 .vehicle-product--supporting .vehicle-product__details { font-size: 12px; }
 
+@media (min-width: 761px) {
+  .spread-page--product-navigation .vehicles-page--supporting h2 { font-size: clamp(16px, 4.4cqw, 21px); }
+  .spread-page--product-navigation .vehicles-supporting-products { padding-top: 11px; }
+}
+
 @container (max-width: 310px) {
   .vehicles-page { padding-inline: 0; }
   .vehicles-page--supporting { padding-inline: 10px; }
