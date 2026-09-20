@@ -79,6 +79,7 @@ describe('dynamic catalogue products and dedicated artwork', () => {
     const product = listing(19, { availableStock: 4 })
     const markup = renderToStaticMarkup(<CartContext.Provider value={{
       items: [{ productListingId: product.id, listing: product, quantity: 2 }], addListing: vi.fn(),
+      updateQuantity: vi.fn(), removeItem: vi.fn(), pendingItemIds: [],
       isLoading: false, error: null,
     }}><CatalogueProductDetails listing={product} side="right" onAddToCart={vi.fn()} /></CartContext.Provider>)
     expect(markup).toContain('Condition: New · Stock: 4')

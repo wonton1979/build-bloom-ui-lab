@@ -4,6 +4,13 @@
 .cart-item__image img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
 .cart-item__copy h2 { margin: 0; color: #3e6962; font: 600 17px/1.25 'Segoe Print', 'Comic Sans MS', cursive; }
 .cart-item__copy p { margin: 5px 0 0; color: #69614f; font-size: 14px; line-height: 1.4; }
-.cart-item__amounts { display: flex; justify-content: space-between; gap: 12px; margin-top: 7px; color: #69614f; font-size: 14px; line-height: 1.35; }
+.cart-item__amounts { display: flex; justify-content: space-between; gap: 12px; align-items: end; margin-top: 7px; color: #69614f; font-size: 14px; line-height: 1.35; }
+.cart-item__quantity { display: flex; align-items: center; gap: 7px; }
+.cart-item__quantity button { width: 26px; height: 26px; padding: 0; border: 1px solid #527f78; border-radius: 50%; background: #fff9e9; color: #3e6962; font-size: 18px; line-height: 1; cursor: pointer; }
+.cart-item__quantity button:disabled { opacity: .4; cursor: not-allowed; }
+.cart-item__quantity button:focus-visible { outline: 2px solid #b68c42; outline-offset: 2px; }
 .cart-item__amounts strong, .cart-items__total strong { color: #3e6962; font-weight: 700; }
 .cart-items__total { display: flex; justify-content: space-between; gap: 12px; margin-top: 4px; padding: 14px 10px 0; border-top: 1px solid #e5ddc8; color: #493c31; font: 600 17px/1.3 'Segoe Print', 'Comic Sans MS', cursive; }
+.cart-item__remove { display: block; min-height: 32px; margin: 4px 0 0 auto; padding: 3px 0 3px 10px; border: 0; background: transparent; color: #3e6962; font: 15px/1.4 'Segoe Print', 'Comic Sans MS', cursive; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.cart-item__remove:focus-visible { outline: 2px solid #b68c42; outline-offset: 3px; }
+.cart-items__error { margin: 0; color: #805345; font-size: 14px; line-height: 1.4; }

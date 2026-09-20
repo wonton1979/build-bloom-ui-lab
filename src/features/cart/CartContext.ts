@@ -10,6 +10,9 @@ export interface CartItem {
 export interface CartContextValue {
   items: CartItem[]
   addListing: (listing: ProductListing) => Promise<void>
+  updateQuantity: (productListingId: number, quantity: number) => Promise<boolean>
+  removeItem: (productListingId: number) => Promise<boolean>
+  pendingItemIds: readonly number[]
   isLoading: boolean
   error: string | null
 }
@@ -38,7 +41,7 @@ export function formatGbp(pence: number): string {
   return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(pence / 100)
 }
 
-export const CartContext = createContext<CartContextValue>({ items: [], addListing: async () => {}, isLoading: false, error: null })
+export const CartContext = createContext<CartContextValue>({ items: [], addListing: async () => {}, updateQuantity: async () => false, removeItem: async () => false, pendingItemIds: [], isLoading: false, error: null })
 
 export function addListingOnce(items: readonly CartItem[], listing: ProductListing): CartItem[] {
   if (listing.availableStock <= 0) return [...items]
@@ -48,6 +51,10 @@ export function addListingOnce(items: readonly CartItem[], listing: ProductListi
     return items.map(item => item === existing ? { ...item, quantity: item.quantity + 1 } : item)
   }
   return [...items, { productListingId: listing.id, listing, quantity: 1 }]
+}
+
+export function quantityWithinStock(item: Pick<CartItem, 'listing'>, quantity: number): boolean {
+  return quantity >= 1 && quantity <= item.listing.availableStock
 }
 
 export function useCart(): CartContextValue {
