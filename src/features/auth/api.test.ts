@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { AUTH_STORAGE_KEY, clearStoredToken, getCurrentUser, signIn, signUp, storeToken } from './api'
+import { AUTH_STORAGE_KEY, clearStoredToken, getCurrentUser, signIn, signUp, storeToken, updateCurrentUser } from './api'
 
 describe('storefront auth API', () => {
   beforeEach(() => vi.restoreAllMocks())
@@ -29,6 +29,17 @@ describe('storefront auth API', () => {
   it('maps backend errors without exposing credentials', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: 'Invalid credentials' }), { status: 401 })))
     await expect(signIn('person@example.com', 'secret')).rejects.toMatchObject({ status: 401, message: 'Invalid credentials' })
+  })
+
+  it('patches only editable profile fields and sends the bearer token', async () => {
+    const response = { id: 1, email: 'person@example.com', firstName: 'Ada', lastName: 'Lovelace', phone: '' }
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify(response), { status: 200 }))
+    vi.stubGlobal('fetch', fetcher)
+    await updateCurrentUser('jwt-token', { firstName: 'Ada', lastName: 'Lovelace', phone: '' })
+    expect(fetcher).toHaveBeenCalledWith('/api/users/me', expect.objectContaining({
+      method: 'PATCH', body: JSON.stringify({ firstName: 'Ada', lastName: 'Lovelace', phone: '' }),
+    }))
+    expect((fetcher.mock.calls[0][1].headers as Headers).get('Authorization')).toBe('Bearer jwt-token')
   })
 
   it('uses the project-scoped session storage key', () => {

@@ -33,6 +33,11 @@ describe('authenticated Account Hub presentation', () => {
     expect(onSignOut).not.toHaveBeenCalled()
   })
 
+  it('exposes My Account as the existing hub entry when a handler is supplied', () => {
+    const markup = renderToStaticMarkup(<AuthenticatedAccountHub email="jerry@example.com" onSignOut={() => {}} onOpenAccount={() => {}} />)
+    expect(markup).toContain('aria-label="Open My Account"')
+  })
+
   it('keeps the modal close control separate from Sign Out', () => {
     const onClose = vi.fn()
     const markup = renderToStaticMarkup(<AccountModal onClose={onClose} />)
