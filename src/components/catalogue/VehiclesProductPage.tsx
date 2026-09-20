@@ -45,33 +45,37 @@ function CatalogueArtwork({ listing, feature, onViewDetails }: { listing: Produc
   ) : <span className={className} aria-hidden="true" data-artwork-state="empty" />
 }
 
-export function VehiclesProductPage({ side, spread, status, onRetry, onViewDetails }: {
+/** Shared printed listing: the established feature and standard treatments. */
+export function CatalogueProduct({ listing, feature = false, onViewDetails }: { listing: ProductListing; feature?: boolean; onViewDetails: (id: number) => void }) {
+  return <article data-listing-id={listing.id}
+    className={`vehicle-product vehicle-product--${feature ? 'feature' : 'supporting'}`} aria-label={listing.legoProduct.title}>
+    <CatalogueArtwork listing={listing} feature={feature} onViewDetails={onViewDetails} />
+    <ProductCopy listing={listing} onViewDetails={onViewDetails} />
+  </article>
+}
+
+export function VehiclesProductPage({ side, spread, status, categoryName, onRetry, onViewDetails }: {
   side: 'left' | 'right'
   spread?: ProductSpread
   status: VehiclesState['status']
+  categoryName: string
   onRetry: () => void
   onViewDetails: (id: number) => void
 }) {
-  const feature = side === 'left' ? spread?.feature : undefined
-  const products = feature ? [feature] : (spread?.[side] ?? [])
+  const products = spread?.[side] ?? []
   return (
-    <section className={`vehicles-page vehicles-page--${feature ? 'feature' : 'supporting'}`} aria-labelledby={`vehicles-${side}-heading`}>
+    <section className="vehicles-page vehicles-page--supporting" aria-labelledby={`vehicles-${side}-heading`}>
       <header className="vehicles-page__heading">
-        <h2 id={`vehicles-${side}-heading`}>{side === 'left' ? 'Vehicles' : 'More amazing vehicles'}</h2>
-        {feature && <p>Built for the thrill</p>}
+        <h2 id={`vehicles-${side}-heading`}>{side === 'left' ? categoryName : `More amazing ${categoryName.toLowerCase()}`}</h2>
       </header>
-      {status === 'loading' && <p className="vehicles-page__message" role="status">Opening the garage…</p>}
+      {status === 'loading' && <p className="vehicles-page__message" role="status">Opening the collection…</p>}
       {status === 'error' && <div className="vehicles-page__message" role="alert">
-        <p>We couldn’t load the vehicles.</p>
+        <p>We couldn’t load this collection.</p>
         <button type="button" onClick={onRetry}>Try again</button>
       </div>}
-      {status === 'ready' && !spread && side === 'left' && <p className="vehicles-page__message">No vehicles are available at the moment.</p>}
-      {status === 'ready' && <div className={feature ? 'vehicles-feature-product' : 'vehicles-supporting-products'}>
-        {products.map(listing => <article key={listing.id} data-listing-id={listing.id}
-          className={`vehicle-product vehicle-product--${feature ? 'feature' : 'supporting'}`} aria-label={listing.legoProduct.title}>
-          <CatalogueArtwork listing={listing} feature={Boolean(feature)} onViewDetails={onViewDetails} />
-          <ProductCopy listing={listing} onViewDetails={onViewDetails} />
-        </article>)}
+      {status === 'ready' && !spread && side === 'left' && <p className="vehicles-page__message">No more builds in this collection.</p>}
+      {status === 'ready' && <div className="vehicles-supporting-products">
+        {products.map(listing => <CatalogueProduct key={listing.id} listing={listing} onViewDetails={onViewDetails} />)}
       </div>}
     </section>
   )

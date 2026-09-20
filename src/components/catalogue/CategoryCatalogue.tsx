@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { CSSProperties } from 'react'
 import { BookShell } from '../BookShell'
 import { PageTurn } from './PageTurn'
@@ -6,12 +7,15 @@ import { OpeningWelcomePage } from './OpeningWelcomePage'
 import { CatalogueIndexPage } from './CatalogueIndexPage'
 import { FrontMatterContentsPage, FrontMatterWelcomePage } from './FrontMatterSpread'
 import type { CatalogueCategory } from './categories'
+import { catalogueCategories } from './categories'
+import { CategoryOpeningPage } from './CategoryOpeningSpread'
+import { CategoryLeaflet } from '../leaflet/CategoryLeaflet'
+import { useCategoryCatalogue } from '../../features/catalogue/useCategoryCatalogue'
 import './CategoryCatalogue.css'
 import type { CatalogueSpread } from './catalogueSpread'
-import { productLocation, sameSpread, spreadAfterAction } from './catalogueSpread'
+import { categoryLocation, sameSpread, spreadAfterAction } from './catalogueSpread'
 import { planProductSpreads } from '../../features/catalogue/productSpreads'
 import { CatalogueProductDetails, VehiclesProductPage } from './VehiclesProductPage'
-import { useVehicles } from '../../features/catalogue/useVehicles'
 import type { ProductListing } from '../../features/catalogue/api'
 
 export type { CatalogueSpread } from './catalogueSpread'
@@ -23,13 +27,13 @@ type CatalogueProps = {
   onAddToCart?: (listing: ProductListing) => void
 }
 
-function CategoryEntry({ category, onVehicles }: { category: CatalogueCategory; onVehicles?: () => void }) {
+function CategoryEntry({ category, onCategory }: { category: CatalogueCategory; onCategory?: (slug: string) => void }) {
   return (
     <li>
       <a
         className="category-entry"
         href={category.href}
-        onClick={category.id === 'vehicles' && onVehicles ? (event) => { event.preventDefault(); onVehicles() } : undefined}
+        onClick={onCategory ? (event) => { if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); onCategory(category.id) } } : undefined}
         style={{
           '--category-colour': category.colour,
           '--category-image-scale': category.imageScale ?? 1,
@@ -54,11 +58,11 @@ function CategoryEntry({ category, onVehicles }: { category: CatalogueCategory; 
   )
 }
 
-export function CataloguePageContent({ categories, heading, start, onVehicles }: {
+export function CataloguePageContent({ categories, heading, start, onCategory }: {
   categories: readonly CatalogueCategory[]
   heading?: string
   start: number
-  onVehicles?: () => void
+  onCategory?: (slug: string) => void
 }) {
   return (
     <nav className="category-page" aria-label={heading ?? 'Catalogue categories continued'}>
@@ -69,7 +73,7 @@ export function CataloguePageContent({ categories, heading, start, onVehicles }:
         </div>
       )}
       <ol className="category-page__entries" start={start}>
-        {categories.map((category) => <CategoryEntry key={category.id} category={category} onVehicles={onVehicles} />)}
+        {categories.map((category) => <CategoryEntry key={category.id} category={category} onCategory={onCategory} />)}
       </ol>
     </nav>
   )
@@ -81,9 +85,13 @@ const [pageOne, pageTwo, pageThree, pageFour] = cataloguePages
 
 /** The same shell persists; category and product turns share one coordinator. */
 export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart }: CatalogueProps) {
-  const productsOpen = typeof spread !== 'string'
-  const { state: vehiclesState, retry } = useVehicles(productsOpen)
-  const listings = vehiclesState.status === 'ready' ? vehiclesState.listings : []
+  const origin = typeof spread !== 'string' ? spread.kind === 'details' ? spread.returnTo : spread : undefined
+  const categoryOrigin = origin ? origin.kind === 'category' ? origin : categoryLocation(origin.slug) : undefined
+  const categoryName = catalogueCategories.find(category => category.id === categoryOrigin?.slug)?.label
+  const { state: categoryState, retry: retryCategory } = useCategoryCatalogue(categoryName)
+  const [leafletOpen, setLeafletOpen] = useState(false)
+  const listings = categoryState.status === 'ready' ? categoryState.listings : []
+  const displayCategoryName = categoryState.status === 'ready' ? categoryState.category.name : categoryName ?? 'Collection'
   const productSpreads = planProductSpreads(listings)
   const current: CatalogueSpread = typeof spread !== 'string' && spread.kind === 'products'
     ? { ...spread, index: Math.max(0, Math.min(spread.index, productSpreads.length - 1)) }
@@ -124,7 +132,8 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
   const pageContent = (location: CatalogueSpread, side: 'left' | 'right') => {
     if (typeof location !== 'string') {
       if (location.kind === 'details') return <CatalogueProductDetails side={side} listing={listings.find(item => item.id === location.listingId)} onAddToCart={onAddToCart} />
-      return <VehiclesProductPage side={side} spread={productSpreads[location.index]} status={vehiclesState.status} onRetry={retry}
+      if (location.kind === 'category') return <CategoryOpeningPage side={side} state={categoryState} onRetry={retryCategory} onLeaflet={() => setLeafletOpen(true)} onDetails={listingId => navigate({ kind: 'details', listingId, returnTo: location })} />
+      return <VehiclesProductPage side={side} spread={productSpreads[location.index]} status={categoryState.status} categoryName={displayCategoryName} onRetry={retryCategory}
         onViewDetails={(listingId) => navigate({ kind: 'details', listingId, returnTo: location })} />
     }
     if (location === 'opening') return side === 'left' ? <OpeningWelcomePage /> : <CatalogueIndexPage />
@@ -133,13 +142,14 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
     return <CataloguePageContent categories={side === 'left' ? (primary ? pageOne : pageThree) : (primary ? pageTwo : pageFour)}
       heading={side === 'left' ? (primary ? 'Our Catalogue' : 'More little worlds') : undefined}
       start={side === 'left' ? (primary ? 1 : 8) : (primary ? 4 : 11)}
-      onVehicles={() => navigate(productLocation())} />
+      onCategory={slug => navigate(categoryLocation(slug))} />
   }
   const pageClass = (location: CatalogueSpread, side: 'left' | 'right') => {
-    const product = typeof location !== 'string'
+    const category = typeof location !== 'string' && location.kind === 'category'
+    const product = typeof location !== 'string' && !category
     const next = spreadAfterAction(location, 'forward', productSpreads.length)
     const navigation = side === 'left' || !sameSpread(location, next)
-    return `spread-page${side === 'right' ? ' spread-page--right' : ''}${location === 'front-matter' ? ' spread-page--front-matter' : ''}${location === 'opening' && side === 'left' ? ' spread-page--welcome' : ''}${product ? ' spread-page--vehicles' : ''}${product && navigation ? ' spread-page--product-navigation' : ''}`
+    return `spread-page${side === 'right' ? ' spread-page--right' : ''}${category ? ' spread-page--category-opening' : ''}${location === 'front-matter' ? ' spread-page--front-matter' : ''}${location === 'opening' && side === 'left' ? ' spread-page--welcome' : ''}${product ? ' spread-page--vehicles' : ''}${product && navigation ? ' spread-page--product-navigation' : ''}`
   }
   const frozenPage = (location: CatalogueSpread, side: 'left' | 'right') => (
     <div className={pageClass(location, side)}>{pageContent(location, side)}</div>
@@ -147,12 +157,13 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
   const source = turn?.from ?? current
   const left = turn?.direction === 'backward' ? turn.to : source
   const right = turn?.direction === 'forward' ? turn.to : source
-  const backLabel = details ? '← Back to Vehicles' : firstProduct ? '← Back to Categories' : current === 'categories-primary' ? '← Back to Contents' : '← Back'
+  const categoryOpening = typeof current !== 'string' && current.kind === 'category'
+  const backLabel = details || firstProduct ? `← Back to ${displayCategoryName}` : categoryOpening ? '← Back to Categories' : current === 'categories-primary' ? '← Back to Contents' : '← Back'
 
   return (
     <>
       {typeof current !== 'string' && current.kind === 'products' && <span className="catalogue-spread-status" role="status">
-        Vehicles product spread {current.index + 1} of {Math.max(1, productSpreads.length)}
+        {displayCategoryName} product spread {current.index + 1} of {Math.max(1, productSpreads.length)}
       </span>}
       <BookShell
         leftPage={<div className={pageClass(left, 'left')} data-product-index={typeof current !== 'string' && current.kind === 'products' ? current.index : undefined}>
@@ -160,14 +171,14 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
           {current !== 'opening' && <div className="spread-page__navigation">
             {current === 'front-matter'
               ? <button type="button" disabled={Boolean(turn)} onClick={onClose}>← Close Book</button>
-              : <button type="button" disabled={Boolean(turn)} onClick={() => firstProduct || details ? navigate(backward) : beginTurn('backward', backward)}>{backLabel}</button>}
+              : <button type="button" disabled={Boolean(turn)} onClick={() => firstProduct || details || categoryOpening ? navigate(backward) : beginTurn('backward', backward)}>{backLabel}</button>}
           </div>}
         </div>}
         rightPage={<div className={pageClass(right, 'right')}>
           {pageContent(right, 'right')}
           {hasForward && current !== 'front-matter' && <div className="spread-page__navigation">
             <button type="button" disabled={Boolean(turn)} onClick={() => beginTurn('forward', forward)}>
-              {typeof current !== 'string' ? 'More Vehicles →' : current === 'opening' ? 'Discover all 13 worlds →' : 'More →'}
+              {categoryOpening ? 'Continue in the storybook →' : typeof current !== 'string' ? `More ${displayCategoryName} →` : current === 'opening' ? 'Discover all 13 worlds →' : 'More →'}
             </button>
           </div>}
         </div>}
@@ -175,6 +186,8 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
           front={frozenPage(turn.from, turn.direction === 'forward' ? 'right' : 'left')}
           back={frozenPage(turn.to, turn.direction === 'forward' ? 'left' : 'right')} /> : null}
       />
+      {leafletOpen && categoryOrigin && categoryState.status === 'ready' && createPortal(<CategoryLeaflet category={categoryState.category} listings={categoryState.listings}
+        onClose={() => setLeafletOpen(false)} onDetails={listingId => { setLeafletOpen(false); navigate({ kind: 'details', listingId, returnTo: categoryOrigin }) }} />, document.body)}
     </>
   )
 }

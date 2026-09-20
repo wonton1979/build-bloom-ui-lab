@@ -1,0 +1,108 @@
+.leaflet-dialog { width: min(1080px, calc(100vw - 64px)); max-width: none; max-height: none; padding: 0; border: 0; background: transparent; overflow: visible; color: #304f58; }
+.leaflet-dialog::backdrop { background: #3d33296b; }
+.leaflet { height: min(800px, calc(100svh - 56px)); display: flex; flex-direction: column; background: #fffaf0; border: 1px solid #dfd3b9; border-radius: 3px 7px 4px 8px; box-shadow: 0 2px 2px #342a2940, 3px 18px 35px #30261f66; padding: 16px 34px 12px; font-family: 'Segoe Print', 'Comic Sans MS', cursive; position: relative; isolation: isolate; }
+.leaflet::before { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(115deg, #e5d7b221, transparent 35%, #fffdf7aa 65%, #c5b59319), repeating-linear-gradient(0deg, #947b4305 0px, #947b4305 1px, transparent 1px, transparent 4px); border-radius: inherit; }
+.leaflet button { border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; min-height: 36px; }
+.leaflet button:hover:not(:disabled) { text-decoration: underline; text-underline-offset: 4px; }
+.leaflet button:focus-visible, .leaflet__print-area:focus-visible { outline: 2px solid #37777c; outline-offset: 3px; }
+.leaflet button:disabled { cursor: wait; }
+.leaflet__toolbar { display: flex; justify-content: space-between; gap: 12px; flex-shrink: 0; }
+.leaflet__toolbar button { font-size: 12px; padding: 0; color: #70664e; }
+.leaflet__toolbar button:last-child { font: 26px Georgia, serif; width: 36px; }
+.leaflet__masthead { display: flex; justify-content: space-between; align-items: center; padding: 0 0 12px; gap: 20px; }
+.leaflet__brand { color: #456b59; font-size: 32px; letter-spacing: -.04em; }
+.leaflet__motto { font-size: 13px; text-align: right; color: #836947; transform: rotate(-3deg); }
+.leaflet__category-band { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 12px 22px; background: #d8e9ec; border-radius: 28% 4% 18% 3% / 7% 25% 8% 18%; flex-shrink: 0; }
+.leaflet[data-side="front"] .leaflet__category-band { background: #f4dfa4; }
+.leaflet__edition { margin: 0; font: 11px/1.5 'Segoe UI', sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #506f72; }
+.leaflet__category-band h1 { margin: 0; font-size: clamp(30px, 4vw, 49px); font-weight: 600; line-height: 1.3; color: #245d75; }
+.leaflet__category-band > p { font-size: 19px; margin: 0; text-align: right; }
+.leaflet__print-area { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: thin; padding: 14px 4px; }
+.leaflet__print-area--front { display: flex; flex-direction: column; }
+.leaflet__editorial { max-width: 650px; margin: 0 auto 10px; font: italic 15px/1.6 Georgia, serif; text-align: center; color: #67634b; }
+.leaflet__feature-label { align-self: flex-start; padding: 5px 16px; background: #f3dda0; color: #76512c; border-radius: 18% 5% 25% 5%; transform: rotate(-2deg); font-size: 14px; }
+.leaflet-product { min-width: 0; display: flex; flex-direction: column; background: #eef0e680; padding: 14px; border-radius: 4px 13px 5px 10px; }
+.leaflet-product:nth-child(3n+2) { background: #e2edf280; }
+.leaflet-product:nth-child(3n+3) { background: #f3e5d580; }
+.leaflet-product__art { height: 145px; flex-shrink: 0; position: relative; min-width: 0; }
+.leaflet-product__art img { position: absolute; inset: 0; display: block; height: 100%; width: 100%; object-fit: contain; }
+.leaflet-product__copy { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.leaflet-product__set { font: 11px/1.5 'Segoe UI', sans-serif; color: #667277; margin: 8px 0 3px; }
+.leaflet-product h3 { margin: 0; font-size: 17px; font-weight: 600; line-height: 1.4; color: #34586b; }
+.leaflet-product__facts { font: 11px/1.5 'Segoe UI', sans-serif; color: #6c695e; margin: 8px 0; }
+.leaflet-product__purchase { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; margin-top: auto; }
+.leaflet-product__price { display: flex; align-items: baseline; gap: 8px; margin: 6px 0; color: #3a5144; }
+.leaflet-product__price strong { font: 600 24px Georgia, serif; }
+.leaflet-product__price del { font: 12px 'Segoe UI', sans-serif; color: #7c7163; }
+.leaflet-product__stock { font: 11px 'Segoe UI', sans-serif; color: #59684e; }
+.leaflet-product__copy > button { align-self: flex-start; padding: 3px 0; font-size: 12px; }
+.leaflet-product.leaflet-product--featured { display: grid; grid-template-columns: 1.35fr 1fr; gap: 24px; flex: 1; align-items: center; background: none; padding: 0 18px 8px; }
+.leaflet-product--featured .leaflet-product__art { height: clamp(240px, 33svh, 350px); }
+.leaflet-product--featured h3 { font-size: clamp(22px, 2.4vw, 29px); }
+.leaflet-product--featured .leaflet-product__facts { font-size: 13px; }
+.leaflet-product--featured .leaflet-product__price strong { font-size: 32px; }
+.leaflet-product--featured .leaflet-product__copy > button { font-size: 16px; margin-top: 12px; }
+.leaflet-product__description { font: 14px/1.65 Georgia, serif; color: #625d50; margin: 8px 0 15px; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.leaflet__count { margin: 2px 0 16px; text-align: center; font-size: 14px; color: #79705a; }
+.leaflet__products { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }
+.leaflet__footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; border-top: 1px solid #b4a68177; padding-top: 10px; flex-shrink: 0; }
+.leaflet__footer > span { color: #8a785a; font-size: 12px; }
+.leaflet .leaflet__turn { background: #eadba3; border-radius: 22% 4% 16% 3%; padding: 6px 22px; font-size: 17px; color: #5e5d3f; }
+.leaflet__no-feature, .leaflet__empty { margin: auto; padding: 36px; text-align: center; font-size: 16px; }
+/* Front merchandising only. The Back grid and physical sheet stay unchanged. */
+.leaflet__front-promotions { display: grid; flex: 1; gap: 24px; }
+.leaflet__front-promotions--with-teasers { grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); }
+.leaflet__front-hero { display: flex; flex-direction: column; min-width: 0; }
+.leaflet__front-hero .leaflet-product--featured { display: flex; flex-direction: column; gap: 0; padding: 0 12px 8px; }
+.leaflet__front-hero .leaflet-product__art { width: 100%; height: 210px; }
+.leaflet__front-hero .leaflet-product__copy { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 18px; }
+.leaflet__front-hero .leaflet-product__set,
+.leaflet__front-hero .leaflet-product h3,
+.leaflet__front-hero .leaflet-product__facts { grid-column: 1 / -1; }
+.leaflet__front-hero .leaflet-product__description { display: none; }
+.leaflet__front-hero .leaflet-product__copy > button { margin-top: 2px; align-self: center; }
+.leaflet__teasers { display: grid; grid-template-rows: auto repeat(2, minmax(0, 1fr)); align-content: start; gap: 14px; min-width: 0; }
+.leaflet__teasers h2 { margin: 0; color: #7e6c49; font-size: 17px; font-weight: 500; }
+.leaflet__teasers .leaflet-product { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1fr); gap: 10px; padding: 12px; align-items: center; }
+.leaflet__teasers .leaflet-product__art { height: 125px; }
+.leaflet__teasers .leaflet-product h3 { font-size: 15px; }
+.leaflet__teasers .leaflet-product__set { margin-top: 0; font-size: 10px; }
+.leaflet__teasers .leaflet-product__facts { display: none; }
+.leaflet__teasers .leaflet-product__price strong { font-size: 23px; }
+.leaflet__teasers .leaflet-product__purchase { gap: 2px 8px; }
+.leaflet__teasers .leaflet-product__copy > button { line-height: 1.5; }
+@media (max-width: 900px) {
+  .leaflet-dialog { width: calc(100vw - 40px); }
+  .leaflet { padding-inline: 24px; }
+  .leaflet__products { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .leaflet-product--featured { gap: 16px; padding-inline: 0; }
+  .leaflet__front-promotions--with-teasers { grid-template-columns: minmax(0, 1fr); }
+  .leaflet__front-promotions { gap: 16px; }
+  .leaflet__front-hero .leaflet-product--featured { display: grid; grid-template-columns: 1.2fr 1fr; gap: 18px; }
+  .leaflet__front-hero .leaflet-product__art { height: 185px; }
+  .leaflet__front-hero .leaflet-product__copy { display: flex; }
+  .leaflet__front-hero .leaflet-product__copy > button { align-self: flex-start; }
+  .leaflet__teasers { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto; }
+  .leaflet__teasers h2 { grid-column: 1 / -1; }
+}
+@media (max-width: 600px) {
+  .leaflet-dialog { width: calc(100vw - 24px); }
+  .leaflet { height: calc(100svh - 32px); padding: 8px 16px 12px; }
+  .leaflet__brand { font-size: 24px; }
+  .leaflet__motto { font-size: 10px; }
+  .leaflet__category-band { padding: 10px 12px; display: block; }
+  .leaflet__category-band > p { text-align: left; font-size: 14px; margin-top: 4px; }
+  .leaflet__category-band h1 { font-size: 32px; }
+  .leaflet-product.leaflet-product--featured { display: flex; gap: 4px; }
+  .leaflet-product--featured .leaflet-product__art { width: 100%; height: 210px; flex-shrink: 0; }
+  .leaflet__editorial { font-size: 13px; }
+  .leaflet__products { grid-template-columns: 1fr; }
+  .leaflet-product__art { height: 170px; }
+  .leaflet__footer > span { font-size: 10px; max-width: 120px; }
+  .leaflet .leaflet__turn { font-size: 15px; padding-inline: 15px; }
+  .leaflet__front-promotions { gap: 22px; }
+  .leaflet__front-hero .leaflet-product--featured { display: flex; gap: 0; padding-inline: 0; }
+  .leaflet__front-hero .leaflet-product__art { height: 200px; }
+  .leaflet__teasers { grid-template-columns: minmax(0, 1fr); }
+  .leaflet__teasers .leaflet-product { grid-template-columns: minmax(0, .85fr) minmax(0, 1fr); }
+}

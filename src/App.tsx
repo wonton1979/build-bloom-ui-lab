@@ -6,6 +6,7 @@ import { OpeningTransition } from './components/catalogue/OpeningTransition'
 import { ClosingTransition } from './components/catalogue/ClosingTransition'
 import { BookShell } from './components/BookShell'
 import type { CatalogueSpread } from './components/catalogue/catalogueSpread'
+import { categoryFromPath } from './components/catalogue/catalogueSpread'
 import './App.css'
 import { AccountModal } from './components/homepage/AccountModal'
 import { CartModal } from './components/cart/CartModal'
@@ -20,11 +21,11 @@ import { USER_ACCOUNT_HINT, USER_WELCOME_GREETING_MS, USER_WELCOME_HINT_MS, welc
 
 function App() {
   const [view] = useState<'live' | 'reference'>('live')
-  const [catalogueOpen, setCatalogueOpen] = useState(false)
+  const [catalogueOpen, setCatalogueOpen] = useState(() => typeof window !== 'undefined' && Boolean(categoryFromPath(window.location.pathname)))
   const [opening, setOpening] = useState(false)
   const [closing, setClosing] = useState<'turning' | 'landed' | null>(null)
   const [closedRect, setClosedRect] = useState<DOMRect | null>(null)
-  const [spread, setSpread] = useState<CatalogueSpread>('front-matter')
+  const [spread, setSpread] = useState<CatalogueSpread>(() => typeof window !== 'undefined' ? categoryFromPath(window.location.pathname) ?? 'front-matter' : 'front-matter')
   const [accountOpen, setAccountOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const [guestHint, setGuestHint] = useState<'user' | 'cart' | null>(null)
@@ -137,7 +138,7 @@ function App() {
     stageRef.current?.focus({ preventScroll: true })
     const href = pendingBookmarkHref.current
     pendingBookmarkHref.current = null
-    if (href) window.location.assign(href)
+    if (href) { const destination = categoryFromPath(href); if (destination) setSpread(destination) }
   }
   const openCityBookmark = (href: string) => {
     pendingBookmarkHref.current = href
@@ -145,7 +146,8 @@ function App() {
     if (window.matchMedia('(prefers-reduced-motion: reduce), (max-width: 760px)').matches) {
       window.requestAnimationFrame(() => {
         pendingBookmarkHref.current = null
-        window.location.assign(href)
+        const destination = categoryFromPath(href)
+        if (destination) setSpread(destination)
       })
     }
   }

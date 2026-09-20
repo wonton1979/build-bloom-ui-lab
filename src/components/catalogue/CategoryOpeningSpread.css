@@ -1,0 +1,20 @@
+.spread-page.spread-page--category-opening { height: auto; min-height: calc(100% + 72px); display: flex; flex-direction: column; padding-bottom: 0; }
+.spread-page--category-opening > .spread-page__navigation { position: static; margin-top: 14px; }
+.category-opening { display: flex; flex-direction: column; flex: 1; min-height: 390px; padding: 14px 18px 6px; color: #4d644f; }
+.category-opening__eyebrow { margin: 0 0 16px; font: 11px/1.5 'Segoe UI', sans-serif; letter-spacing: .1em; text-transform: uppercase; color: #8b7051; }
+.category-opening h1 { font-size: clamp(27px, 8cqw, 40px); line-height: 1.2; font-weight: 500; margin: 0 0 14px; text-wrap: balance; }
+.category-opening__subtitle { font-size: clamp(16px, 4.7cqw, 22px); margin: 0 0 22px; color: #8a6947; }
+.category-opening__description { font: 16px/1.8 Georgia, serif; margin: 0; color: #62513e; white-space: pre-line; }
+.category-opening__art-space { flex: 1; min-height: 75px; display: grid; place-items: center; }
+.category-opening__art-space img { width: 100%; height: 150px; object-fit: contain; }
+.category-opening__invitation { border-top: 1px solid #bfa77b55; padding-top: 14px; }
+.category-opening__invitation > span { display: block; font: italic 13px Georgia, serif; color: #8a7459; margin-bottom: 6px; }
+.category-opening button { border: 0; border-bottom: 1px solid #7f9b8e80; padding: 5px 0; background: transparent; color: #376d69; font: inherit; cursor: pointer; text-align: left; }
+.category-opening button:hover { border-color: currentColor; }
+.category-opening button:focus-visible { outline: 2px solid #376d69; outline-offset: 4px; }
+/* Give the relocated feature the same printable frame as its former page.
+   The editorial left page and BookShell geometry are unchanged. */
+.spread-page--category-opening.spread-page--right { display: block; height: calc(100% + 72px); min-height: 440px; padding-bottom: 32px; }
+.spread-page--category-opening.spread-page--right > .spread-page__navigation { position: absolute; margin-top: 0; }
+.category-opening__no-feature { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; font-size: 15px; }
+@container (max-width: 310px) { .category-opening { padding-inline: 6px; } .category-opening__description { font-size: 14px; } }

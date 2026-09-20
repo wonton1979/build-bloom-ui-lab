@@ -12,7 +12,7 @@ mkdirSync(dir, { recursive: true })
 const dist = resolve('dist')
 assert(existsSync(resolve(dist, 'index.html')), 'Run the production build first')
 const fixture = (id, feature = false) => ({
-  id, legoProductId: id + 1000, colorfulLifeCategory: 'VEHICLES', isFeatureProduct: feature,
+  id, legoProductId: id + 1000, category: { id: 11, name: 'Vehicles', subtitle: 'Built for the thrill', description: 'Test category editorial copy', imageUrl: null }, isFeatureProduct: feature,
   createdAt: new Date(Date.UTC(2026, 0, id)).toISOString(), catalogueArtworkUrl: null, catalogueArtworkPublicId: null,
   condition: 'NEW', originalPrice: '25.99', salePrice: null,
   legoProduct: { id: id + 1000, setNumber: 'fixture-' + id, title: 'Catalogue integration vehicle number ' + id,
@@ -23,15 +23,20 @@ const fixture = (id, feature = false) => ({
     { url: '/__test-photo.svg?image=3', altText: null, sortOrder: 2 },
   ],
 })
-let fixtureProducts = [fixture(90, true), ...Array.from({ length: 7 }, (_, i) => fixture(i + 1))].reverse()
+let fixtureProducts = [fixture(90, true), ...Array.from({ length: 11 }, (_, i) => fixture(i + 1))].reverse()
 let servedProducts = []
 const requests = []
 const server = createServer(async (req, res) => {
   try {
     if (req.method !== 'GET') { res.writeHead(405).end(); return }
     const url = new URL(req.url, 'http://localhost')
+    if (url.pathname === '/api/categories') {
+      const data = fixtureMode ? [fixture(1).category] : await (await fetch((process.env.CATALOGUE_API_URL || 'http://localhost:3000') + '/categories')).json()
+      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(data))
+      return
+    }
     if (url.pathname === '/api/products') {
-      assert.equal(url.searchParams.get('category'), 'VEHICLES')
+      assert.equal(url.searchParams.get('categoryId'), '11')
       assert(!url.searchParams.has('colorfulLifeCategory'))
       let data
       if (fixtureMode) {
@@ -139,7 +144,7 @@ try {
     await snapshot(name + '-' + width)
     console.log(name, width, JSON.stringify(metrics))
   }
-  const enterVehicles = async () => {
+  const enterVehicles = async (continueBrowsing = true) => {
     await call('Page.navigate', { url: frontendUrl })
     await waitFor("Boolean(document.querySelector('.closed-catalogue__trigger'))")
     await evaluate("document.querySelector('.closed-catalogue__trigger').click()")
@@ -150,7 +155,11 @@ try {
     await click('More →')
     await finishTurn()
     await evaluate("document.querySelector('a[href=\"/categories/vehicles\"]').click()")
-    await waitFor("Boolean(document.querySelector('[data-listing-id]')) || document.body.innerText.includes('No vehicles are available')")
+    await waitFor("Boolean(document.querySelector('.category-opening__invitation'))")
+    if (!continueBrowsing) return
+    await click('Continue in the storybook →')
+    await finishTurn()
+    await waitFor("Boolean(document.querySelector('[data-product-index]'))")
     await settle()
   }
   const assertBook = async () => {
@@ -260,16 +269,15 @@ try {
   await call('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false })
   await enterVehicles()
   const firstIds = await ids()
-  const expected = servedProducts.filter(p => p.colorfulLifeCategory === 'VEHICLES').sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt) || a.id - b.id)
+  const expected = servedProducts.filter(p => p.category?.id === 11).sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt) || a.id - b.id)
   assert(expected.every(p => typeof p.isFeatureProduct === 'boolean' && 'catalogueArtworkUrl' in p))
   const feature = expected.find(p => p.isFeatureProduct)
   const standards = expected.filter(p => p !== feature)
-  assert.deepEqual(firstIds, feature ? [feature.id, ...standards.slice(0, 2).map(p => p.id)] : standards.slice(0, 4).map(p => p.id))
+  assert.deepEqual(firstIds, standards.slice(0, 4).map(p => p.id))
   assert(await evaluate("JSON.stringify(originalRect) === JSON.stringify(originalBook.getBoundingClientRect().toJSON())"))
   await assertBook()
   if (process.argv.includes('--hit-testing')) await checkPointerInteractions()
   if (fixtureMode) {
-    await checkDetails(feature.id)
     await checkDetails(standards[0].id)
     // Two immediate activations must schedule one turn, not skip a spread.
     await evaluate("(() => { const button = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'More Vehicles →'); button.click(); button.click() })()")
@@ -277,16 +285,16 @@ try {
     assert(await evaluate("document.querySelectorAll('.catalogue-turn').length === 1 && [...document.querySelectorAll('.spread-page__navigation button')].every(b => b.disabled)"))
     await finishTurn()
     assert.equal(await index(), 1)
-    assert.deepEqual(await ids(), standards.slice(2, 6).map(p => p.id))
+    assert.deepEqual(await ids(), standards.slice(4, 8).map(p => p.id))
     assert(await evaluate("document.activeElement.classList.contains('catalogue-stage')"))
-    await checkDetails(standards[2].id)
+    await checkDetails(standards[4].id)
     assert.equal(await index(), 1)
     for (const [w, h] of [[1440,900], [820,900], [390,844]]) await checkLayout('later-missing-artwork', w, h)
     await call('Emulation.setDeviceMetricsOverride', { width:1440, height:900, deviceScaleFactor:1, mobile:false })
     await click('More Vehicles →')
     await finishTurn()
     assert.equal(await index(), 2)
-    assert.deepEqual(await ids(), standards.slice(6).map(p => p.id))
+    assert.deepEqual(await ids(), standards.slice(8).map(p => p.id))
     assert(!await evaluate("[...document.querySelectorAll('button')].some(b => b.textContent.trim() === 'More Vehicles →')"))
     await click('← Back')
     await finishTurn()
@@ -302,7 +310,7 @@ try {
       await finishTurn()
       seen.push(...await ids())
     }
-    assert.deepEqual([...seen].sort((a,b) => a-b), expected.map(p => p.id).sort((a,b) => a-b))
+    assert.deepEqual([...seen].sort((a,b) => a-b), standards.map(p => p.id).sort((a,b) => a-b))
     assert.equal(new Set(seen).size, seen.length)
     while (await index() > 0) { await click('← Back'); await finishTurn() }
   }
@@ -318,6 +326,8 @@ try {
   }
   assert(!requests.some(url => /vehicle-\d+-(feature|standard)/.test(url)), 'No local product artwork may be requested')
   await call('Emulation.setDeviceMetricsOverride', { width:1440, height:900, deviceScaleFactor:1, mobile:false })
+  await click('← Back to Vehicles')
+  await waitFor("Boolean(document.querySelector('.category-opening__invitation'))")
   await click('← Back to Categories')
   await assertBook()
   assert(await evaluate("Boolean(document.querySelector('a[href=\"/categories/vehicles\"]'))"))
@@ -335,10 +345,10 @@ try {
     fixtureProducts = [fixture(90,true), fixture(1), fixture(2), fixture(3)]
     await call('Emulation.setEmulatedMedia', { features: [{ name:'prefers-reduced-motion', value:'reduce' }] })
     await enterVehicles()
-    await click('More Vehicles →')
-    assert.equal(await index(), 1)
+    assert.equal(await index(), 0)
     assert(!await evaluate("Boolean(document.querySelector('.catalogue-turn'))"))
-    assert.deepEqual(await ids(), [3])
+    assert.deepEqual(await ids(), [1,2,3])
+    assert(!await evaluate("[...document.querySelectorAll('button')].some(b=>b.textContent.trim()==='More Vehicles →')"))
     await checkDetails(3)
     fixtureProducts = fixtureProducts.map(p => ({ ...p, catalogueArtworkUrl: '/__test-art.svg?version=1&id=' + p.id }))
     await enterVehicles()
@@ -347,7 +357,6 @@ try {
     fixtureProducts = fixtureProducts.map(p => ({ ...p, catalogueArtworkUrl: p.catalogueArtworkUrl.replace('version=1','version=2') }))
     await enterVehicles()
     assert((await evaluate("[...document.querySelectorAll('img.vehicle-product__art')].map(i => i.getAttribute('src'))")).every(url => url.includes('version=2')))
-    await click('More Vehicles →')
     await checkDetails(3)
     fixtureProducts = [fixture(90,true), ...Array.from({length:7}, (_, i) => fixture(i + 1))]
       .map(p => ({ ...p, catalogueArtworkUrl: '/__test-art.svg?id=' + p.id }))
@@ -367,9 +376,20 @@ try {
     fixtureProducts = [fixture(1, true), fixture(2), fixture(3)].map(p => ({...p, catalogueArtworkUrl:'/missing-test-art.png'}))
     await enterVehicles()
     await waitFor("!document.querySelector('img.vehicle-product__art')")
-    assert.deepEqual(await ids(), [1,2,3])
+    assert.deepEqual(await ids(), [2,3])
     assert(!await evaluate("[...document.querySelectorAll('button')].some(b => b.textContent.trim() === 'More Vehicles →')"))
-    await checkDetails(1)
+    await checkDetails(2)
+    // The feature-only category stays on its opening, with a working Details
+    // action and no artificial empty normal spread.
+    fixtureProducts = [fixture(90,true)]
+    await enterVehicles(false)
+    assert.deepEqual(await ids(), [90])
+    assert(!await evaluate("[...document.querySelectorAll('button')].some(b=>b.textContent.trim()==='Continue in the storybook →')"))
+    await pointerClick('.category-opening-feature .vehicle-product__details')
+    await waitFor("Boolean(document.querySelector('[data-detail-listing-id=\"90\"]'))")
+    await click('← Back to Vehicles')
+    await waitFor("Boolean(document.querySelector('.category-opening-feature'))")
+    assert.deepEqual(await ids(), [90])
   }
   console.log('PASS: ' + (fixtureMode ? 'fixture acceptance' : 'live API') + ' — navigation, details, book persistence, responsive containment, artwork policy, close/reopen.')
   await send('Browser.close')

@@ -1,7 +1,6 @@
 import type { ProductListing } from './api'
 
 export interface ProductSpread {
-  feature?: ProductListing
   left: ProductListing[]
   right: ProductListing[]
 }
@@ -17,14 +16,19 @@ function chronological(a: ProductListing, b: ProductListing) {
 
 /** Presentation only: input is already category-filtered. Never infer feature
  * status from artwork, set number, or any merchandising attribute. */
-export function planProductSpreads(products: readonly ProductListing[]): ProductSpread[] {
+export function selectCategoryProducts(products: readonly ProductListing[]) {
   const ordered = [...new Map(products.map(product => [product.id, product])).values()].sort(chronological)
   // Malformed multiple features: show the earliest flagged listing as feature;
   // retain every other listing in standard slots rather than losing products.
   const feature = ordered.find(product => product.isFeatureProduct)
-  const standards = ordered.filter(product => product !== feature)
+  return { feature, others: ordered.filter(product => product !== feature) }
+}
+
+/** The opening owns the feature. Subsequent paper spreads contain only the
+ * remaining listings, flowing into the normal four slots from the outset. */
+export function planProductSpreads(products: readonly ProductListing[]): ProductSpread[] {
+  const { others: standards } = selectCategoryProducts(products)
   const spreads: ProductSpread[] = []
-  if (feature) spreads.push({ feature, left: [], right: standards.splice(0, 2) })
   for (let start = 0; start < standards.length; start += 4) {
     spreads.push({ left: standards.slice(start, start + 2), right: standards.slice(start + 2, start + 4) })
   }
