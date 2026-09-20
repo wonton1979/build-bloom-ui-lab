@@ -1,0 +1,47 @@
+.cart-modal { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding: 32px; background: #2f403dcc; }
+.cart-modal__surface { position: relative; display: flex; flex-direction: column; width: min(540px, 100%); max-height: calc(100dvh - 64px); overflow: hidden; border: 1px solid #d9d1b9; border-radius: 16px; background: #fff9e9; color: #493c31; box-shadow: 0 24px 60px #24342b66; }
+.cart-modal__scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.cart-modal__close { position: sticky; z-index: 2; top: 16px; float: right; width: 42px; height: 42px; margin: 16px 18px -58px 0; padding: 0; border: 1px solid #527f78; border-radius: 50%; background: #fff9e9; color: #493c31; font: 28px/1 system-ui, sans-serif; cursor: pointer; }
+.cart-modal__close:focus-visible, .cart-modal__action:focus-visible { outline: 3px solid #b68c42; outline-offset: 4px; }
+.cart-modal__page { display: flex; flex-direction: column; align-items: center; padding: 24px 40px 12px; }
+.cart-modal__page h1 { max-width: 100%; margin: 0; padding-inline: 32px; color: #3e6962; font: 700 36px/1.3 'Segoe Print', 'Comic Sans MS', cursive; text-align: center; }
+.cart-modal__wagon { display: block; width: min(100%, 300px); height: 210px; margin-top: 12px; object-fit: contain; pointer-events: none; }
+.cart-modal__empty { max-width: 100%; text-align: center; }
+.cart-modal__empty h2 { margin: 12px 0 0; color: #3e6962; font: 700 26px/1.35 'Segoe Print', 'Comic Sans MS', cursive; }
+.cart-modal__empty p { margin: 8px 0 0; color: #69614f; font-size: 16px; line-height: 1.6; }
+.cart-modal__action { display: inline-block; width: min(100%, 280px); min-height: 46px; margin-top: 22px; padding: 10px 24px; border: 1px solid #416b66; border-radius: 8px; background: #527f78; color: #fffdf6; font: 600 15px/1.4 system-ui, sans-serif; box-shadow: 0 4px 8px #47445d1c; cursor: pointer; }
+.cart-modal__action:hover { background: #416b66; }
+.cart-modal__contents { width: min(100%, 620px); margin-top: 22px; overflow-wrap: anywhere; }
+.cart-modal__items { display: grid; gap: 16px; }
+.cart-modal__summary { margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5ddc8; color: #493c31; }
+.cart-modal__actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; }
+.cart-modal__divider { width: 100%; margin: 24px 0 12px; }
+/* The unpadded footer is a direct shell row, outside the content scroll gutter.
+   The shell alone clips its bottom corners; both states use the same geometry. */
+/* Source-space windows remove transparent outer pixels and let the illustrated
+   ground bleed through the bottom edge. Images retain their intrinsic ratio;
+   this crops only the outer ground fringe, never flowers or the dog. */
+.cart-modal__footer-edge { position: relative; flex: 0 0 auto; width: 100%; aspect-ratio: var(--footer-visible-width) / var(--footer-visible-height); overflow: hidden; line-height: 0; pointer-events: none; }
+.cart-modal__footer-edge--empty { --footer-source-width: 2158; --footer-visible-width: 2146; --footer-visible-height: 535; --footer-left: 10; }
+.cart-modal__footer-edge--filled { --footer-source-width: 2172; --footer-visible-width: 2162; --footer-visible-height: 675; --footer-left: 6; }
+.cart-modal__footer { position: absolute; top: 0; left: calc(-100% * var(--footer-left) / var(--footer-visible-width)); display: block; width: calc(100% * var(--footer-source-width) / var(--footer-visible-width)); max-width: none; height: auto; pointer-events: none; }
+
+@media (min-width: 701px) and (max-width: 900px) {
+  .cart-modal__page { padding-inline: 32px; }
+  .cart-modal__wagon { height: 195px; }
+}
+@media (max-width: 700px) {
+  .cart-modal__page { padding: 24px 24px 12px; }
+  .cart-modal__page h1 { font-size: 30px; }
+  .cart-modal__wagon { width: min(100%, 260px); height: 185px; }
+  .cart-modal__empty h2 { font-size: 24px; }
+}
+@media (max-width: 600px) {
+  .cart-modal { padding: 0; }
+  .cart-modal__surface { width: 100%; height: 100dvh; max-height: 100%; border: 0; border-radius: 0; }
+  .cart-modal__page { min-height: 100%; padding: 28px 20px max(16px, env(safe-area-inset-bottom)); }
+  .cart-modal__page h1 { font-size: 28px; }
+  .cart-modal__wagon { margin-top: 20px; height: 200px; }
+  .cart-modal__divider { margin-top: auto; padding-top: 28px; }
+  .cart-modal__close { right: 0; margin-right: 12px; }
+}

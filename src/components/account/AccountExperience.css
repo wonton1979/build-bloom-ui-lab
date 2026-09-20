@@ -86,6 +86,8 @@
 .account-experience__heading > p:last-child { margin: 0; font-size: 15px; line-height: 1.6; color: #69614f; }
 
 .account-form__fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.account-form__message { margin: 0 0 16px; padding: 12px 14px; border-radius: 6px; font-size: 14px; line-height: 1.5; }
+.account-form__message--error { border: 1px solid #c98b78; background: #fff0e8; color: #7b3f32; }
 .account-form__field { display: grid; grid-column: 1 / -1; gap: 7px; min-width: 0; font-size: 14px; font-weight: 600; }
 .account-form__field input {
   display: block;
@@ -132,6 +134,8 @@
   font: 600 16px/1.4 system-ui, sans-serif;
   cursor: pointer;
 }
+.account-modal__surface--hub { width: min(1180px, calc(100vw - 64px)); }
+.account-form__submit:disabled { opacity: .65; cursor: wait; }
 .account-form__submit:hover { background: #416b66; }
 .account-form__submit:focus-visible, .account-experience__switch button:focus-visible { outline: 2px solid #527f78; outline-offset: 4px; }
 .account-experience__switch { margin: 28px 0 0; padding-top: 22px; border-top: 1px solid #e5ddc8; font-size: 14px; line-height: 1.7; color: #69614f; }
@@ -149,11 +153,47 @@
 
 .account-experience[data-account-mode='create'] { min-height: 0; }
 
+.account-experience--authenticated { position: relative; display: block; min-height: 0; overflow: hidden; }
+.account-experience--authenticated .account-experience__task { position: relative; z-index: 2; max-width: none; margin: 0; padding: 48px 68px 112px; }
+.account-hub__top { display: grid; grid-template-columns: minmax(0, 1fr) 440px; align-items: center; min-height: 224px; gap: 18px; }
+.account-hub__identity { margin: 0; }
+.account-hub__heading-line { display: block; }
+.account-hub__cat-books { display: block; width: 440px; height: 224px; object-fit: contain; object-position: center; pointer-events: none; }
+.account-hub__cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.account-hub-card { position: relative; min-height: 232px; overflow: hidden; padding: 26px 28px; border: 1px solid #cbb998; border-radius: 12px; background: #fffdf6; box-shadow: 0 8px 16px #47445d18; }
+.account-hub-card__copy { position: relative; z-index: 2; display: flex; flex-direction: column; min-height: 178px; margin-left: 43%; padding: 12px 0 4px; }
+.account-hub-card h3 { margin: 0 0 12px; color: #3e6962; font: 700 26px/1.2 'Segoe Print', 'Comic Sans MS', cursive; }
+.account-hub-card p { max-width: 235px; margin: 0; color: #69614f; font-size: 16px; line-height: 1.55; }
+.account-hub-card__sprig { position: absolute; z-index: 1; top: 8px; left: 10px; width: 78px; height: 52px; object-fit: contain; object-position: left top; pointer-events: none; opacity: .75; }
+.account-hub-card__sprig--orders { transform: none; right: auto; left: 10px; }
+.account-hub-card__feature { position: absolute; z-index: 1; left: 4px; bottom: -4px; width: 42%; height: 88%; object-fit: contain; object-position: center bottom; pointer-events: none; }
+.account-hub-card__feature--parcel { width: 42%; }
+.account-hub__divider { display: flex; align-items: center; gap: 14px; margin: 40px auto 0; color: #b9aa8a; opacity: .72; }
+.account-hub__divider::before, .account-hub__divider::after { flex: 1; height: 1px; background: #b9aa8a; content: ''; }
+.account-hub__divider span { position: relative; display: block; flex: 0 0 9px; height: 9px; }
+.account-hub__divider img { position: absolute; top: 50%; left: 50%; width: 22px; height: auto; transform: translate(-50%, -50%); pointer-events: none; }
+.account-hub__signout { display: flex; justify-content: center; margin-top: 28px; }
+.account-hub__signout-button { width: min(100%, 350px); min-height: 46px; padding: 9px 24px; border: 1px solid #416b66; border-radius: 8px; background: #527f78; color: #fffdf6; font: 600 15px/1.4 system-ui, sans-serif; box-shadow: 0 4px 8px #47445d1c; cursor: pointer; }
+.account-hub__signout-button:hover { background: #416b66; }
+.account-hub__signout-button:focus-visible { outline: 2px solid #527f78; outline-offset: 4px; }
+.account-hub__foliage { position: absolute; z-index: 1; width: 210px; height: 140px; object-fit: contain; pointer-events: none; }
+.account-hub__foliage--left { bottom: -26px; left: -42px; object-position: left bottom; }
+.account-hub__foliage--right { right: -42px; bottom: -28px; object-position: right bottom; }
+.account-hub__sentiment { position: absolute; z-index: 3; right: 112px; bottom: 34px; margin: 0; color: #87664b; font: 17px/1.35 'Segoe Print', 'Comic Sans MS', cursive; }
+
 @media (min-width: 701px) and (max-width: 900px) {
   .account-experience { grid-template-columns: minmax(0, 0.65fr) minmax(0, 1fr); }
   .account-experience__task { padding-inline: 28px; }
   .account-experience__welcome { padding-inline: 16px; }
   .account-experience__story { font-size: 22px; }
+  .account-experience--authenticated .account-experience__task { padding-inline: 32px; }
+  .account-hub__top { grid-template-columns: minmax(0, 1fr) 300px; }
+  .account-hub__cat-books { width: 300px; height: 160px; }
+  .account-hub__heading-line { display: inline; }
+  .account-hub-card { min-height: 255px; padding-inline: 24px; }
+  .account-hub-card__feature { width: 55%; }
+  .account-hub-card__feature--parcel { width: 54%; }
+  .account-hub__foliage { width: 270px; height: 180px; }
 }
 
 @media (max-width: 700px) {
@@ -164,13 +204,84 @@
   .account-experience__task { max-width: 480px; margin-inline: auto; padding: 28px; }
   .account-experience__heading { margin-bottom: 24px; }
   .account-experience__flower { width: 28px; height: 30px; }
+  .account-experience--authenticated .account-experience__task { padding: 32px 28px 92px; }
+  .account-hub__top { display: block; min-height: 150px; }
+  .account-hub__identity { max-width: 66%; }
+  .account-hub__cat-books { position: absolute; top: 18px; right: 16px; width: 190px; height: 105px; }
+  .account-hub__cards { grid-template-columns: 1fr; gap: 16px; }
+  .account-hub-card { min-height: 205px; padding: 26px 24px 42px; }
+  .account-hub-card__feature { width: 42%; height: 74%; }
+  .account-hub-card__feature--parcel { width: 41%; }
+  .account-hub-card__sprig { width: 92px; height: 62px; }
+  .account-hub-card__copy { max-width: 62%; }
+  .account-hub__sentiment { right: 112px; bottom: 27px; font-size: 13px; }
+  .account-hub__foliage { width: 170px; height: 112px; }
 }
 
 @media (max-width: 600px) {
   .account-modal__surface { width: 100%; height: 100dvh; max-height: 100%; border: 0; border-radius: 0; }
   .account-experience__task { padding-bottom: max(32px, env(safe-area-inset-bottom)); }
+  .account-hub__cat-books { opacity: .72; }
+  .account-hub__sentiment { display: none; }
+  .account-hub__foliage--left { display: none; }
+  .account-hub__foliage--right { right: -72px; opacity: .8; }
 }
 
 @media (max-width: 380px) {
   .account-experience__task { padding-inline: 20px; }
+}
+
+/* Wide desktop-only balance pass. The approved medium and narrow compositions
+   above remain unchanged. */
+@media (min-width: 901px) {
+  .account-experience--authenticated {
+    --right-foliage-width: 180px;
+    --right-foliage-inset: 12px;
+  }
+  .account-experience--authenticated .account-experience__task { padding-bottom: 66px; }
+  .account-experience--authenticated .account-hub__signout { margin-top: 40px; }
+  .account-experience--authenticated .account-hub__cards { margin-top: 30px; }
+  .account-experience--authenticated .account-hub-card {
+    display: grid;
+    grid-template-columns: minmax(0, 44fr) minmax(0, 56fr);
+    column-gap: 20px;
+    align-items: center;
+  }
+  .account-experience--authenticated .account-hub-card__copy {
+    position: static;
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 0;
+    min-width: 0;
+    margin-left: 0;
+    padding: 0;
+  }
+  .account-experience--authenticated .account-hub-card__feature {
+    position: static;
+    grid-column: 1;
+    grid-row: 1;
+    width: 100%;
+    height: auto;
+    max-height: 178px;
+    object-position: center;
+  }
+  .account-experience--authenticated .account-hub__foliage--left {
+    width: 180px;
+    height: auto;
+    left: 0;
+    bottom: 0;
+  }
+  /* Inset the artwork from the Hub clip so its natural outer contour is visible. */
+  .account-experience--authenticated .account-hub__foliage--right {
+    width: var(--right-foliage-width);
+    height: auto;
+    right: var(--right-foliage-inset);
+    bottom: var(--right-foliage-inset);
+  }
+  .account-experience--authenticated .account-hub__sentiment {
+    width: 140px;
+    right: calc(var(--right-foliage-inset) + var(--right-foliage-width) * .45);
+    bottom: 72px;
+    text-align: center;
+  }
 }
