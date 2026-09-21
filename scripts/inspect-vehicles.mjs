@@ -15,8 +15,9 @@ const fixture = (id, feature = false) => ({
   id, legoProductId: id + 1000, category: { id: 11, name: 'Vehicles', subtitle: 'Built for the thrill', description: 'Test category editorial copy', imageUrl: null }, isFeatureProduct: feature,
   createdAt: new Date(Date.UTC(2026, 0, id)).toISOString(), catalogueArtworkUrl: null, catalogueArtworkPublicId: null,
   condition: 'NEW', originalPrice: '25.99', salePrice: null,
-  legoProduct: { id: id + 1000, setNumber: 'fixture-' + id, title: 'Catalogue integration vehicle number ' + id,
-    theme: 'Test theme', ageRecommendation: '9', pieceCount: 123, description: 'Test description for listing ' + id },
+  legoProduct: { id: id + 1000, setNumber: 'fixture-' + id,
+    title: id % 3 === 0 ? 'Classic Defender Off-Road Adventure and Expedition Vehicle ' + id : 'Catalogue integration vehicle number ' + id,
+    theme: id % 2 ? 'Test theme' : 'Speed Champions', ageRecommendation: id % 2 ? '9' : '18+', pieceCount: id % 2 ? 123 : 2345, description: 'Test description for listing ' + id },
   listingImages: [
     { url: '/__test-photo.svg?image=1', altText: 'Test product photograph one', sortOrder: 0 },
     { url: '/__test-photo.svg?image=2', altText: 'Test product photograph two', sortOrder: 1 },
@@ -68,7 +69,7 @@ const browser = spawn(process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome
   '--user-data-dir=' + dir + '/profile', '--remote-debugging-port=0',
 ], { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] })
 let socket
-const deadline = setTimeout(() => { browser.kill(); server.closeAllConnections(); server.close(); process.exitCode = 1 }, 120000)
+const deadline = setTimeout(() => { browser.kill(); server.closeAllConnections(); server.close(); process.exitCode = 1 }, 240000)
 try {
   const ws = await new Promise((resolve, reject) => {
     let logs = ''
@@ -100,7 +101,7 @@ try {
   }
   const waitFor = async expression => {
     for (let i = 0; i < 120; i++) {
-      if (await evaluate(expression)) return
+      if (await evaluate(`(${expression}) && !document.querySelector('.catalogue-turn')`)) return
       await new Promise(r => setTimeout(r, 100))
     }
     throw new Error('Timed out: ' + expression + '\n' + await evaluate('document.body.innerText'))
@@ -138,7 +139,7 @@ try {
     })()`)
     assert(!metrics.horizontalOverflow && !metrics.overlaps && !metrics.navCollisions, JSON.stringify(metrics))
     assert(metrics.pages.every(p => p.scrollWidth <= p.width))
-    if (width === 1440) assert(metrics.pages.every(p => p.scrollHeight <= p.height), JSON.stringify(metrics))
+    if (width > 1100) assert(metrics.pages.every(p => p.scrollHeight <= p.height), JSON.stringify(metrics))
     assert.equal(metrics.scrollX, 0)
     assert.equal(metrics.scrollY, 0)
     await snapshot(name + '-' + width)
@@ -203,6 +204,7 @@ try {
             assert(!await evaluate("Boolean(document.querySelector('.account-modal'))"))
             await assertBook()
             await pointerClick('.spread-page__navigation button')
+            await finishTurn()
             assert.equal(await index(), originalIndex)
           }
           if (await evaluate(`Boolean(document.querySelector('[data-listing-id="${id}"] .vehicle-product__art-button'))`)) {
@@ -210,12 +212,14 @@ try {
             await waitFor(`Boolean(document.querySelector('[data-detail-listing-id="${id}"]'))`)
             assert(!await evaluate("Boolean(document.querySelector('.account-modal'))"))
             await pointerClick('.spread-page__navigation button')
+            await finishTurn()
             await evaluate(`document.querySelector('[data-listing-id="${id}"] .vehicle-product__art-button').focus()`)
             await call('Input.dispatchKeyEvent', {type:'keyDown',key:'Enter',code:'Enter',text:'\r',unmodifiedText:'\r',windowsVirtualKeyCode:13})
             await call('Input.dispatchKeyEvent', {type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13})
             await waitFor(`Boolean(document.querySelector('[data-detail-listing-id="${id}"]'))`)
             assert(!await evaluate("Boolean(document.querySelector('.account-modal'))"))
             await pointerClick('.spread-page__navigation button')
+            await finishTurn()
           }
           checked.push(id)
         }
@@ -260,6 +264,7 @@ try {
       await snapshot('details-gallery-' + id)
     }
     await click('← Back to Vehicles')
+    await finishTurn()
     await waitFor("Boolean(document.querySelector('[data-product-index]'))")
     await assertBook()
   }
@@ -289,7 +294,7 @@ try {
     assert(await evaluate("document.activeElement.classList.contains('catalogue-stage')"))
     await checkDetails(standards[4].id)
     assert.equal(await index(), 1)
-    for (const [w, h] of [[1440,900], [820,900], [390,844]]) await checkLayout('later-missing-artwork', w, h)
+    for (const [w, h] of [[1440,900], [1280,800], [1366,768], [820,900], [390,844]]) await checkLayout('later-missing-artwork', w, h)
     await call('Emulation.setDeviceMetricsOverride', { width:1440, height:900, deviceScaleFactor:1, mobile:false })
     await click('More Vehicles →')
     await finishTurn()
@@ -314,7 +319,7 @@ try {
     assert.equal(new Set(seen).size, seen.length)
     while (await index() > 0) { await click('← Back'); await finishTurn() }
   }
-  for (const [w,h] of [[1440,900], [820,900], [390,844]]) await checkLayout('first-spread', w,h)
+  for (const [w,h] of [[1440,900], [1280,800], [1366,768], [820,900], [390,844]]) await checkLayout('first-spread', w,h)
   const artworkSources = await evaluate("[...document.querySelectorAll('img.vehicle-product__art')].map(i => i.getAttribute('src'))")
   const rendered = await ids()
   for (const id of rendered) {
@@ -327,8 +332,10 @@ try {
   assert(!requests.some(url => /vehicle-\d+-(feature|standard)/.test(url)), 'No local product artwork may be requested')
   await call('Emulation.setDeviceMetricsOverride', { width:1440, height:900, deviceScaleFactor:1, mobile:false })
   await click('← Back to Vehicles')
+  await finishTurn()
   await waitFor("Boolean(document.querySelector('.category-opening__invitation'))")
-  await click('← Back to Categories')
+    await click('← Back to Categories')
+    await finishTurn()
   await assertBook()
   assert(await evaluate("Boolean(document.querySelector('a[href=\"/categories/vehicles\"]'))"))
   await click('← Back')
@@ -362,7 +369,7 @@ try {
       .map(p => ({ ...p, catalogueArtworkUrl: '/__test-art.svg?id=' + p.id }))
     await enterVehicles()
     await click('More Vehicles →')
-    for (const [w,h] of [[1440,900], [820,900], [390,844]]) await checkLayout('later-with-delivery-artwork',w,h)
+    for (const [w,h] of [[1440,900], [1280,800], [1366,768], [820,900], [390,844]]) await checkLayout('later-with-delivery-artwork',w,h)
     assert(await evaluate(`(() => {
       return [...document.querySelectorAll('img.vehicle-product__art')].every(img => {
         for (let node = img; node && !node.classList.contains('book-shell__content'); node = node.parentElement) {
@@ -388,6 +395,7 @@ try {
     await pointerClick('.category-opening-feature .vehicle-product__details')
     await waitFor("Boolean(document.querySelector('[data-detail-listing-id=\"90\"]'))")
     await click('← Back to Vehicles')
+    await finishTurn()
     await waitFor("Boolean(document.querySelector('.category-opening-feature'))")
     assert.deepEqual(await ids(), [90])
   }

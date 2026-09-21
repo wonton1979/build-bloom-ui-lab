@@ -1,5 +1,11 @@
 .leaflet-dialog { width: min(1080px, calc(100vw - 64px)); max-width: none; max-height: none; padding: 0; border: 0; background: transparent; overflow: visible; color: #304f58; }
 .leaflet-dialog::backdrop { background: #3d33296b; }
+@media (prefers-reduced-motion: no-preference) {
+  .leaflet-dialog[open]::backdrop { animation: leaflet-backdrop-enter 220ms ease-out both; }
+  .leaflet-dialog[data-closing]::backdrop { animation: leaflet-backdrop-exit 220ms ease-out both; }
+}
+@keyframes leaflet-backdrop-enter { from { opacity: 0; } to { opacity: 1; } }
+@keyframes leaflet-backdrop-exit { from { opacity: 1; } to { opacity: 0; } }
 .leaflet { height: min(800px, calc(100svh - 56px)); display: flex; flex-direction: column; background: #fffaf0; border: 1px solid #dfd3b9; border-radius: 3px 7px 4px 8px; box-shadow: 0 2px 2px #342a2940, 3px 18px 35px #30261f66; padding: 16px 34px 12px; font-family: 'Segoe Print', 'Comic Sans MS', cursive; position: relative; isolation: isolate; }
 .leaflet::before { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(115deg, #e5d7b221, transparent 35%, #fffdf7aa 65%, #c5b59319), repeating-linear-gradient(0deg, #947b4305 0px, #947b4305 1px, transparent 1px, transparent 4px); border-radius: inherit; }
 .leaflet button { border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; min-height: 36px; }
