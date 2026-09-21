@@ -85,7 +85,10 @@ const [pageOne, pageTwo, pageThree, pageFour] = cataloguePages
 
 /** The same shell persists; category and product turns share one coordinator. */
 export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart }: CatalogueProps) {
-  const origin = typeof spread !== 'string' ? spread.kind === 'details' ? spread.returnTo : spread : undefined
+  const [turn, setTurn] = useState<{ direction: 'forward' | 'backward'; from: CatalogueSpread; to: CatalogueSpread } | null>(null)
+  // Load the incoming category during its turn; retain outgoing data through handoff.
+  const dataSpread = typeof spread !== 'string' ? spread : turn ? typeof turn.to !== 'string' ? turn.to : turn.from : spread
+  const origin = typeof dataSpread !== 'string' ? dataSpread.kind === 'details' ? dataSpread.returnTo : dataSpread : undefined
   const categoryOrigin = origin ? origin.kind === 'category' ? origin : categoryLocation(origin.slug) : undefined
   const categoryName = catalogueCategories.find(category => category.id === categoryOrigin?.slug)?.label
   const { state: categoryState, retry: retryCategory } = useCategoryCatalogue(categoryName)
@@ -96,17 +99,13 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
   const current: CatalogueSpread = typeof spread !== 'string' && spread.kind === 'products'
     ? { ...spread, index: Math.max(0, Math.min(spread.index, productSpreads.length - 1)) }
     : spread
-  const [turn, setTurn] = useState<{ direction: 'forward' | 'backward'; from: CatalogueSpread; to: CatalogueSpread } | null>(null)
   const locked = useRef(false)
   const unlockFrame = useRef<number | null>(null)
   useEffect(() => () => { if (unlockFrame.current !== null) cancelAnimationFrame(unlockFrame.current) }, [])
 
-  const navigate = (next: CatalogueSpread) => {
-    if (!locked.current) onSpreadChange(next)
-  }
   const beginTurn = (direction: 'forward' | 'backward', next: CatalogueSpread) => {
     if (locked.current || sameSpread(next, current)) return
-    if (current === 'opening' || typeof window === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (typeof window === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       onSpreadChange(next)
       return
     }
@@ -128,13 +127,15 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
   const hasForward = current !== 'categories-more' && !sameSpread(current, forward)
   const firstProduct = typeof current !== 'string' && current.kind === 'products' && current.index === 0
   const details = typeof current !== 'string' && current.kind === 'details'
+  const emptyProductPage = (location: CatalogueSpread, side: 'left' | 'right') =>
+    typeof location !== 'string' && location.kind === 'products' && categoryState.status === 'ready' && !productSpreads[location.index]?.[side].length
 
   const pageContent = (location: CatalogueSpread, side: 'left' | 'right') => {
     if (typeof location !== 'string') {
       if (location.kind === 'details') return <CatalogueProductDetails side={side} listing={listings.find(item => item.id === location.listingId)} onAddToCart={onAddToCart} />
-      if (location.kind === 'category') return <CategoryOpeningPage side={side} state={categoryState} onRetry={retryCategory} onLeaflet={() => setLeafletOpen(true)} onDetails={listingId => navigate({ kind: 'details', listingId, returnTo: location })} />
+      if (location.kind === 'category') return <CategoryOpeningPage side={side} state={categoryState} onRetry={retryCategory} onLeaflet={() => { if (!locked.current) setLeafletOpen(true) }} onDetails={listingId => beginTurn('forward', { kind: 'details', listingId, returnTo: location })} />
       return <VehiclesProductPage side={side} spread={productSpreads[location.index]} status={categoryState.status} categoryName={displayCategoryName} onRetry={retryCategory}
-        onViewDetails={(listingId) => navigate({ kind: 'details', listingId, returnTo: location })} />
+        onViewDetails={(listingId) => beginTurn('forward', { kind: 'details', listingId, returnTo: location })} />
     }
     if (location === 'opening') return side === 'left' ? <OpeningWelcomePage /> : <CatalogueIndexPage />
     if (location === 'front-matter') return side === 'left' ? <FrontMatterWelcomePage /> : <FrontMatterContentsPage onCatalogue={() => beginTurn('forward', 'categories-primary')} turning={Boolean(turn)} />
@@ -142,7 +143,7 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
     return <CataloguePageContent categories={side === 'left' ? (primary ? pageOne : pageThree) : (primary ? pageTwo : pageFour)}
       heading={side === 'left' ? (primary ? 'Our Catalogue' : 'More little worlds') : undefined}
       start={side === 'left' ? (primary ? 1 : 8) : (primary ? 4 : 11)}
-      onCategory={slug => navigate(categoryLocation(slug))} />
+      onCategory={slug => beginTurn('forward', categoryLocation(slug))} />
   }
   const pageClass = (location: CatalogueSpread, side: 'left' | 'right') => {
     const category = typeof location !== 'string' && location.kind === 'category'
@@ -152,7 +153,7 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
     return `spread-page${side === 'right' ? ' spread-page--right' : ''}${category ? ' spread-page--category-opening' : ''}${location === 'front-matter' ? ' spread-page--front-matter' : ''}${location === 'opening' && side === 'left' ? ' spread-page--welcome' : ''}${product ? ' spread-page--vehicles' : ''}${product && navigation ? ' spread-page--product-navigation' : ''}`
   }
   const frozenPage = (location: CatalogueSpread, side: 'left' | 'right') => (
-    <div className={pageClass(location, side)}>{pageContent(location, side)}</div>
+    emptyProductPage(location, side) ? null : <div className={pageClass(location, side)}>{pageContent(location, side)}</div>
   )
   const source = turn?.from ?? current
   const left = turn?.direction === 'backward' ? turn.to : source
@@ -166,15 +167,15 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
         {displayCategoryName} product spread {current.index + 1} of {Math.max(1, productSpreads.length)}
       </span>}
       <BookShell
-        leftPage={<div className={pageClass(left, 'left')} data-product-index={typeof current !== 'string' && current.kind === 'products' ? current.index : undefined}>
+        leftPage={emptyProductPage(left, 'left') ? null : <div className={pageClass(left, 'left')} data-product-index={typeof current !== 'string' && current.kind === 'products' ? current.index : undefined}>
           {pageContent(left, 'left')}
           {current !== 'opening' && <div className="spread-page__navigation">
             {current === 'front-matter'
               ? <button type="button" disabled={Boolean(turn)} onClick={onClose}>← Close Book</button>
-              : <button type="button" disabled={Boolean(turn)} onClick={() => firstProduct || details || categoryOpening ? navigate(backward) : beginTurn('backward', backward)}>{backLabel}</button>}
+              : <button type="button" disabled={Boolean(turn)} onClick={() => beginTurn('backward', backward)}>{backLabel}</button>}
           </div>}
         </div>}
-        rightPage={<div className={pageClass(right, 'right')}>
+        rightPage={emptyProductPage(right, 'right') ? null : <div className={pageClass(right, 'right')}>
           {pageContent(right, 'right')}
           {hasForward && current !== 'front-matter' && <div className="spread-page__navigation">
             <button type="button" disabled={Boolean(turn)} onClick={() => beginTurn('forward', forward)}>
@@ -187,7 +188,7 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
           back={frozenPage(turn.to, turn.direction === 'forward' ? 'left' : 'right')} /> : null}
       />
       {leafletOpen && categoryOrigin && categoryState.status === 'ready' && createPortal(<CategoryLeaflet category={categoryState.category} listings={categoryState.listings}
-        onClose={() => setLeafletOpen(false)} onDetails={listingId => { setLeafletOpen(false); navigate({ kind: 'details', listingId, returnTo: categoryOrigin }) }} />, document.body)}
+        onClose={() => setLeafletOpen(false)} onDetails={listingId => { setLeafletOpen(false); beginTurn('forward', { kind: 'details', listingId, returnTo: categoryOrigin }) }} />, document.body)}
     </>
   )
 }

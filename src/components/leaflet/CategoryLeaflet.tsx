@@ -63,9 +63,12 @@ export function CategoryLeaflet({ category, listings, onClose, onDetails }: {
 }) {
   const [side, setSide] = useState<LeafletSide>('front')
   const [turning, setTurning] = useState(false)
+  const [closing, setClosing] = useState(false)
   const dialog = useRef<HTMLDialogElement>(null)
   const sheet = useRef<HTMLDivElement>(null)
   const animation = useRef<Animation | null>(null)
+  const presenceAnimation = useRef<Animation | null>(null)
+  const leaving = useRef(false)
   const busy = useRef(false)
   const disposed = useRef(false)
   useEffect(() => {
@@ -73,10 +76,32 @@ export function CategoryLeaflet({ category, listings, onClose, onDetails }: {
     const opener = document.activeElement as HTMLElement | null
     const element = dialog.current!
     element.showModal()
-    return () => { disposed.current = true; animation.current?.cancel(); element.close(); if (opener?.isConnected) opener.focus({ preventScroll: true }) }
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      presenceAnimation.current = element.animate([
+        { opacity: 0, transform: 'translateY(5px)' },
+        { opacity: 1, transform: 'translateY(0)' },
+      ], { duration: 220, easing: 'ease-out' })
+    }
+    return () => { disposed.current = true; presenceAnimation.current?.cancel(); animation.current?.cancel(); element.close(); if (opener?.isConnected) opener.focus({ preventScroll: true }) }
   }, [])
+  const leave = async (complete: () => void) => {
+    if (leaving.current || disposed.current) return
+    leaving.current = true
+    setClosing(true)
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const element = dialog.current!
+      const { opacity, transform } = getComputedStyle(element)
+      presenceAnimation.current?.cancel()
+      presenceAnimation.current = element.animate([
+        { opacity, transform },
+        { opacity: 0, transform: 'translateY(5px)' },
+      ], { duration: 220, easing: 'ease-out', fill: 'forwards' })
+      try { await presenceAnimation.current.finished } catch { return }
+    }
+    if (!disposed.current) complete()
+  }
   const turnOver = async () => {
-    if (busy.current) return
+    if (busy.current || leaving.current) return
     const next = oppositeSide(side)
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setSide(next); return }
     busy.current = true
@@ -101,10 +126,10 @@ export function CategoryLeaflet({ category, listings, onClose, onDetails }: {
     } catch { /* Unmount cancels an in-flight sheet movement. */ }
     finally { if (!disposed.current) { busy.current = false; setTurning(false) } }
   }
-  return <dialog ref={dialog} className="leaflet-dialog" aria-labelledby="leaflet-title" onCancel={event => { event.preventDefault(); onClose() }}>
-    <div ref={sheet} className="leaflet" data-side={side} data-category-id={category.id} aria-busy={turning}>
-      <div className="leaflet__toolbar"><button type="button" onClick={onClose}>← Back to the storybook</button><button type="button" aria-label="Close leaflet" onClick={onClose}>×</button></div>
-      <LeafletContent category={category} listings={listings} side={side} onDetails={onDetails} />
+  return <dialog ref={dialog} className="leaflet-dialog" data-closing={closing || undefined} aria-labelledby="leaflet-title" onCancel={event => { event.preventDefault(); void leave(onClose) }}>
+    <div ref={sheet} className="leaflet" data-side={side} data-category-id={category.id} aria-busy={turning || closing} inert={closing}>
+      <div className="leaflet__toolbar"><button type="button" onClick={() => void leave(onClose)}>← Back to the storybook</button><button type="button" aria-label="Close leaflet" onClick={() => void leave(onClose)}>×</button></div>
+      <LeafletContent category={category} listings={listings} side={side} onDetails={id => void leave(() => onDetails(id))} />
       <footer className="leaflet__footer"><span>Build. Play. Collect. Bloom.</span><button className="leaflet__turn" type="button" disabled={turning} onClick={() => void turnOver()}>{side === 'front' ? 'Turn over →' : '← Turn over'}</button></footer>
       <span className="catalogue-spread-status" role="status">{category.name} leaflet, {side}</span>
     </div>

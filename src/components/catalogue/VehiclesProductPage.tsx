@@ -63,6 +63,7 @@ export function VehiclesProductPage({ side, spread, status, categoryName, onRetr
   onViewDetails: (id: number) => void
 }) {
   const products = spread?.[side] ?? []
+  if (status === 'ready' && !products.length) return null
   return (
     <section className="vehicles-page vehicles-page--supporting" aria-labelledby={`vehicles-${side}-heading`}>
       <header className="vehicles-page__heading">
@@ -73,7 +74,6 @@ export function VehiclesProductPage({ side, spread, status, categoryName, onRetr
         <p>We couldn’t load this collection.</p>
         <button type="button" onClick={onRetry}>Try again</button>
       </div>}
-      {status === 'ready' && !spread && side === 'left' && <p className="vehicles-page__message">No more builds in this collection.</p>}
       {status === 'ready' && <div className="vehicles-supporting-products">
         {products.map(listing => <CatalogueProduct key={listing.id} listing={listing} onViewDetails={onViewDetails} />)}
       </div>}

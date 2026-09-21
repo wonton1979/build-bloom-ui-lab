@@ -112,11 +112,26 @@ describe('dynamic catalogue products and dedicated artwork', () => {
   })
 
   it('renders empty, loading and error states without manufactured product data', () => {
-    expect(renderPage([])).toContain('No more builds')
+    expect(renderPage([])).toBe('')
     for (const status of ['loading', 'error'] as const) {
       const markup = renderToStaticMarkup(<VehiclesProductPage side="left" categoryName="Vehicles" status={status} onRetry={vi.fn()} onViewDetails={vi.fn()} />)
       expect(markup).toContain(status === 'loading' ? 'Opening the collection' : 'Try again')
       expect(markup).not.toContain('£25.99')
+    }
+  })
+  it.each(['Vehicles', 'Harry Potter', 'Flowers & Botanicals'])('leaves an unpopulated %s product page completely blank', categoryName => {
+    for (const side of ['left', 'right'] as const) {
+      const emptySide = { left: side === 'left' ? [] : [listing(1)], right: side === 'right' ? [] : [listing(2)] }
+      expect(renderToStaticMarkup(<VehiclesProductPage side={side} spread={emptySide} categoryName={categoryName} status="ready" onRetry={vi.fn()} onViewDetails={vi.fn()} />)).toBe('')
+    }
+  })
+  it('renders heading and content only on populated pages of sparse spreads', () => {
+    for (const count of [1, 2, 5, 6]) {
+      const products = Array.from({ length: count }, (_, index) => listing(index + 1))
+      const finalIndex = planProductSpreads(products).length - 1
+      expect(renderPage(products, finalIndex, 'right')).toBe('')
+      expect(renderPage(products, finalIndex, 'left')).toContain('<h2')
+      expect(renderPage(products, finalIndex, 'left')).toContain('data-listing-id=')
     }
   })
 })

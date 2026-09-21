@@ -103,3 +103,21 @@
 @media (max-width: 760px) {
   .spread-page--vehicles { padding-bottom: 44px; }
 }
+
+/* Desktop text rhythm only: retain artwork sizing and the physical page. */
+@media (min-width: 1101px) {
+  .spread-page--vehicles { min-height: 0; }
+  .vehicles-page--supporting { padding-top: 6px; }
+  .vehicles-page--supporting .vehicles-page__heading h2 { font-size: clamp(16px, 4.4cqw, 20px); line-height: 1.15; }
+  .vehicles-supporting-products,
+  .spread-page--product-navigation .vehicles-supporting-products { padding-top: 8px; gap: 10px; }
+  .vehicle-product--supporting h3 { font-size: 16px; line-height: 1.18; }
+  .vehicle-product--supporting .vehicle-product__facts { margin-top: 3px; line-height: 1.35; }
+  .vehicle-product--supporting .vehicle-product__footer { margin-top: 2px; }
+  .vehicles-page--feature .vehicles-page__heading h2 { font-size: clamp(24px, 7cqw, 32px); line-height: 1.15; }
+  .vehicles-page--feature .vehicles-page__heading p { margin-top: 3px; line-height: 1.3; }
+  .vehicle-product--feature h3 { line-height: 1.2; }
+  .vehicle-product--feature .vehicle-product__facts { margin-top: 6px; line-height: 1.35; }
+  .vehicle-product--feature .vehicle-product__footer { margin-top: 6px; }
+  .vehicle-product--feature .vehicle-product__copy { padding-bottom: 6px; }
+}
