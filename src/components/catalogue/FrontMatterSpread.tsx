@@ -24,7 +24,7 @@ const futureSections = [
   ['Help & FAQs', 'A little help when you need it'],
 ] as const
 
-export function FrontMatterContentsPage({ onCatalogue, turning = false }: { onCatalogue: () => void; turning?: boolean }) {
+export function FrontMatterContentsPage({ onCatalogue, onSearch, turning = false }: { onCatalogue: () => void; onSearch: () => void; turning?: boolean }) {
   return <nav className="front-matter front-matter--contents" aria-labelledby="front-matter-contents-title">
     <header className="front-matter__contents-heading">
       <h2 id="front-matter-contents-title">Contents</h2>
@@ -34,6 +34,10 @@ export function FrontMatterContentsPage({ onCatalogue, turning = false }: { onCa
       <li><button className="front-matter__entry" type="button" onClick={onCatalogue} disabled={turning}>
         <span className="front-matter__entry-title">Our Catalogue <span className="front-matter__arrow" aria-hidden="true">→</span></span>
         <span className="front-matter__entry-description">Explore the Build &amp; Bloom collections</span>
+      </button></li>
+      <li><button className="front-matter__entry" type="button" onClick={onSearch} disabled={turning} data-find-a-set>
+        <span className="front-matter__entry-title">Find a Set <svg className="front-matter__search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6" /><path d="m15 15 5 5" /></svg></span>
+        <span className="front-matter__entry-description">Search by name or set number</span>
       </button></li>
       {futureSections.map(([title, description]) => <li key={title}>
         <button className="front-matter__entry" type="button" disabled aria-describedby="front-matter-future-note">

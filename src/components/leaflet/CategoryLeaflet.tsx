@@ -1,30 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import type { BackendCategory, ProductListing } from '../../features/catalogue/api'
 import { categoryProducts } from '../../features/catalogue/useCategoryCatalogue'
-import { formatGbp, listingUnitPricePence, priceToPence } from '../../features/cart/CartContext'
-import { ProductPrintImage } from '../catalogue/CategoryOpeningSpread'
+import { LeafletProduct } from './LeafletProduct'
+import { LeafletShell } from './LeafletShell'
+import { useLeafletActions } from './LeafletActions'
 import './CategoryLeaflet.css'
 
 export type LeafletSide = 'front' | 'back'
 const oppositeSide = (side: LeafletSide): LeafletSide => side === 'front' ? 'back' : 'front'
-
-function ListingPrint({ listing, featured = false, onDetails }: { listing: ProductListing; featured?: boolean; onDetails: (id: number) => void }) {
-  const product = listing.legoProduct
-  return <article className={`leaflet-product${featured ? ' leaflet-product--featured' : ''}`} data-leaflet-listing={listing.id}>
-    <ProductPrintImage listing={listing} className="leaflet-product__art" />
-    <div className="leaflet-product__copy">
-      <p className="leaflet-product__set">LEGO {product.theme} · {product.setNumber}</p>
-      <h3>{product.title}</h3>
-      <p className="leaflet-product__facts">{[product.pieceCount != null ? `${product.pieceCount} pieces` : '', product.ageRecommendation ? `Ages ${product.ageRecommendation}${/^\d+$/.test(product.ageRecommendation) ? '+' : ''}` : '', listing.condition === 'NEW' ? 'New' : 'Used, like new'].filter(Boolean).join(' · ')}</p>
-      {featured && product.description && <p className="leaflet-product__description">{product.description}</p>}
-      <div className="leaflet-product__purchase">
-        <p className="leaflet-product__price">{listing.salePrice !== null && <del>{formatGbp(priceToPence(listing.originalPrice))}</del>}<strong>{formatGbp(listingUnitPricePence({ listing }))}</strong></p>
-        <span className="leaflet-product__stock">{listing.availableStock > 0 ? `${listing.availableStock} available` : 'Out of stock'}</span>
-      </div>
-      <button type="button" onClick={() => onDetails(listing.id)} aria-label={`View details for ${product.title}`}>Take a closer look <span aria-hidden="true">→</span></button>
-    </div>
-  </article>
-}
 
 export function LeafletContent({ category, listings, side, onDetails }: {
   category: BackendCategory; listings: readonly ProductListing[]; side: LeafletSide; onDetails: (id: number) => void
@@ -40,17 +23,17 @@ export function LeafletContent({ category, listings, side, onDetails }: {
         <p className="leaflet__editorial">{category.description}</p>
         <div className={`leaflet__front-promotions${promotions.length ? ' leaflet__front-promotions--with-teasers' : ''}`}>
           <div className="leaflet__front-hero">
-            {feature ? <><span className="leaflet__feature-label">Featured build</span><ListingPrint listing={feature} featured onDetails={onDetails} /></> : <div className="leaflet__no-feature"><h2>A little world to discover</h2><p>{listings.length ? 'Turn over to explore this collection.' : 'New builds will appear here when they are available.'}</p></div>}
+            {feature ? <><span className="leaflet__feature-label">Featured build</span><LeafletProduct listing={feature} featured onDetails={onDetails} /></> : <div className="leaflet__no-feature"><h2>A little world to discover</h2><p>{listings.length ? 'Turn over to explore this collection.' : 'New builds will appear here when they are available.'}</p></div>}
           </div>
           {promotions.length > 0 && <section className="leaflet__teasers" aria-labelledby="leaflet-teasers-title">
             <h2 id="leaflet-teasers-title">A little more to love</h2>
-            {promotions.map(listing => <ListingPrint key={listing.id} listing={listing} onDetails={onDetails} />)}
+            {promotions.map(listing => <LeafletProduct key={listing.id} listing={listing} onDetails={onDetails} />)}
           </section>}
         </div>
       </> : <>
         {remaining.length > 0 ? <>
           <p className="leaflet__count">{remaining.length} {remaining.length === 1 ? 'more build' : 'more builds'} to spark your imagination</p>
-          <div className="leaflet__products">{remaining.map(listing => <ListingPrint key={listing.id} listing={listing} onDetails={onDetails} />)}</div>
+          <div className="leaflet__products">{remaining.map(listing => <LeafletProduct key={listing.id} listing={listing} onDetails={onDetails} />)}</div>
         </> : <p className="leaflet__empty">{listings.length ? 'You’ve seen every build in this collection. Turn over to revisit your favourites.' : 'More discoveries are on their way.'}</p>}
       </>}
     </div>
@@ -63,45 +46,16 @@ export function CategoryLeaflet({ category, listings, onClose, onDetails }: {
 }) {
   const [side, setSide] = useState<LeafletSide>('front')
   const [turning, setTurning] = useState(false)
-  const [closing, setClosing] = useState(false)
-  const dialog = useRef<HTMLDialogElement>(null)
   const sheet = useRef<HTMLDivElement>(null)
   const animation = useRef<Animation | null>(null)
-  const presenceAnimation = useRef<Animation | null>(null)
-  const leaving = useRef(false)
   const busy = useRef(false)
   const disposed = useRef(false)
   useEffect(() => {
     disposed.current = false
-    const opener = document.activeElement as HTMLElement | null
-    const element = dialog.current!
-    element.showModal()
-    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      presenceAnimation.current = element.animate([
-        { opacity: 0, transform: 'translateY(5px)' },
-        { opacity: 1, transform: 'translateY(0)' },
-      ], { duration: 220, easing: 'ease-out' })
-    }
-    return () => { disposed.current = true; presenceAnimation.current?.cancel(); animation.current?.cancel(); element.close(); if (opener?.isConnected) opener.focus({ preventScroll: true }) }
+    return () => { disposed.current = true; animation.current?.cancel() }
   }, [])
-  const leave = async (complete: () => void) => {
-    if (leaving.current || disposed.current) return
-    leaving.current = true
-    setClosing(true)
-    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      const element = dialog.current!
-      const { opacity, transform } = getComputedStyle(element)
-      presenceAnimation.current?.cancel()
-      presenceAnimation.current = element.animate([
-        { opacity, transform },
-        { opacity: 0, transform: 'translateY(5px)' },
-      ], { duration: 220, easing: 'ease-out', fill: 'forwards' })
-      try { await presenceAnimation.current.finished } catch { return }
-    }
-    if (!disposed.current) complete()
-  }
-  const turnOver = async () => {
-    if (busy.current || leaving.current) return
+  const turnOver = async (closing: boolean) => {
+    if (busy.current || closing) return
     const next = oppositeSide(side)
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setSide(next); return }
     busy.current = true
@@ -126,12 +80,19 @@ export function CategoryLeaflet({ category, listings, onClose, onDetails }: {
     } catch { /* Unmount cancels an in-flight sheet movement. */ }
     finally { if (!disposed.current) { busy.current = false; setTurning(false) } }
   }
-  return <dialog ref={dialog} className="leaflet-dialog" data-closing={closing || undefined} aria-labelledby="leaflet-title" onCancel={event => { event.preventDefault(); void leave(onClose) }}>
-    <div ref={sheet} className="leaflet" data-side={side} data-category-id={category.id} aria-busy={turning || closing} inert={closing}>
-      <div className="leaflet__toolbar"><button type="button" onClick={() => void leave(onClose)}>← Back to the storybook</button><button type="button" aria-label="Close leaflet" onClick={() => void leave(onClose)}>×</button></div>
+  return <LeafletShell sheetRef={sheet} side={side} categoryId={category.id} busy={turning} onClose={onClose}>
+    <CategorySheetContent category={category} listings={listings} side={side} turning={turning} turnOver={turnOver} onDetails={onDetails} />
+  </LeafletShell>
+}
+
+function CategorySheetContent({ category, listings, side, turning, turnOver, onDetails }: {
+  category: BackendCategory; listings: readonly ProductListing[]; side: LeafletSide; turning: boolean
+  turnOver: (closing: boolean) => Promise<void>; onDetails: (id: number) => void
+}) {
+  const { leave, closing } = useLeafletActions()
+  return <>
       <LeafletContent category={category} listings={listings} side={side} onDetails={id => void leave(() => onDetails(id))} />
-      <footer className="leaflet__footer"><span>Build. Play. Collect. Bloom.</span><button className="leaflet__turn" type="button" disabled={turning} onClick={() => void turnOver()}>{side === 'front' ? 'Turn over →' : '← Turn over'}</button></footer>
+      <footer className="leaflet__footer"><span>Build. Play. Collect. Bloom.</span><button className="leaflet__turn" type="button" disabled={turning} onClick={() => void turnOver(closing)}>{side === 'front' ? 'Turn over →' : '← Turn over'}</button></footer>
       <span className="catalogue-spread-status" role="status">{category.name} leaflet, {side}</span>
-    </div>
-  </dialog>
+    </>
 }

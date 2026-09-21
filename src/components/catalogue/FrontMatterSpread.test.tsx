@@ -14,14 +14,17 @@ describe('Catalogue front matter', () => {
     expect(text).toContain('There’s always something wonderful waiting to be built.')
   })
 
-  it('offers only the next-spread action, with future chapters unavailable and legal copy quiet', () => {
-    const markup = renderToStaticMarkup(<FrontMatterContentsPage onCatalogue={() => {}} />)
+  it('offers Catalogue then Find a Set, with future chapters unavailable and legal copy quiet', () => {
+    const markup = renderToStaticMarkup(<FrontMatterContentsPage onCatalogue={() => {}} onSearch={() => {}} />)
     const buttons = [...markup.matchAll(/<button([^>]*)>([\s\S]*?)<\/button>/g)]
-    expect(buttons).toHaveLength(4)
+    expect(buttons).toHaveLength(5)
     expect(buttons[0][1]).not.toContain('disabled')
     expect(buttons[0][2]).toContain('Our Catalogue')
     expect(buttons[0][2]).toContain('Explore the Build &amp; Bloom collections')
-    for (const button of buttons.slice(1)) expect(button[1]).toContain('disabled')
+    expect(buttons[1][1]).not.toContain('disabled')
+    expect(buttons[1][2]).toContain('Find a Set')
+    expect(buttons[1][2]).toContain('Search by name or set number')
+    for (const button of buttons.slice(2)) expect(button[1]).toContain('disabled')
     for (const copy of ['Delivery &amp; Returns', 'Everything about getting your order home', 'Contact Us', 'Come and say hello', 'Help &amp; FAQs', 'A little help when you need it', 'Privacy · Cookies · Terms &amp; Conditions']) {
       expect(markup).toContain(copy)
     }
@@ -29,8 +32,8 @@ describe('Catalogue front matter', () => {
   })
 
   it('disables the contents action while a page is turning', () => {
-    const markup = renderToStaticMarkup(<FrontMatterContentsPage onCatalogue={() => {}} turning />)
-    expect(markup.match(/disabled=""/g)).toHaveLength(4)
+    const markup = renderToStaticMarkup(<FrontMatterContentsPage onCatalogue={() => {}} onSearch={() => {}} turning />)
+    expect(markup.match(/disabled=""/g)).toHaveLength(5)
   })
 
   it('mounts welcome and contents in the existing physical book without category duplication', () => {
