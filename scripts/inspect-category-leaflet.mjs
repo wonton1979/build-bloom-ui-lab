@@ -85,7 +85,44 @@ try {
   }
 
   await call('Page.enable')
-  if (process.argv.includes('--navigation')) {
+  if (process.argv.includes('--handoff')) {
+    const beforeFix = process.argv.includes('--before')
+    const measure = root => evaluate(`(() => {
+      const root=document.querySelector(${JSON.stringify(root)});
+      const rect=selector=>{const el=root.querySelector(selector);if(!el)return null;const r=el.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height}};
+      const image=root.querySelector('.category-opening__art-space img');
+      return {art:rect('.category-opening__art-space img'),invitation:rect('.category-opening__invitation'),
+        editorial:rect('.category-opening'),wrapper:rect('.spread-page'),
+        navigation:rect('.spread-page__navigation'),image:image && {complete:image.complete,width:image.naturalWidth,height:image.naturalHeight}};
+    })()`)
+    for(const [width,height] of [[1440,900],[1280,800],[820,1000]]) {
+      await viewport(width,height)
+      for(const slug of ['creator','vehicles']) {
+        await call('Page.navigate',{url:frontendUrl+'/categories/'+slug})
+        await ready('.category-opening__invitation')
+        await backToOrigin()
+        await click(`a[href="/categories/${slug}"]`)
+        await evaluate("document.querySelector('.catalogue-turn').getAnimations({subtree:true}).forEach(a=>{a.pause();a.currentTime=759.99999})")
+        for(let i=0;i<70;i++) {
+          if(await evaluate("Boolean(document.querySelector('.catalogue-turn__face--back .category-opening__invitation'))")) break
+          await new Promise(r=>setTimeout(r,100))
+        }
+        await evaluate("Promise.all([...document.querySelectorAll('.catalogue-turn img')].map(i=>i.decode().catch(()=>{})))")
+        const before=await measure('.catalogue-turn__face--back')
+        await screenshot('handoff-'+(beforeFix?'before-fix-':'fixed-')+slug+'-'+width+'-turn')
+        await evaluate("document.querySelector('.catalogue-turn').getAnimations({subtree:true}).forEach(a=>a.finish())")
+        await idle()
+        const after=await measure('.book-shell__spread > .book-shell__page--left')
+        await screenshot('handoff-'+(beforeFix?'before-fix-':'fixed-')+slug+'-'+width+'-live')
+        console.log('HANDOFF',slug,width,JSON.stringify({before,after}))
+        if(!beforeFix) for(const name of ['art','invitation']) {
+          assert(before[name] && after[name],name+' must exist')
+          for(const axis of ['x','y','width','height']) assert(Math.abs(before[name][axis]-after[name][axis])<.1,`${slug} ${width} ${name}.${axis} must stay stable: ${before[name][axis]} -> ${after[name][axis]}`)
+        }
+      }
+    }
+    console.log(beforeFix ? 'Recorded pre-fix destination/live geometry' : 'PASS measured destination/live handoff geometry')
+  } else if (process.argv.includes('--navigation')) {
     const assertTurn = async direction => {
       const motion = await evaluate("(() => {const a=document.querySelector('.catalogue-turn')?.getAnimations()[0];return a && {timing:a.effect.getTiming(),frames:a.effect.getKeyframes()};})()")
       assert(motion,'Existing page-turn overlay must appear')
@@ -391,8 +428,8 @@ try {
     await call('Page.navigate',{url:frontendUrl+'/categories/'+slug})
     await ready('.category-opening__description')
     assert((await evaluate("document.querySelector('.category-opening__description').textContent")).length>10)
-    assert.equal(await evaluate("document.querySelectorAll('.category-opening__art-space img').length"),0)
-    const categoryListingIds = await evaluate("fetch('/api/categories').then(r=>r.json()).then(async categories=>{const name=document.querySelector('.category-opening h1').textContent;const category=categories.find(c=>c.name===name);const response=await fetch('/api/products?categoryId='+category.id+'&pageSize=100');const items=(await response.json()).items.sort((a,b)=>Date.parse(a.createdAt)-Date.parse(b.createdAt)||a.id-b.id);const feature=items.find(i=>i.isFeatureProduct);return {featureId:feature?.id,others:items.filter(i=>i.id!==feature?.id).map(i=>i.id)};})")
+    const categoryListingIds = await evaluate("fetch('/api/categories').then(r=>r.json()).then(async categories=>{const name=document.querySelector('.category-opening h1').textContent;const category=categories.find(c=>c.name===name);const response=await fetch('/api/products?categoryId='+category.id+'&pageSize=100');const items=(await response.json()).items.sort((a,b)=>Date.parse(a.createdAt)-Date.parse(b.createdAt)||a.id-b.id);const feature=items.find(i=>i.isFeatureProduct);return {imageUrl:category.imageUrl,featureId:feature?.id,others:items.filter(i=>i.id!==feature?.id).map(i=>i.id)};})")
+    assert.equal(await evaluate("document.querySelector('.category-opening__art-space img')?.getAttribute('src') ?? null"),categoryListingIds.imageUrl ?? null,'Category artwork follows current backend data')
     assert.deepEqual(await evaluate("[...document.querySelectorAll('.category-opening-feature [data-listing-id]')].map(e=>Number(e.dataset.listingId))"),categoryListingIds.featureId ? [categoryListingIds.featureId] : [])
     if (categoryListingIds.others.length) {
       await click('.spread-page--right .spread-page__navigation button')

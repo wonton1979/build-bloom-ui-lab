@@ -122,11 +122,6 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
       unlockFrame.current = null
     })
   }
-  const forward = spreadAfterAction(current, 'forward', productSpreads.length)
-  const backward = spreadAfterAction(current, 'backward', productSpreads.length)
-  const hasForward = current !== 'categories-more' && !sameSpread(current, forward)
-  const firstProduct = typeof current !== 'string' && current.kind === 'products' && current.index === 0
-  const details = typeof current !== 'string' && current.kind === 'details'
   const emptyProductPage = (location: CatalogueSpread, side: 'left' | 'right') =>
     typeof location !== 'string' && location.kind === 'products' && categoryState.status === 'ready' && !productSpreads[location.index]?.[side].length
 
@@ -152,14 +147,34 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
     const navigation = side === 'left' || !sameSpread(location, next)
     return `spread-page${side === 'right' ? ' spread-page--right' : ''}${category ? ' spread-page--category-opening' : ''}${location === 'front-matter' ? ' spread-page--front-matter' : ''}${location === 'opening' && side === 'left' ? ' spread-page--welcome' : ''}${product ? ' spread-page--vehicles' : ''}${product && navigation ? ' spread-page--product-navigation' : ''}`
   }
+  // Navigation participates in the editorial page's flex layout. Turning faces
+  // must include the same row as live pages, not just their main content.
+  const pageNavigation = (location: CatalogueSpread, side: 'left' | 'right') => {
+    const categoryOpening = typeof location !== 'string' && location.kind === 'category'
+    if (side === 'left') {
+      if (location === 'opening') return null
+      const backToCategory = typeof location !== 'string' && (location.kind === 'details' || location.kind === 'products' && location.index === 0)
+      const label = backToCategory ? `← Back to ${displayCategoryName}` : categoryOpening ? '← Back to Categories' : location === 'categories-primary' ? '← Back to Contents' : '← Back'
+      return <div className="spread-page__navigation">
+        {location === 'front-matter'
+          ? <button type="button" disabled={Boolean(turn)} onClick={onClose}>← Close Book</button>
+          : <button type="button" disabled={Boolean(turn)} onClick={() => beginTurn('backward', spreadAfterAction(location, 'backward', productSpreads.length))}>{label}</button>}
+      </div>
+    }
+    const forward = spreadAfterAction(location, 'forward', productSpreads.length)
+    if (location === 'front-matter' || location === 'categories-more' || sameSpread(location, forward)) return null
+    return <div className="spread-page__navigation">
+      <button type="button" disabled={Boolean(turn)} onClick={() => beginTurn('forward', forward)}>
+        {categoryOpening ? 'Continue in the storybook →' : typeof location !== 'string' ? `More ${displayCategoryName} →` : location === 'opening' ? 'Discover all 13 worlds →' : 'More →'}
+      </button>
+    </div>
+  }
   const frozenPage = (location: CatalogueSpread, side: 'left' | 'right') => (
-    emptyProductPage(location, side) ? null : <div className={pageClass(location, side)}>{pageContent(location, side)}</div>
+    emptyProductPage(location, side) ? null : <div className={pageClass(location, side)}>{pageContent(location, side)}{pageNavigation(location, side)}</div>
   )
   const source = turn?.from ?? current
   const left = turn?.direction === 'backward' ? turn.to : source
   const right = turn?.direction === 'forward' ? turn.to : source
-  const categoryOpening = typeof current !== 'string' && current.kind === 'category'
-  const backLabel = details || firstProduct ? `← Back to ${displayCategoryName}` : categoryOpening ? '← Back to Categories' : current === 'categories-primary' ? '← Back to Contents' : '← Back'
 
   return (
     <>
@@ -169,19 +184,11 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
       <BookShell
         leftPage={emptyProductPage(left, 'left') ? null : <div className={pageClass(left, 'left')} data-product-index={typeof current !== 'string' && current.kind === 'products' ? current.index : undefined}>
           {pageContent(left, 'left')}
-          {current !== 'opening' && <div className="spread-page__navigation">
-            {current === 'front-matter'
-              ? <button type="button" disabled={Boolean(turn)} onClick={onClose}>← Close Book</button>
-              : <button type="button" disabled={Boolean(turn)} onClick={() => beginTurn('backward', backward)}>{backLabel}</button>}
-          </div>}
+          {pageNavigation(current, 'left')}
         </div>}
         rightPage={emptyProductPage(right, 'right') ? null : <div className={pageClass(right, 'right')}>
           {pageContent(right, 'right')}
-          {hasForward && current !== 'front-matter' && <div className="spread-page__navigation">
-            <button type="button" disabled={Boolean(turn)} onClick={() => beginTurn('forward', forward)}>
-              {categoryOpening ? 'Continue in the storybook →' : typeof current !== 'string' ? `More ${displayCategoryName} →` : current === 'opening' ? 'Discover all 13 worlds →' : 'More →'}
-            </button>
-          </div>}
+          {pageNavigation(current, 'right')}
         </div>}
         pageTurn={turn ? <PageTurn direction={turn.direction} onComplete={finishTurn}
           front={frozenPage(turn.from, turn.direction === 'forward' ? 'right' : 'left')}
