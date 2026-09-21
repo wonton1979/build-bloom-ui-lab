@@ -31,6 +31,7 @@
 .front-matter__entry-title { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: clamp(17px, 5cqw, 22px); line-height: 1.5; }
 .front-matter__entry-description { display: block; margin-top: 3px; color: #776652; font: 400 clamp(12px, 3.2cqw, 14px)/1.5 Georgia, 'Times New Roman', serif; }
 .front-matter__arrow { color: #8e7048; font-size: 16px; }
+.front-matter__search-icon { width: 18px; height: 18px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.5; }
 .front-matter__entry:hover:not(:disabled) .front-matter__entry-title { text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 1px; }
 .front-matter__entry:focus-visible { outline: 2px solid #527f78; outline-offset: 5px; border-radius: 3px; }
 .front-matter__entry:disabled { color: #78664e; cursor: default; }
