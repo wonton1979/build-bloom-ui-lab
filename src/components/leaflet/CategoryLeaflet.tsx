@@ -41,10 +41,16 @@ export function LeafletContent({ category, listings, side, onDetails }: {
 }
 
 /** A separate, two-sided sheet. No BookShell, page numbers or page-turn coordinator. */
-export function CategoryLeaflet({ category, listings, onClose, onDetails }: {
+export function CategoryLeaflet({ category, listings, onClose, onDetails, side: controlledSide, onSideChange }: {
   category: BackendCategory; listings: readonly ProductListing[]; onClose: () => void; onDetails: (id: number) => void
+  side?: LeafletSide; onSideChange?: (side: LeafletSide, settled?: boolean) => void
 }) {
-  const [side, setSide] = useState<LeafletSide>('front')
+  const [internalSide, setInternalSide] = useState<LeafletSide>(controlledSide ?? 'front')
+  const side = controlledSide ?? internalSide
+  const changeSide = (next: LeafletSide, settled = true) => {
+    if (controlledSide === undefined) setInternalSide(next)
+    onSideChange?.(next, settled)
+  }
   const [turning, setTurning] = useState(false)
   const sheet = useRef<HTMLDivElement>(null)
   const animation = useRef<Animation | null>(null)
@@ -57,7 +63,7 @@ export function CategoryLeaflet({ category, listings, onClose, onDetails }: {
   const turnOver = async (closing: boolean) => {
     if (busy.current || closing) return
     const next = oppositeSide(side)
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setSide(next); return }
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { changeSide(next); return }
     busy.current = true
     setTurning(true)
     const direction = side === 'front' ? -1 : 1
@@ -69,7 +75,7 @@ export function CategoryLeaflet({ category, listings, onClose, onDetails }: {
       ], { duration: 330, easing: 'ease-in', fill: 'forwards' })
       await animation.current.finished
       if (disposed.current) return
-      setSide(next)
+      changeSide(next, false)
       animation.current.cancel()
       animation.current = sheet.current!.animate([
         { transform: `perspective(1800px) translateY(-18px) rotateY(${-direction * 88}deg) rotateZ(${-direction * 2}deg)`, boxShadow: '-18px 30px 38px #30261f55' },
@@ -77,6 +83,7 @@ export function CategoryLeaflet({ category, listings, onClose, onDetails }: {
         { transform: 'perspective(1800px) translateY(0) rotateY(0deg) rotateZ(0deg)' },
       ], { duration: 440, easing: 'ease-out' })
       await animation.current.finished
+      if (!disposed.current) changeSide(next, true)
     } catch { /* Unmount cancels an in-flight sheet movement. */ }
     finally { if (!disposed.current) { busy.current = false; setTurning(false) } }
   }
