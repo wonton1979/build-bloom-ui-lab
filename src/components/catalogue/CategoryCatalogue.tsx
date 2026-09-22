@@ -14,8 +14,8 @@ import { SearchLeaflet } from '../leaflet/SearchLeaflet'
 import { useCatalogueSearch } from '../../features/catalogue/useCatalogueSearch'
 import { useCategoryCatalogue } from '../../features/catalogue/useCategoryCatalogue'
 import './CategoryCatalogue.css'
-import type { CatalogueSpread } from './catalogueSpread'
-import { categoryLocation, sameSpread, spreadAfterAction } from './catalogueSpread'
+import type { CatalogueLeafletSide, CatalogueSpread } from './catalogueSpread'
+import { categoryLocation, normalizeProductLocation, sameSpread, spreadAfterAction } from './catalogueSpread'
 import { planProductSpreads } from '../../features/catalogue/productSpreads'
 import { CatalogueProductDetails, VehiclesProductPage } from './VehiclesProductPage'
 import type { ProductListing } from '../../features/catalogue/api'
@@ -27,6 +27,9 @@ type CatalogueProps = {
   onSpreadChange: (spread: CatalogueSpread) => void
   onClose: () => void
   onAddToCart?: (listing: ProductListing) => void
+  leafletSide?: CatalogueLeafletSide | null
+  onLeafletSideChange?: (side: CatalogueLeafletSide | null, settled?: boolean) => void
+  onSpreadNormalize?: (spread: CatalogueSpread) => void
 }
 
 function CategoryEntry({ category, onCategory }: { category: CatalogueCategory; onCategory?: (slug: string) => void }) {
@@ -92,7 +95,7 @@ const sameLocation = (a: PresentedSpread, b: PresentedSpread) => isSearchDetails
   ? isSearchDetails(a) && isSearchDetails(b) && a.listingId === b.listingId : sameSpread(a, b)
 
 /** The same shell persists; category and product turns share one coordinator. */
-export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart }: CatalogueProps) {
+export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart, leafletSide: controlledLeafletSide, onLeafletSideChange, onSpreadNormalize }: CatalogueProps) {
   const [turn, setTurn] = useState<{ direction: 'forward' | 'backward'; from: PresentedSpread; to: PresentedSpread } | null>(null)
   const search = useCatalogueSearch()
   const [searchSession, setSearchSession] = useState<{ opener: HTMLElement | null; scrollTop: number; focusListingId?: number } | null>(null)
@@ -105,13 +108,23 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
   const categoryOrigin = origin ? origin.kind === 'category' ? origin : categoryLocation(origin.slug) : undefined
   const categoryName = catalogueCategories.find(category => category.id === categoryOrigin?.slug)?.label
   const { state: categoryState, retry: retryCategory } = useCategoryCatalogue(categoryName)
-  const [leafletOpen, setLeafletOpen] = useState(false)
+  const [internalLeafletSide, setInternalLeafletSide] = useState<CatalogueLeafletSide | null>(null)
+  const leafletSide = controlledLeafletSide === undefined ? internalLeafletSide : controlledLeafletSide
+  const setLeaflet = (side: CatalogueLeafletSide | null, settled = true) => {
+    if (controlledLeafletSide === undefined) setInternalLeafletSide(side)
+    onLeafletSideChange?.(side, settled)
+  }
   const listings = categoryState.status === 'ready' ? categoryState.listings : []
   const displayCategoryName = categoryState.status === 'ready' ? categoryState.category.name : categoryName ?? 'Collection'
   const productSpreads = planProductSpreads(listings)
   const current: PresentedSpread = searchDetails ?? (typeof spread !== 'string' && spread.kind === 'products'
     ? { ...spread, index: Math.max(0, Math.min(spread.index, productSpreads.length - 1)) }
     : spread)
+  useEffect(() => {
+    if (typeof spread === 'string' || spread.kind !== 'products' || categoryState.status !== 'ready') return
+    const normalized = normalizeProductLocation(spread, productSpreads.length)
+    if (!sameSpread(normalized, spread)) (onSpreadNormalize ?? onSpreadChange)(normalized)
+  }, [categoryState.status, onSpreadChange, onSpreadNormalize, productSpreads.length, spread])
   const locked = useRef(false)
   const unlockFrame = useRef<number | null>(null)
   useEffect(() => () => { if (unlockFrame.current !== null) cancelAnimationFrame(unlockFrame.current) }, [])
@@ -155,7 +168,7 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
     if (typeof location !== 'string') {
       if (location.kind === 'search-details') return <CatalogueProductDetails side={side} listing={search.state.status === 'results' ? search.state.data.items.find(item => item.id === location.listingId) : undefined} onAddToCart={onAddToCart} />
       if (location.kind === 'details') return <CatalogueProductDetails side={side} listing={listings.find(item => item.id === location.listingId)} onAddToCart={onAddToCart} />
-      if (location.kind === 'category') return <CategoryOpeningPage side={side} state={categoryState} onRetry={retryCategory} onLeaflet={() => { if (!locked.current) setLeafletOpen(true) }} onDetails={listingId => beginTurn('forward', { kind: 'details', listingId, returnTo: location })} />
+      if (location.kind === 'category') return <CategoryOpeningPage side={side} state={categoryState} onRetry={retryCategory} onLeaflet={() => { if (!locked.current) setLeaflet('front') }} onDetails={listingId => beginTurn('forward', { kind: 'details', listingId, returnTo: location })} />
       return <VehiclesProductPage side={side} spread={productSpreads[location.index]} status={categoryState.status} categoryName={displayCategoryName} onRetry={retryCategory}
         onViewDetails={(listingId) => beginTurn('forward', { kind: 'details', listingId, returnTo: location })} />
     }
@@ -222,8 +235,8 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
           front={frozenPage(turn.from, turn.direction === 'forward' ? 'right' : 'left')}
           back={frozenPage(turn.to, turn.direction === 'forward' ? 'left' : 'right')} /> : null}
       />
-      {leafletOpen && categoryOrigin && categoryState.status === 'ready' && createPortal(<CategoryLeaflet category={categoryState.category} listings={categoryState.listings}
-        onClose={() => setLeafletOpen(false)} onDetails={listingId => { setLeafletOpen(false); beginTurn('forward', { kind: 'details', listingId, returnTo: categoryOrigin }) }} />, document.body)}
+      {leafletSide && categoryOrigin && categoryState.status === 'ready' && createPortal(<CategoryLeaflet category={categoryState.category} listings={categoryState.listings} side={leafletSide}
+        onSideChange={setLeaflet} onClose={() => setLeaflet(null)} onDetails={listingId => { setLeaflet(null); beginTurn('forward', { kind: 'details', listingId, returnTo: categoryOrigin }) }} />, document.body)}
       {searchVisible && searchSession && createPortal(<SearchLeaflet search={search} session={searchSession}
         onClose={() => { setSearchVisible(false); setSearchSession(null); search.reset() }}
         onDetails={(listingId, scrollTop) => {

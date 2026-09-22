@@ -6,7 +6,8 @@ import { OpeningTransition } from './components/catalogue/OpeningTransition'
 import { ClosingTransition } from './components/catalogue/ClosingTransition'
 import { BookShell } from './components/BookShell'
 import type { CatalogueSpread } from './components/catalogue/catalogueSpread'
-import { categoryFromPath } from './components/catalogue/catalogueSpread'
+import { catalogueLocationFromUrl, catalogueLocationHref } from './components/catalogue/catalogueSpread'
+import type { CatalogueLeafletSide } from './components/catalogue/catalogueSpread'
 import './App.css'
 import { AccountModal } from './components/homepage/AccountModal'
 import { CartModal } from './components/cart/CartModal'
@@ -21,11 +22,15 @@ import { USER_ACCOUNT_HINT, USER_WELCOME_GREETING_MS, USER_WELCOME_HINT_MS, welc
 
 function App() {
   const [view] = useState<'live' | 'reference'>('live')
-  const [catalogueOpen, setCatalogueOpen] = useState(() => typeof window !== 'undefined' && Boolean(categoryFromPath(window.location.pathname)))
+  const [initialLocation] = useState(() => typeof window !== 'undefined'
+    ? catalogueLocationFromUrl(window.location.pathname, window.location.search)
+    : { spread: 'front-matter' as CatalogueSpread, open: false, leafletSide: null })
+  const [catalogueOpen, setCatalogueOpen] = useState(initialLocation.open)
   const [opening, setOpening] = useState(false)
   const [closing, setClosing] = useState<'turning' | 'landed' | null>(null)
   const [closedRect, setClosedRect] = useState<DOMRect | null>(null)
-  const [spread, setSpread] = useState<CatalogueSpread>(() => typeof window !== 'undefined' ? categoryFromPath(window.location.pathname) ?? 'front-matter' : 'front-matter')
+  const [spread, setSpread] = useState<CatalogueSpread>(initialLocation.spread)
+  const [leafletSide, setLeafletSide] = useState<CatalogueLeafletSide | null>(initialLocation.leafletSide)
   const [accountOpen, setAccountOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const [guestHint, setGuestHint] = useState<'user' | 'cart' | null>(null)
@@ -49,6 +54,20 @@ function App() {
       guestHintTimer.current = null
       setGuestHint(null)
     }, 5_000)
+  }
+  const writeCatalogueLocation = (nextSpread: CatalogueSpread, nextLeafletSide: CatalogueLeafletSide | null, mode: 'push' | 'replace') => {
+    if (typeof window === 'undefined') return
+    const href = catalogueLocationHref(nextSpread, { open: true, leafletSide: nextLeafletSide })
+    window.history[mode === 'push' ? 'pushState' : 'replaceState']({ catalogue: true }, '', href)
+  }
+  const changeSpread = (next: CatalogueSpread, mode: 'push' | 'replace' = 'push') => {
+    writeCatalogueLocation(next, null, mode)
+    setLeafletSide(null)
+    setSpread(next)
+  }
+  const changeLeafletSide = (next: CatalogueLeafletSide | null, settled = true) => {
+    if (settled) writeCatalogueLocation(spread, next, 'replace')
+    setLeafletSide(next)
   }
   const dismissGuestHint = () => {
     if (guestHintTimer.current !== null) window.clearTimeout(guestHintTimer.current)
@@ -105,6 +124,18 @@ function App() {
     userDialogueRun.current += 1
   }, [])
   useEffect(() => {
+    const restoreLocation = () => {
+      const location = catalogueLocationFromUrl(window.location.pathname, window.location.search)
+      setCatalogueOpen(location.open)
+      setSpread(location.spread)
+      setLeafletSide(location.leafletSide)
+      setOpening(false)
+      setClosing(null)
+    }
+    window.addEventListener('popstate', restoreLocation)
+    return () => window.removeEventListener('popstate', restoreLocation)
+  }, [])
+  useEffect(() => {
     if (previousAuthStatus.current === 'authenticating' && authState.status === 'authenticated') {
       startUserWelcome(authState.user.firstName)
     }
@@ -129,6 +160,10 @@ function App() {
     const measuredCover = stageRef.current?.querySelector('.closed-catalogue')?.getBoundingClientRect() ?? null
     setClosedRect(measuredCover)
     setCatalogueOpen(true)
+    if (!pendingBookmarkHref.current) {
+      writeCatalogueLocation('front-matter', null, 'push')
+      setSpread('front-matter')
+    }
     if (!measuredCover || window.matchMedia('(prefers-reduced-motion: reduce), (max-width: 760px)').matches) return
     setOpening(true)
   }
@@ -138,7 +173,7 @@ function App() {
     stageRef.current?.focus({ preventScroll: true })
     const href = pendingBookmarkHref.current
     pendingBookmarkHref.current = null
-    if (href) { const destination = categoryFromPath(href); if (destination) setSpread(destination) }
+    if (href) { const destination = catalogueLocationFromUrl(href, ''); changeSpread(destination.spread) }
   }
   const openCityBookmark = (href: string) => {
     pendingBookmarkHref.current = href
@@ -146,8 +181,8 @@ function App() {
     if (window.matchMedia('(prefers-reduced-motion: reduce), (max-width: 760px)').matches) {
       window.requestAnimationFrame(() => {
         pendingBookmarkHref.current = null
-        const destination = categoryFromPath(href)
-        if (destination) setSpread(destination)
+        const destination = catalogueLocationFromUrl(href, '')
+        changeSpread(destination.spread)
       })
     }
   }
@@ -155,6 +190,7 @@ function App() {
     if (!catalogueOpen || opening || closing || spread !== 'front-matter') return
     if (window.matchMedia('(prefers-reduced-motion: reduce), (max-width: 760px)').matches) {
       setCatalogueOpen(false)
+      window.history.replaceState({ catalogue: true }, '', '/')
       return
     }
     setClosing('turning')
@@ -163,6 +199,7 @@ function App() {
     if (closing !== 'turning') return
     // Mount the actual closed cover beneath the settled overlay first.
     setCatalogueOpen(false)
+    window.history.replaceState({ catalogue: true }, '', '/')
     setClosing('landed')
   }
   useLayoutEffect(() => {
@@ -234,7 +271,10 @@ function App() {
             <div className="catalogue-stage__open-underlay" style={{ visibility: catalogueOpen ? 'visible' : 'hidden' }} aria-hidden={!catalogueOpen} inert={!catalogueOpen || opening}>
               {catalogueOpen ? <CategoryCatalogue
                 spread={spread}
-                onSpreadChange={setSpread}
+                onSpreadChange={changeSpread}
+                onSpreadNormalize={next => changeSpread(next, 'replace')}
+                leafletSide={leafletSide}
+                onLeafletSideChange={changeLeafletSide}
                 onClose={closeCatalogue}
                 onAddToCart={addToCart}
               /> : <BookShell />}
