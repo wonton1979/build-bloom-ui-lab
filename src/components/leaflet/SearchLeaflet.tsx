@@ -68,7 +68,7 @@ export function SearchLeafletContent({ search, onDetails }: Pick<SearchProps, 's
       {state.status === 'empty' && <div className="search-leaflet__state"><img src={emptyArt} width={503} height={289} alt="" /><h2>No matching sets this time.</h2><p>Check the spelling, try a shorter name,<br />or search by set number.</p></div>}
       {state.status === 'error' && <div className="search-leaflet__state search-leaflet__error" role="alert"><h2>A little trouble searching</h2><p>{state.message}</p><button type="button" onClick={retry}>Try again</button></div>}
       {state.status === 'results' && <div className="leaflet__products">
-        {state.data.items.map(listing => <LeafletProduct key={listing.id} listing={listing} showCategory onDetails={id => {
+        {state.data.items.map(listing => <LeafletProduct key={listing.id} listing={listing} showCategory linkedArtwork linkedTitle onDetails={id => {
           const scrollTop = area.current?.scrollTop ?? 0
           void leave(() => onDetails(id, scrollTop))
         }} />)}

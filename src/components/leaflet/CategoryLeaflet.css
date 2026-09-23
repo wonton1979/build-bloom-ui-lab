@@ -32,6 +32,11 @@
 .leaflet-product:nth-child(3n+3) { background: #f3e5d580; }
 .leaflet-product__art { height: 145px; flex-shrink: 0; position: relative; min-width: 0; }
 .leaflet-product__art img { position: absolute; inset: 0; display: block; height: 100%; width: 100%; object-fit: contain; }
+.leaflet-product__art-button { display: block; width: 100%; padding: 0; text-align: inherit; }
+.leaflet-product__art-button:hover img { transform: scale(1.03); }
+.leaflet-product__art-button img { transition: transform 160ms ease; }
+.leaflet-product__title-button { min-height: 0 !important; padding: 0 !important; color: inherit !important; text-align: left; font: inherit !important; }
+.leaflet-product__title-button:hover { text-decoration: underline; text-underline-offset: 3px; }
 .leaflet-product__copy { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .leaflet-product__set { font: 11px/1.5 'Segoe UI', sans-serif; color: #667277; margin: 8px 0 3px; }
 .leaflet-product h3 { margin: 0; font-size: 17px; font-weight: 600; line-height: 1.4; color: #34586b; }

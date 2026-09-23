@@ -1,9 +1,13 @@
+// @vitest-environment jsdom
+import { act } from 'react'
+import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import { listing } from '../../features/catalogue/catalogueFixtures'
 import type { SearchState } from '../../features/catalogue/useCatalogueSearch'
 import { LeafletActions } from './LeafletActions'
 import { SearchLeafletContent } from './SearchLeaflet'
+import { afterEach } from 'vitest'
 
 function render(state: SearchState, input = '') {
   return renderToStaticMarkup(<LeafletActions.Provider value={{ closing: false, leave: async complete => complete() }}>
@@ -56,7 +60,7 @@ describe('Search Leaflet presentation', () => {
     expect(html).toContain('data-leaflet-listing="12"')
     expect(html).toContain('search-leaflet__product-category">City')
     expect(html).toContain('25 matches found')
-    expect(html.match(/View details/g)).toHaveLength(2)
+    expect(html.match(/View details/g)).toHaveLength(6)
   })
   it.each([1, 2, 3])('uses Previous / Page X of Y / Next with correct page %s boundaries', page => {
     const html = render(results(page))
@@ -68,5 +72,44 @@ describe('Search Leaflet presentation', () => {
   })
   it('hides unnecessary pagination for a single result page', () => {
     expect(render(results(1, 2))).not.toContain('Search result pages')
+  })
+})
+
+afterEach(() => { document.body.innerHTML = '' })
+
+describe('Search Leaflet product details interaction', () => {
+  async function mountResults() {
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    const onDetails = vi.fn()
+    await act(async () => {
+      root.render(<LeafletActions.Provider value={{ closing: false, leave: async complete => complete() }}>
+        <SearchLeafletContent search={{ state: results(1, 2), input: 'car', changeInput: vi.fn(), submit: vi.fn(), changePage: vi.fn(), retry: vi.fn(), reset: vi.fn() }} onDetails={onDetails} />
+      </LeafletActions.Provider>)
+    })
+    return { container, root, onDetails }
+  }
+
+  it('opens the correct product details when its image is clicked', async () => {
+    const { container, root, onDetails } = await mountResults()
+    await act(async () => { container.querySelector<HTMLButtonElement>('[data-leaflet-listing="9"] .leaflet-product__art-button')!.click() })
+    expect(onDetails).toHaveBeenCalledWith(9, 0)
+    await act(async () => root.unmount())
+  })
+
+  it('opens the correct product details when its title is clicked', async () => {
+    const { container, root, onDetails } = await mountResults()
+    await act(async () => { container.querySelector<HTMLButtonElement>('[data-leaflet-listing="12"] .leaflet-product__title-button')!.click() })
+    expect(onDetails).toHaveBeenCalledWith(12, 0)
+    await act(async () => root.unmount())
+  })
+
+  it('keeps the Take a closer look action opening the same product details', async () => {
+    const { container, root, onDetails } = await mountResults()
+    const cta = [...container.querySelectorAll<HTMLButtonElement>('[data-leaflet-listing="9"] button')].find(button => button.textContent?.includes('Take a closer look'))!
+    await act(async () => { cta.click() })
+    expect(onDetails).toHaveBeenCalledWith(9, 0)
+    await act(async () => root.unmount())
   })
 })

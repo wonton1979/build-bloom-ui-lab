@@ -1,4 +1,4 @@
-.search-leaflet { padding-inline: 42px; }
+.search-leaflet { padding-inline: 42px; background: #f4ecd9; }
 .search-leaflet__heading { position: relative; flex-shrink: 0; text-align: center; padding-bottom: 14px; }
 .search-leaflet__brand { display: block; color: #547363; font-size: 18px; margin: 0 0 5px; }
 .search-leaflet__banner { display: block; width: min(330px, 75%); height: auto; margin: 0 auto; pointer-events: none; }
@@ -12,6 +12,7 @@
 .search-leaflet .search-leaflet__clear { font: 25px Georgia, serif; }
 .search-leaflet__results { display: flex; flex-direction: column; padding-block: 20px; }
 .search-leaflet__results > .leaflet__products { flex-shrink: 0; }
+.search-leaflet__results .leaflet-product:nth-child(n) { background: var(--book-paper, #fff9e9); }
 .search-leaflet__product-category { font: italic 12px/1.4 Georgia, serif; color: #7a674d; margin: 0 0 5px; }
 .search-leaflet__state { text-align: center; margin: auto; padding: 12px 16px; max-width: 100%; flex-shrink: 0; color: #566957; }
 .search-leaflet__state > img { display: block; width: auto; height: auto; max-width: min(370px, 100%); max-height: min(230px, 29svh); margin: 0 auto 16px; object-fit: contain; }
