@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import openingSpreadReference from './assets/reference/opening-spread-master.png'
 import { CategoryCatalogue } from './components/catalogue/CategoryCatalogue'
 import { ClosedCatalogue } from './components/catalogue/ClosedCatalogue'
@@ -6,7 +6,7 @@ import { OpeningTransition } from './components/catalogue/OpeningTransition'
 import { ClosingTransition } from './components/catalogue/ClosingTransition'
 import { BookShell } from './components/BookShell'
 import type { CatalogueSpread } from './components/catalogue/catalogueSpread'
-import { catalogueLocationFromUrl, catalogueLocationHref } from './components/catalogue/catalogueSpread'
+import { catalogueLocationFromUrl, catalogueLocationHref, categorySpreadIndex, isCategoryIndexSpread } from './components/catalogue/catalogueSpread'
 import type { CatalogueLeafletSide } from './components/catalogue/catalogueSpread'
 import './App.css'
 import { AccountModal } from './components/homepage/AccountModal'
@@ -18,9 +18,13 @@ import { CustomerInformationFallback } from './components/homepage/CustomerInfor
 import { useAuth } from './features/auth/AuthProvider'
 import { useCart } from './features/cart/CartContext'
 import type { ProductListing } from './features/catalogue/api'
+import { useCatalogueCategories } from './features/catalogue/useCatalogueCategories'
+import { resolveCatalogueCategories } from './components/catalogue/categories'
 import { USER_ACCOUNT_HINT, USER_WELCOME_GREETING_MS, USER_WELCOME_HINT_MS, welcomeGreeting } from './components/catalogue/userWelcome'
 
 function App() {
+  const { state: backendCategoriesState, retry: retryBackendCategories } = useCatalogueCategories()
+  const resolvedCategories = useMemo(() => backendCategoriesState.status === 'ready' ? resolveCatalogueCategories(backendCategoriesState.categories) : [], [backendCategoriesState])
   const [view] = useState<'live' | 'reference'>('live')
   const [initialLocation] = useState(() => typeof window !== 'undefined'
     ? catalogueLocationFromUrl(window.location.pathname, window.location.search)
@@ -125,7 +129,7 @@ function App() {
   }, [])
   useEffect(() => {
     const restoreLocation = () => {
-      const location = catalogueLocationFromUrl(window.location.pathname, window.location.search)
+      const location = catalogueLocationFromUrl(window.location.pathname, window.location.search, backendCategoriesState.status === 'ready' ? resolvedCategories : undefined)
       setCatalogueOpen(location.open)
       setSpread(location.spread)
       setLeafletSide(location.leafletSide)
@@ -134,7 +138,18 @@ function App() {
     }
     window.addEventListener('popstate', restoreLocation)
     return () => window.removeEventListener('popstate', restoreLocation)
-  }, [])
+  }, [backendCategoriesState.status, resolvedCategories])
+  useEffect(() => {
+    if (backendCategoriesState.status !== 'ready' || typeof window === 'undefined') return
+    const frame = window.requestAnimationFrame(() => {
+      const location = catalogueLocationFromUrl(window.location.pathname, window.location.search, resolvedCategories)
+      setCatalogueOpen(location.open)
+      setSpread(location.spread)
+      setLeafletSide(location.leafletSide)
+      if (!location.open && window.location.pathname.startsWith('/categories/')) window.history.replaceState({ catalogue: true }, '', '/')
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [backendCategoriesState.status, resolvedCategories])
   useEffect(() => {
     if (previousAuthStatus.current === 'authenticating' && authState.status === 'authenticated') {
       startUserWelcome(authState.user.firstName)
@@ -173,7 +188,7 @@ function App() {
     stageRef.current?.focus({ preventScroll: true })
     const href = pendingBookmarkHref.current
     pendingBookmarkHref.current = null
-    if (href) { const destination = catalogueLocationFromUrl(href, ''); changeSpread(destination.spread) }
+    if (href) { const destination = catalogueLocationFromUrl(href, '', backendCategoriesState.status === 'ready' ? resolvedCategories : undefined); changeSpread(destination.spread) }
   }
   const openCityBookmark = (href: string) => {
     pendingBookmarkHref.current = href
@@ -181,7 +196,7 @@ function App() {
     if (window.matchMedia('(prefers-reduced-motion: reduce), (max-width: 760px)').matches) {
       window.requestAnimationFrame(() => {
         pendingBookmarkHref.current = null
-        const destination = catalogueLocationFromUrl(href, '')
+        const destination = catalogueLocationFromUrl(href, '', backendCategoriesState.status === 'ready' ? resolvedCategories : undefined)
         changeSpread(destination.spread)
       })
     }
@@ -266,11 +281,13 @@ function App() {
           </div>
           {!catalogueOpen && !opening && !closing && <CustomerInformationFallback />}
           <span className="catalogue-spread-status" role="status">
-            {typeof spread !== 'string' ? (spread.kind === 'details' ? 'Product details' : '') : spread === 'front-matter' ? 'Welcome and Contents' : spread === 'opening' ? 'Opening spread' : spread === 'categories-primary' ? 'Catalogue spread 1 of 2' : 'Catalogue spread 2 of 2'}
+            {typeof spread !== 'string' ? (spread.kind === 'details' ? 'Product details' : '') : isCategoryIndexSpread(spread) ? `Catalogue spread ${categorySpreadIndex(spread) + 1} of ${Math.max(1, Math.ceil(Math.ceil(resolvedCategories.length / 3) / 2))}` : spread === 'front-matter' ? 'Welcome and Contents' : 'Opening spread'}
           </span>
             <div className="catalogue-stage__open-underlay" style={{ visibility: catalogueOpen ? 'visible' : 'hidden' }} aria-hidden={!catalogueOpen} inert={!catalogueOpen || opening}>
               {catalogueOpen ? <CategoryCatalogue
                 spread={spread}
+                backendCategoriesState={backendCategoriesState}
+                onRetryCategories={retryBackendCategories}
                 onSpreadChange={changeSpread}
                 onSpreadNormalize={next => changeSpread(next, 'replace')}
                 leafletSide={leafletSide}

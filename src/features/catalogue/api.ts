@@ -66,7 +66,13 @@ export async function getCategories(signal?: AbortSignal): Promise<BackendCatego
   const base = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
   const response = await fetch(`${base}/categories`, { signal })
   if (!response.ok) throw new Error('Unable to load categories')
-  return response.json()
+  const data: unknown = await response.json()
+  if (!Array.isArray(data) || data.some(category => !category || !Number.isSafeInteger(category.id) || category.id <= 0 ||
+    typeof category.name !== 'string' || !category.name.trim() ||
+    ![category.subtitle, category.description, category.imageUrl].every(value => value === null || typeof value === 'string'))) {
+    throw new Error('Invalid categories response')
+  }
+  return data as BackendCategory[]
 }
 
 export async function getProducts(filters: { categoryId: number }, signal?: AbortSignal): Promise<ProductListing[]> {

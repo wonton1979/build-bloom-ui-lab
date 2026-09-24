@@ -1,99 +1,98 @@
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
-import App from '../../App'
-import { CategoryCatalogue } from './CategoryCatalogue'
-import { cataloguePages } from './cataloguePages'
+import { describe, expect, it, vi } from 'vitest'
+import { CategoryCatalogue, CataloguePageContent } from './CategoryCatalogue'
+import { paginateCatalogueCategories, pairCataloguePages } from './cataloguePages'
+import { resolveCatalogueCategories } from './categories'
 import type { CatalogueSpread } from './catalogueSpread'
-import { spreadAfterAction } from './catalogueSpread'
-import { catalogueCategories } from './categories'
+import { categoryLocation, spreadAfterAction } from './catalogueSpread'
+import { backendCategory, curatedBackendCategories } from './catalogueData.test-utils'
 
-const expectedCategories = [
-  ['harry-potter', 'Harry Potter'],
-  ['star-wars', 'Star Wars'],
-  ['friends', 'Friends'],
-  ['city', 'City'],
-  ['disney', 'Disney'],
-  ['marvel', 'Marvel'],
-  ['jurassic-world', 'Jurassic World'],
-  ['flowers-botanicals', 'Flowers & Botanicals'],
-  ['ninjago', 'NINJAGO'],
-  ['dc-batman', 'DC & Batman'],
-  ['vehicles', 'Vehicles'],
-  ['creator', 'Creator'],
-  ['others', 'Others'],
-] as const
-
-const categorySpreads = ['categories-primary', 'categories-more'] as const
-const renderSpread = (spread: CatalogueSpread) => renderToStaticMarkup(
-  <CategoryCatalogue spread={spread} onSpreadChange={() => {}} onClose={() => {}} />,
+const resolve = (backend = curatedBackendCategories) => resolveCatalogueCategories(backend)
+const renderSpread = (spread: CatalogueSpread, backend = curatedBackendCategories) => renderToStaticMarkup(
+  <CategoryCatalogue spread={spread} onSpreadChange={() => {}} onClose={() => {}}
+    backendCategoriesState={{ status: 'ready', categories: backend }} onRetryCategories={vi.fn()} />,
 )
-const destinationIds = (markup: string) => [...markup.matchAll(/class="category-entry"[^>]*href="\/categories\/([^" ]+)"/g)]
-  .map((match) => match[1])
 
-describe('Category catalogue', () => {
-  it('associates all thirteen ordered categories with their supplied assets and destinations', () => {
-    expect(catalogueCategories.map(({ id, label }) => [id, label])).toEqual(expectedCategories)
-    expect(new Set(catalogueCategories.map(({ id }) => id)).size).toBe(13)
-    catalogueCategories.forEach((category, index) => {
-      const [id] = expectedCategories[index]
-      expect(category.href).toBe(`/categories/${id}`)
-      expect(category.image).toContain(`/category-${id}.png`)
-    })
+describe('Category catalogue data and pagination', () => {
+  it('keeps configured categories in curated order and sorts backend-only categories deterministically', () => {
+    const backend = [backendCategory(900, 'Zelda'), ...curatedBackendCategories.slice().reverse(), backendCategory(901, 'Minecraft'), backendCategory(902, 'Animal Crossing')]
+    const resolved = resolve(backend)
+    expect(resolved.slice(0, 13).map(({ id }) => id)).toEqual(resolve().map(({ id }) => id))
+    expect(resolved.slice(13).map(({ label }) => label)).toEqual(['Animal Crossing', 'Minecraft', 'Zelda'])
+    expect(resolve([...backend].reverse()).map(({ id }) => id)).toEqual(resolved.map(({ id }) => id))
   })
 
-  it('keeps the legacy opening spread available as an explicit catalogue spread', () => {
-    const markup = renderToStaticMarkup(<App />)
-    expect(markup).toContain('Open Build &amp; Bloom catalogue')
-    expect(markup).toContain('categories/cover/build-bloom-cover')
-    expect(destinationIds(markup)).toEqual([])
-    expect(markup).not.toMatch(/href="#|id="opening-spread"|id="category-catalogue"/)
+  it('shows a backend-only Minecraft category without frontend category-specific configuration', () => {
+    const minecraft = backendCategory(701, 'Minecraft')
+    const resolved = resolve([minecraft])
+    const markup = renderToStaticMarkup(<CataloguePageContent categories={resolved} start={1} />)
+    expect(markup).toContain('href="/categories/minecraft"')
+    expect(markup).toContain('Minecraft')
+    expect(markup).not.toContain('<img')
+    expect(resolved[0].backendCategory.id).toBe(701)
+  })
+
+  it('generates deterministic safe slugs and resolves absent artwork without removing the category', () => {
+    const categories = [backendCategory(1, 'Minecraft: Dungeons & Dragons'), backendCategory(2, '!!!')]
+    const first = resolve(categories)
+    expect(first.find(({ backendId }) => backendId === 1)?.id).toBe('minecraft-dungeons-dragons')
+    expect(first.find(({ backendId }) => backendId === 2)?.id).toBe('category-2')
+    expect(resolve([...categories].reverse()).find(({ backendId }) => backendId === 1)?.id).toBe('minecraft-dungeons-dragons')
+    expect(first.every(({ image }) => image === undefined)).toBe(true)
+    expect(renderToStaticMarkup(<CataloguePageContent categories={first} start={1} />)).toContain('Minecraft: Dungeons &amp; Dragons')
   })
 
   it.each([
-    ['categories-primary', [3, 4], expectedCategories.slice(0, 7).map(([id]) => id)],
-    ['categories-more', [3, 3], expectedCategories.slice(7).map(([id]) => id)],
-  ] as const)('renders the correct ordered pages for %s in one book', (spread, counts, ids) => {
-    const markup = renderSpread(spread)
-    const lists = [...markup.matchAll(/<ol\b[^>]*>([\s\S]*?)<\/ol>/g)]
-    expect(lists).toHaveLength(2)
-    expect(lists[0][1].match(/<li>/g)).toHaveLength(counts[0])
-    expect(lists[1][1].match(/<li>/g)).toHaveLength(counts[1])
-    expect(destinationIds(markup)).toEqual(ids)
-    expect(markup.match(/<section[^>]*aria-label="Open catalogue book"/g)).toHaveLength(1)
-    expect(markup).not.toContain('href="#')
+    [13, [3, 3, 3, 3, 1]],
+    [14, [3, 3, 3, 3, 2]],
+    [15, [3, 3, 3, 3, 3]],
+    [16, [3, 3, 3, 3, 3, 1]],
+  ])('chunks %i categories into pages of at most three: %j', (count, expected) => {
+    const input = [...curatedBackendCategories]
+    for (let index = input.length; index < count; index++) input.push(backendCategory(1000 + index, `New World ${index + 1}`))
+    const categories = resolve(input)
+    const pages = paginateCatalogueCategories(categories)
+    expect(pages.map(page => page.length)).toEqual(expected)
+    expect(pages.every(page => page.length <= 3)).toBe(true)
+    expect(pages.flat().map(({ id }) => id)).toEqual(categories.map(({ id }) => id))
+    expect(new Set(pages.flat().map(({ id }) => id)).size).toBe(count)
   })
 
-  it('keeps all approved images and live labels in native destination links across both spreads', () => {
-    const markup = categorySpreads.map(renderSpread).join('')
-    const links = [...markup.matchAll(/<a\b[^>]*class="category-entry"[^>]*href="(\/categories\/[^" ]+)"[^>]*>([\s\S]*?)<\/a>/g)]
-    expect(links).toHaveLength(13)
-    links.forEach(([, href, content], index) => {
-      const [id, label] = expectedCategories[index]
-      expect(href).toBe(`/categories/${id}`)
-      expect(content).toContain(`src="${catalogueCategories[index].image}"`)
-      expect(content).toContain('alt=""')
-      expect(content.replace(/<[^>]*>/g, '')).toContain(label.replaceAll('&', '&amp;'))
-    })
+  it('pairs physical pages and leaves an odd final facing page intentionally empty', () => {
+    const pages = paginateCatalogueCategories(resolve())
+    const spreads = pairCataloguePages(pages)
+    expect(pages.map(page => page.length)).toEqual([3, 3, 3, 3, 1])
+    expect(spreads.at(-1)?.[0]).toHaveLength(1)
+    expect(spreads.at(-1)?.[1]).toBeUndefined()
+    const markup = renderSpread('categories-page-2')
+    expect(markup).toContain('More little worlds are coming...')
+    expect(markup).toContain('href="/categories/others"')
   })
 
-  it('maps forward and backward actions across the category spread sequence', () => {
-    expect(spreadAfterAction('categories-primary', 'forward')).toBe('categories-more')
-    expect(spreadAfterAction('categories-more', 'backward')).toBe('categories-primary')
-    expect(spreadAfterAction('categories-primary', 'backward')).toBe('front-matter')
-    expect(spreadAfterAction('front-matter', 'forward')).toBe('categories-primary')
-    expect(spreadAfterAction('front-matter', 'backward')).toBe('front-matter')
-    expect(spreadAfterAction('opening', 'forward')).toBe('categories-primary')
-    expect(renderSpread('front-matter')).toContain('← Close Book')
-    expect(renderSpread('categories-primary')).toContain('← Back to Contents')
-    expect(renderSpread('categories-more')).toContain('← Back')
+  it('preserves legacy category slugs and derives the opening count from backend categories', () => {
+    const resolved = resolve()
+    expect(resolved.find(({ label }) => label === 'DC & Batman')?.href).toBe('/categories/dc-batman')
+    expect(resolved.find(({ label }) => label === 'Flowers & Botanicals')?.href).toBe('/categories/flowers-botanicals')
+    const backend = [...curatedBackendCategories, backendCategory(999, 'Minecraft')]
+    expect(renderSpread('opening', backend)).toContain('Discover all 14 worlds →')
+    expect(renderSpread('categories-page-2', backend)).toContain('href="/categories/minecraft"')
   })
 
-  it('models the two category spreads as four reusable physical pages', () => {
-    expect(cataloguePages.map((page) => page.map(({ label }) => label))).toEqual([
-      ['Harry Potter', 'Star Wars', 'Friends'],
-      ['City', 'Disney', 'Marvel', 'Jurassic World'],
-      ['Flowers & Botanicals', 'NINJAGO', 'DC & Batman'],
-      ['Vehicles', 'Creator', 'Others'],
-    ])
+  it('uses the same category → product → details → product → category navigation path', () => {
+    const resolved = resolve()
+    const category = categoryLocation('vehicles', resolved)
+    const product = spreadAfterAction(category, 'forward', 1, Math.ceil(Math.ceil(resolved.length / 3) / 2), resolved)
+    expect(product).toEqual({ kind: 'products', slug: 'vehicles', index: 0 })
+    expect(spreadAfterAction(product, 'backward', 1, 3, resolved)).toEqual(category)
+  })
+
+  it('shows small category-list loading and retryable error states', () => {
+    const loading = renderToStaticMarkup(<CategoryCatalogue spread="categories-primary" onSpreadChange={() => {}} onClose={() => {}}
+      backendCategoriesState={{ status: 'loading' }} onRetryCategories={() => {}} />)
+    const error = renderToStaticMarkup(<CategoryCatalogue spread="categories-primary" onSpreadChange={() => {}} onClose={() => {}}
+      backendCategoriesState={{ status: 'error' }} onRetryCategories={() => {}} />)
+    expect(loading).toContain('Finding little worlds…')
+    expect(error).toContain('We couldn’t open the catalogue categories.')
+    expect(error).toContain('Try again')
   })
 })
