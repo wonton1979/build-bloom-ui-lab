@@ -1,9 +1,14 @@
-import { catalogueCategories } from './categories'
+import type { CatalogueCategory } from './categories'
 
-/** Four physical pages assembled from the centralized category records. */
-export const cataloguePages = [
-  catalogueCategories.slice(0, 3),
-  catalogueCategories.slice(3, 7),
-  catalogueCategories.slice(7, 10),
-  catalogueCategories.slice(10),
-] as const
+/** Physical catalogue pages preserve the approved three-entry maximum. */
+export function paginateCatalogueCategories(categories: readonly CatalogueCategory[], pageSize = 3): CatalogueCategory[][] {
+  const pages: CatalogueCategory[][] = []
+  for (let start = 0; start < categories.length; start += pageSize) pages.push(categories.slice(start, start + pageSize))
+  return pages
+}
+
+export function pairCataloguePages<T>(pages: readonly T[]): [T | undefined, T | undefined][] {
+  const spreads: [T | undefined, T | undefined][] = []
+  for (let index = 0; index < pages.length; index += 2) spreads.push([pages[index], pages[index + 1]])
+  return spreads
+}

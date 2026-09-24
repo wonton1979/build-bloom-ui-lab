@@ -9,7 +9,7 @@ import bookmarkMarvel from '../../assets/categories/bookmarks/bookmark-marvel.pn
 import bookmarkNinjago from '../../assets/categories/bookmarks/bookmark-ninjago.png'
 import bookmarkVehicles from '../../assets/categories/bookmarks/bookmark-vehicles.png'
 import { CatalogueBookmark, type CatalogueBookmarkDefinition } from './CatalogueBookmark'
-import { catalogueCategories } from './categories'
+import { categoryPresentationById } from './categories'
 import './ClosedCatalogue.css'
 import { useState } from 'react'
 
@@ -30,10 +30,10 @@ const bookmarkDefinitions: CatalogueBookmarkDefinition[] = [
   ['vehicles', bookmarkVehicles, 2132, 516],
   ['creator', bookmarkCreator, 2140, 519],
 ].map(([id, asset, width, height], index) => {
-  const category = catalogueCategories.find((item) => item.id === id)!
+  const category = categoryPresentationById(String(id))!
   const bookmarkLabel = id === 'harry-potter' ? 'Magic' : id === 'dc-batman' ? 'Heroes' : category.label
   const extraReveal = bookmarkLabel.length > 6 ? (bookmarkLabel === 'NINJAGO' ? 12 : 8) : 0
-  return { id, label: bookmarkLabel, href: category.href, asset, width, height, top: `${4 + index * 16}%`, extraReveal } as CatalogueBookmarkDefinition
+  return { id, label: bookmarkLabel, href: '/categories/' + category.id, asset, width, height, top: `${4 + index * 16}%`, extraReveal } as CatalogueBookmarkDefinition
 })
 
 function selectDecorativeBookmarks() {

@@ -2,12 +2,15 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { PageTurn } from './PageTurn'
 import { CataloguePageContent } from './CategoryCatalogue'
-import { cataloguePages } from './cataloguePages'
+import { paginateCatalogueCategories } from './cataloguePages'
+import { resolveCatalogueCategories } from './categories'
+import { curatedBackendCategories } from './catalogueData.test-utils'
 
 describe('Physical internal page sheet', () => {
   it.each(['forward', 'backward'] as const)('renders both real faces in reading orientation for %s', direction => {
-    const front = direction === 'forward' ? cataloguePages[1] : cataloguePages[2]
-    const back = direction === 'forward' ? cataloguePages[2] : cataloguePages[1]
+    const pages = paginateCatalogueCategories(resolveCatalogueCategories(curatedBackendCategories))
+    const front = direction === 'forward' ? pages[1] : pages[2]
+    const back = direction === 'forward' ? pages[2] : pages[1]
     const markup = renderToStaticMarkup(
       <PageTurn direction={direction} onComplete={() => {}}
         front={<div className="spread-page"><CataloguePageContent categories={front} start={1} /></div>}

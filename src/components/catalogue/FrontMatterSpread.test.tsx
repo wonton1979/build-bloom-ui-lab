@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { CategoryCatalogue } from './CategoryCatalogue'
+import { curatedBackendCategories } from './catalogueData.test-utils'
 import { FrontMatterContentsPage, FrontMatterWelcomePage } from './FrontMatterSpread'
 
 describe('Catalogue front matter', () => {
@@ -37,7 +38,7 @@ describe('Catalogue front matter', () => {
   })
 
   it('mounts welcome and contents in the existing physical book without category duplication', () => {
-    const markup = renderToStaticMarkup(<CategoryCatalogue spread="front-matter" onSpreadChange={() => {}} onClose={() => {}} />)
+    const markup = renderToStaticMarkup(<CategoryCatalogue spread="front-matter" onSpreadChange={() => {}} onClose={() => {}} backendCategoriesState={{ status: "ready", categories: curatedBackendCategories }} onRetryCategories={() => {}} />)
     expect(markup.match(/aria-label="Open catalogue book"/g)).toHaveLength(1)
     expect(markup).toContain('front-matter--welcome')
     expect(markup).toContain('front-matter--contents')

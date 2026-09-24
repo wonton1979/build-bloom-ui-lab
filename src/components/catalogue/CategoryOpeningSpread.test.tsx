@@ -1,7 +1,8 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { CategoryOpeningPage } from './CategoryOpeningSpread'
-import { catalogueCategories } from './categories'
+import { categoryPresentation, resolveCatalogueCategories } from './categories'
+import { curatedBackendCategories } from './catalogueData.test-utils'
 import { categoryFromPath, categoryLocation, spreadAfterAction } from './catalogueSpread'
 import { listing } from '../../features/catalogue/catalogueFixtures'
 import type { BackendCategory } from '../../features/catalogue/api'
@@ -10,12 +11,13 @@ import { planProductSpreads } from '../../features/catalogue/productSpreads'
 
 const category: BackendCategory = { id: 52, name: 'Vehicles', subtitle: 'Server subtitle', description: 'Editorial words from the backend.', imageUrl: null }
 const callbacks = { onRetry: () => {}, onLeaflet: () => {}, onDetails: () => {} }
+const categories = resolveCatalogueCategories(curatedBackendCategories)
 
 describe('Shared category opening spread', () => {
-  it.each(catalogueCategories)('opens $label using the same category location and returns to its index spread', category => {
-    const location = categoryFromPath(category.href)
-    expect(location).toEqual(categoryLocation(category.id))
-    expect(spreadAfterAction(location!, 'backward')).toBe(catalogueCategories.indexOf(category) < 7 ? 'categories-primary' : 'categories-more')
+  it.each(categories)('opens $label using its runtime category location and returns to its index spread', item => {
+    const location = categoryFromPath(item.href, categories)
+    expect(location).toEqual(categoryLocation(item.id, categories))
+    expect(spreadAfterAction(location!, 'backward')).toBe(location?.returnTo)
     expect(spreadAfterAction(location!, 'forward')).toEqual(location)
     expect(spreadAfterAction({ kind: 'details', listingId: 7, returnTo: location! }, 'backward')).toEqual(location)
   })
@@ -41,7 +43,7 @@ describe('Shared category opening spread', () => {
     expect(markup).toContain('Ages 9+')
     expect(markup).toContain('aria-label="View details for API product 3"')
   })
-  it.each(catalogueCategories)('reuses the established printed feature exactly once for $label', ({ label }) => {
+  it.each(categoryPresentation)('reuses the established printed feature exactly once for $label', ({ label }) => {
     const featured = listing(99, { isFeatureProduct: true, catalogueArtworkUrl: '/feature.png' })
     const listings = [listing(4), featured, listing(2), listing(3), listing(1), listing(2)]
     const opening = renderToStaticMarkup(<CategoryOpeningPage side="right" state={{ status: 'ready', category: { ...category, name: label }, listings }} {...callbacks} />)
