@@ -11,14 +11,16 @@ import type { CatalogueLeafletSide } from './components/catalogue/catalogueSprea
 import './App.css'
 import { AccountModal } from './components/homepage/AccountModal'
 import { CartModal } from './components/cart/CartModal'
+import { ConditionConfirmationDialog } from './components/catalogue/ConditionConfirmationDialog'
 import { CartItems } from './components/cart/CartItems'
 import { BookOwnedCart } from './components/catalogue/BookOwnedCart'
 import { BookOwnedUser } from './components/catalogue/BookOwnedUser'
 import { CustomerInformationFallback } from './components/homepage/CustomerInformationFallback'
 import { useAuth } from './features/auth/AuthProvider'
 import { useCart } from './features/cart/CartContext'
-import type { ProductListing } from './features/catalogue/api'
+import type { ProductListingOffer } from './features/catalogue/api'
 import { useCatalogueCategories } from './features/catalogue/useCatalogueCategories'
+import { useConditionConfirmation } from './features/catalogue/useConditionConfirmation'
 import { resolveCatalogueCategories } from './components/catalogue/categories'
 import { USER_ACCOUNT_HINT, USER_WELCOME_GREETING_MS, USER_WELCOME_HINT_MS, welcomeGreeting } from './components/catalogue/userWelcome'
 
@@ -109,9 +111,15 @@ function App() {
     dismissGuestHint()
     setCartOpen(true)
   }
-  const addToCart = (listing: ProductListing) => {
+  const confirmConditionOffer = (offer: ProductListingOffer) => {
     if (authState.status !== 'authenticated') { showGuestHint('cart'); return }
-    addListing(listing)
+    void addListing(offer)
+  }
+  const conditionConfirmation = useConditionConfirmation(confirmConditionOffer)
+  const addToCart = (offer: ProductListingOffer, productTitle: string) => {
+    if (offer.condition === 'USED_LIKE_NEW') { conditionConfirmation.request(offer, productTitle); return }
+    if (authState.status !== 'authenticated') { showGuestHint('cart'); return }
+    void addListing(offer)
   }
   const closeCart = useCallback(() => {
     setCartOpen(false)
@@ -306,6 +314,8 @@ function App() {
           {closing && <ClosingTransition onComplete={finishClosing} />}
         </main>
       )}
+      {!showReference && conditionConfirmation.pending && <ConditionConfirmationDialog offer={conditionConfirmation.pending.offer} productTitle={conditionConfirmation.pending.productTitle}
+        onCancel={conditionConfirmation.cancel} onConfirm={conditionConfirmation.confirm} />}
       {!showReference && accountOpen && <AccountModal onClose={closeAccount} />}
       {!showReference && cartOpen && authState.status === 'authenticated' && <CartModal onClose={closeCart}
         content={cartItems.length ? { kind: 'filled', items: <CartItems items={cartItems} /> } : { kind: 'empty' }} />}

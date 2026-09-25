@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { cartTotalPence, formatGbp, lineAmountPence, listingUnitPricePence, useCart, type CartItem } from '../../features/cart/CartContext'
+import { cartTotalPence, formatGbp, lineAmountPence, listingUnitPricePence, offerQuantityLimit, useCart, type CartItem } from '../../features/cart/CartContext'
 import { RemoveItemDialog } from './RemoveItemDialog'
 import './CartItems.css'
 
@@ -14,20 +14,20 @@ export function CartItems({ items, onConfirmRemove }: {
   const removalItem = items.find(item => item.productListingId === removalId)
   return <div className="cart-items" aria-label="Selected cart listings">
     {items.map(({ productListingId, listing, quantity }) => {
-      const image = listing.listingImages[0]
+      const image = listing.legoProduct.productImages[0]
       return <article className="cart-item" key={productListingId} data-cart-listing-id={productListingId}>
         <div className="cart-item__image">
           {image ? <img src={image.url} alt={image.altText ?? listing.legoProduct.title} /> : <span aria-hidden="true" />}
         </div>
         <div className="cart-item__copy">
           <h2>{listing.legoProduct.title}</h2>
-          <p>{listing.condition === 'NEW' ? 'New' : 'Used, like new'} · Unit price {formatGbp(listingUnitPricePence({ listing }))}</p>
+          <p>{listing.condition === 'NEW' ? 'New' : 'New – Outer Box Damage'} · Unit price {formatGbp(listingUnitPricePence({ listing }))}</p>
           <div className="cart-item__amounts">
             <div className="cart-item__quantity" aria-label={`Quantity ${quantity}`}>
               <button type="button" aria-label={`Decrease ${listing.legoProduct.title} quantity`} disabled={quantity <= 1 || pendingItemIds.includes(productListingId)}
                 onClick={() => void updateQuantity(productListingId, quantity - 1)}>−</button>
               <span>Quantity: {quantity}</span>
-              <button type="button" aria-label={`Increase ${listing.legoProduct.title} quantity`} disabled={quantity >= listing.availableStock || pendingItemIds.includes(productListingId)}
+              <button type="button" aria-label={`Increase ${listing.legoProduct.title} quantity`} disabled={quantity >= offerQuantityLimit(listing) || pendingItemIds.includes(productListingId)}
                 onClick={() => void updateQuantity(productListingId, quantity + 1)}>+</button>
             </div>
             <strong>{formatGbp(lineAmountPence({ listing, quantity }))}</strong>

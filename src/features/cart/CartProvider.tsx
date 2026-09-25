@@ -2,7 +2,7 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import { addCartItem, deleteCartItem, getCart, updateCartItem, type PersistentCart } from './api'
-import { CartContext, quantityWithinStock, type CartContextValue, type CartItem } from './CartContext'
+import { CartContext, offerQuantityLimit, quantityWithinStock, type CartContextValue, type CartItem } from './CartContext'
 
 export function mapCart(cart: PersistentCart): CartItem[] {
   return cart.items.map(item => ({ productListingId: item.productListingId, quantity: item.quantity, listing: item.productListing }))
@@ -69,8 +69,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     hydration.current = restore
   }, [authState])
 
-  const addListing = useCallback((listing: CartItem['listing']) => {
+  const addListing = useCallback((listing: import('../catalogue/api').ProductListingOffer) => {
     if (authState.status !== 'authenticated') return Promise.resolve()
+    const existing = items.find(item => item.productListingId === listing.id)
+    const currentQuantity = existing?.quantity ?? 0
+    if (pendingIds.current.has(listing.id) || currentQuantity + 1 > offerQuantityLimit(listing)) return Promise.resolve()
+    markPending(listing.id)
     const operation = writes.current.then(async () => {
       // Let the authentication effect establish the current hydration promise
       // before taking the generation snapshot. A click can arrive in the
@@ -88,10 +92,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setError(null)
     }).catch((reason: unknown) => {
       if (activeToken.current === authState.token) setError(reason instanceof Error ? reason.message : 'Unable to update your cart')
-    })
+    }).finally(() => clearPending(listing.id))
     writes.current = operation.catch(() => undefined)
     return operation
-  }, [authState])
+  }, [authState, items])
 
   const updateQuantity = useCallback((productListingId: number, quantity: number) => {
     if (authState.status !== 'authenticated' || quantity < 1) return Promise.resolve(false)

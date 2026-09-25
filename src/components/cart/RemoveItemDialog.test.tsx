@@ -1,11 +1,11 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
-import { listing } from '../../features/catalogue/catalogueFixtures'
+import { cartListing, offer } from '../../features/catalogue/catalogueFixtures'
 import { CartItems } from './CartItems'
 import { RemoveItemDialog } from './RemoveItemDialog'
 
 describe('Remove Item confirmation content', () => {
-  const item = { productListingId: 42, quantity: 2, listing: listing(42, { salePrice: '19.99' }) }
+  const item = { productListingId: 42, quantity: 2, listing: cartListing(offer(42, { salePrice: '19.99', effectivePrice: '19.99' })) }
 
   it('labels a native modal dialog and uses the selected listing, image and effective unit price', () => {
     const confirm = vi.fn(), cancel = vi.fn()
@@ -16,7 +16,7 @@ describe('Remove Item confirmation content', () => {
     expect(markup).toContain('aria-describedby=')
     expect(markup).toContain('Remove this item?')
     expect(markup).toContain(item.listing.legoProduct.title)
-    expect(markup).toContain('/photograph-42.png')
+    expect(markup).toContain('/product-image-42.jpg')
     expect(markup).toContain('£19.99')
     expect(markup).toContain('Are you sure you want to take this out of your cart?')
     expect(markup).toContain('Keep it')
@@ -44,7 +44,7 @@ describe('Remove Item confirmation content', () => {
   })
 
   it('keeps the product identity readable without a photograph', () => {
-    const withoutImage = { ...item, listing: { ...item.listing, listingImages: [] } }
+    const withoutImage = { ...item, listing: { ...item.listing, legoProduct: { ...item.listing.legoProduct, productImages: [] } } }
     const markup = renderToStaticMarkup(<RemoveItemDialog item={withoutImage} onCancel={() => {}} onConfirm={() => {}} />)
     expect(markup).toContain(item.listing.legoProduct.title)
     expect(markup).not.toContain('remove-item-dialog__image')

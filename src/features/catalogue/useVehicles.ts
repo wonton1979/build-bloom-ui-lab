@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import type { ProductListing } from './api'
+import type { CatalogueProduct } from './api'
 import { getVehicles } from './vehicles'
 
 export type VehiclesState =
   | { status: 'loading' }
   | { status: 'error' }
-  | { status: 'ready'; listings: ProductListing[] }
+  | { status: 'ready'; products: CatalogueProduct[] }
 
 export function useVehicles(enabled: boolean) {
   const [state, setState] = useState<VehiclesState>({ status: 'loading' })
@@ -14,7 +14,7 @@ export function useVehicles(enabled: boolean) {
     if (!enabled) return
     const controller = new AbortController()
     getVehicles(controller.signal).then(
-      (listings) => { if (!controller.signal.aborted) setState({ status: 'ready', listings }) },
+      (products) => { if (!controller.signal.aborted) setState({ status: 'ready', products }) },
       () => { if (!controller.signal.aborted) setState({ status: 'error' }) },
     )
     return () => controller.abort()

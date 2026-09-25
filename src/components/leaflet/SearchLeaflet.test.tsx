@@ -3,7 +3,7 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
-import { listing } from '../../features/catalogue/catalogueFixtures'
+import { product, fixtureCategory, offer } from '../../features/catalogue/catalogueFixtures'
 import type { SearchState } from '../../features/catalogue/useCatalogueSearch'
 import { LeafletActions } from './LeafletActions'
 import { SearchLeafletContent } from './SearchLeaflet'
@@ -15,7 +15,7 @@ function render(state: SearchState, input = '') {
   </LeafletActions.Provider>)
 }
 const results = (page = 1, totalItems = 25): SearchState => ({ status: 'results', query: 'car', data: {
-  items: [listing(9), listing(12, { category: { id: 2, name: 'City', subtitle: null, description: null, imageUrl: null } })],
+  items: [product(9), product(12, [offer(12, { legoProductId: 12 })], { category: { ...fixtureCategory, id: 2, name: 'City' } }), product(99, [offer(99, { currentStock: 0, availableStock: 0 })])],
   pagination: { page, pageSize: 12, totalItems, totalPages: Math.ceil(totalItems / 12) },
 } })
 
@@ -28,7 +28,7 @@ describe('Search Leaflet presentation', () => {
     expect(html).toContain('Find a Set')
     expect(html).not.toContain('No matching sets')
     expect(html).not.toContain('Search result pages')
-    expect(html).not.toContain('data-leaflet-listing')
+    expect(html).not.toContain('data-leaflet-product')
   })
   it('loading retains the query, announces progress, and never flashes zero results', () => {
     const html = render({ status: 'loading', query: '77240', page: 1 }, '77240')
@@ -56,8 +56,9 @@ describe('Search Leaflet presentation', () => {
   })
   it('reuses real listing presentation with category identity and no category filter', () => {
     const html = render(results())
-    expect(html).toContain('data-leaflet-listing="9"')
-    expect(html).toContain('data-leaflet-listing="12"')
+    expect(html).toContain('data-leaflet-product="9"')
+    expect(html).toContain('data-leaflet-product="12"')
+    expect(html).not.toContain('data-leaflet-product="99"')
     expect(html).toContain('search-leaflet__product-category">City')
     expect(html).toContain('25 matches found')
     expect(html.match(/View details/g)).toHaveLength(6)
@@ -93,21 +94,21 @@ describe('Search Leaflet product details interaction', () => {
 
   it('opens the correct product details when its image is clicked', async () => {
     const { container, root, onDetails } = await mountResults()
-    await act(async () => { container.querySelector<HTMLButtonElement>('[data-leaflet-listing="9"] .leaflet-product__art-button')!.click() })
+    await act(async () => { container.querySelector<HTMLButtonElement>('[data-leaflet-product="9"] .leaflet-product__art-button')!.click() })
     expect(onDetails).toHaveBeenCalledWith(9, 0)
     await act(async () => root.unmount())
   })
 
   it('opens the correct product details when its title is clicked', async () => {
     const { container, root, onDetails } = await mountResults()
-    await act(async () => { container.querySelector<HTMLButtonElement>('[data-leaflet-listing="12"] .leaflet-product__title-button')!.click() })
+    await act(async () => { container.querySelector<HTMLButtonElement>('[data-leaflet-product="12"] .leaflet-product__title-button')!.click() })
     expect(onDetails).toHaveBeenCalledWith(12, 0)
     await act(async () => root.unmount())
   })
 
   it('keeps the Take a closer look action opening the same product details', async () => {
     const { container, root, onDetails } = await mountResults()
-    const cta = [...container.querySelectorAll<HTMLButtonElement>('[data-leaflet-listing="9"] button')].find(button => button.textContent?.includes('Take a closer look'))!
+    const cta = [...container.querySelectorAll<HTMLButtonElement>('[data-leaflet-product="9"] button')].find(button => button.textContent?.includes('Take a closer look'))!
     await act(async () => { cta.click() })
     expect(onDetails).toHaveBeenCalledWith(9, 0)
     await act(async () => root.unmount())
