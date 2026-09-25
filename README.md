@@ -17,33 +17,31 @@ category artwork and opening/closing mechanics remain unchanged.
 Vite proxies /api to http://localhost:3000. Deployments can set
 VITE_API_BASE_URL or provide a reverse proxy for /api.
 
-## Issue #7: dynamic Vehicles spreads
+## Storefront catalogue contract
 
-Open catalogue → More → Vehicles. The public request is
-`GET /products?category=VEHICLES&page=<page>&pageSize=100`.
-The adapter reads every API page, independently of visual spread capacity.
-Only listings with colorfulLifeCategory === 'VEHICLES' are included.
+The storefront consumes one catalogue item per LegoProduct from
+`GET /products?categoryId=<id>&page=<page>&pageSize=100` and search results from
+`GET /products?q=<query>&page=<page>&pageSize=<size>`. It reads every category
+page independently of visual spread capacity.
 
-The authoritative contract for this development pass is local Backend #92
-(issue-92-catalogue-presentation), inspected read-only at
-/home/yejun_guan/projects/colorful-life-backend in WSL, and the running
-localhost:3000 API—not the older Windows checkout or GitHub main.
-The response is { items, pagination }. Each listing provides:
+Backend Issue #118 moved shared presentation to the LegoProduct root. The
+response is `{ items, pagination }`; each product contains:
 
-- id, legoProductId, createdAt, colorfulLifeCategory;
-- isFeatureProduct, catalogueArtworkUrl, catalogueArtworkPublicId;
-- pricing, condition, nested legoProduct specifications and listingImages.
+- product identity, category, `isRetired`, `isFeatureProduct`,
+  `catalogueArtworkUrl`, `catalogueArtworkPublicId`, and `productImages`;
+- an `offers` array containing ProductListing IDs, condition, lifecycle, price,
+  stock, active state, `damageDescription`, and listing-specific
+  `usedConditionPhotos`.
 
-Missing required presentation fields produce a retryable contract error, not a
-set-number fallback. Storage public IDs never construct delivery URLs.
-No Cloudinary credentials, SDK, uploads or data writes are used.
+Product Images, Catalogue Artwork, Feature state, and retirement state are never
+copied into offers. A product is customer-visible when it has an active,
+in-stock offer in an available lifecycle. Card and leaflet pricing use only
+those sellable offers. Storage public IDs never construct delivery URLs.
 
-### Planning and navigation
+### Catalogue and product details
 
-`src/features/catalogue/productSpreads.ts` is a pure category-independent planner.
-Listings are ordered by createdAt ASC, then numeric listing id ASC.
-Duplicate listing IDs are deduplicated; distinct listings for the same LEGO set
-remain distinct. No set numbers, titles, stock, prices or artwork determine slots.
+`src/features/catalogue/productSpreads.ts` plans one card per LegoProduct in API
+order. Sibling NEW and damaged-box offers never become separate cards.
 
 - With a Feature: spread 0 has that Feature left and up to two Standards right.
 - Subsequent spreads have up to four Standards: two left, then two right.
@@ -60,12 +58,12 @@ category and spread index; the same BookShell remains mounted.
 
 ### Artwork and product details
 
-Catalogue artwork uses only the exact backend catalogueArtworkUrl.
-Native transparency reveals actual paper: no card, frame, background, mask or
-blending substitute. Null, empty or failed artwork leaves a blank artwork slot,
-not a broken image. Information, membership, Feature status, ordering and
-View Details remain intact. Replacement delivery URLs are consumed on the
-next data refresh/reload without a frontend change.
+Catalogue Artwork uses only the product-root `catalogueArtworkUrl`. Native
+transparency reveals actual paper: no card, frame, background, mask or blending
+substitute. Null, empty or failed artwork leaves a blank artwork slot, not a
+broken image. Information, membership, Feature status, ordering and View
+Details remain intact. Product Details always uses root `productImages`, even
+when the selected offer is used and NEW stock is zero.
 
 These source files remain untouched for manual Admin uploads, but have no
 runtime imports or product-specific resolver:
@@ -74,19 +72,21 @@ runtime imports or product-specific resolver:
 - src/assets/categories/vehicles/vehicle-77245-standard.png
 - src/assets/categories/vehicles/vehicle-42226-standard.png
 
-Listing images are never substituted for catalogue artwork. View Details opens
-a minimal in-book view keyed by listing ID, showing API information and listing
-photographs in existing API order. Back returns to its original product spread.
-No checkout/cart or full commerce detail workflow is introduced.
+Product Images are not substituted for Catalogue Artwork. View Details opens a
+minimal in-book view keyed by ProductListing ID, showing shared product
+information and the root Product Images in API order. Back returns to its
+original product spread. A damaged-box offer requires the existing condition
+confirmation, which reads only that listing's description, effective price, and
+Used Condition Photos. There is no fallback from condition photos to Product
+Images. Cart entries retain the exact selected ProductListing ID and display
+the shared product image plus the customer wording “New – Outer Box Damage.”
 
 Approved first-spread modules and typography are retained. Later spreads reuse
 supporting modules. Narrow layouts use existing internal book scrolling; product
 footer spacing accommodates navigation without changing the shell.
 
-Current live migration state: three Vehicles listings, all with
-isFeatureProduct false and null artwork. Standard-only slots with blank art are
-expected until Admin selects the Feature and uploads artwork. No product-specific
-frontend changes are needed when those records change or products are added.
+No product-specific frontend changes are needed when Backend/Admin presentation
+records change or products are added.
 
 ## Finite verification
 
@@ -103,8 +103,9 @@ git diff --check
 On Windows PowerShell 5 npm script shells, use
 `npm --script-shell=cmd.exe run build` for the existing tsc -b && vite build.
 
-Tests cover planner capacity/order/no-loss, category filtering and API pagination,
-navigation boundaries, product rendering and artwork/photo separation. The finite
+Tests cover product-root parsing, sellable-offer filtering, planner capacity,
+category filtering and API pagination, navigation boundaries, product rendering,
+the 10759 gallery/modal ownership split, cart listing identity, and artwork/photo separation. The finite
 inspection script temporarily serves the production build, starts installed
 Chrome headless and closes both when finished. Override CHROME_PATH if needed.
 

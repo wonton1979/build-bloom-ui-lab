@@ -17,7 +17,7 @@ export function RemoveItemDialog({ item, onCancel, onConfirm, isConfirming = fal
   const keepRef = useRef<HTMLButtonElement>(null)
   const titleId = useId()
   const descriptionId = useId()
-  const image = item.listing.listingImages[0]
+  const image = item.listing.legoProduct.productImages[0]
 
   useEffect(() => {
     const dialog = dialogRef.current

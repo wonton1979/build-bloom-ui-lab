@@ -62,14 +62,27 @@ try {
   await viewport(1440,1000)
 
   // Prefer current public catalogue data/artwork, without changing server state.
-  const products = await fetch(`${url}/api/products?category=VEHICLES&page=1&pageSize=100`).then(r => r.ok ? r.json() : null).catch(() => null)
-  const product = products?.items?.find(p => p.listingImages?.length) || {
-    id: 42, legoProductId: 42226, originalPrice: '44.99', salePrice: null, condition: 'NEW', availableStock: 5,
-    legoProduct: { id: 42226, title: 'Tipping Dump Truck', setNumber: '42226' },
-    listingImages: [{ url: '/src/assets/categories/vehicles/vehicle-42226-standard.png', altText: 'Tipping Dump Truck' }],
+  const categories = await fetch(`${url}/api/categories`).then(r => r.ok ? r.json() : null).catch(() => null)
+  const categoryId = categories?.find(category => category.name === 'Vehicles')?.id
+  const products = categoryId ? await fetch(`${url}/api/products?categoryId=${categoryId}&page=1&pageSize=100`).then(r => r.ok ? r.json() : null).catch(() => null) : null
+  const root = products?.items?.find(product => product.productImages?.length && product.offers?.length) || {
+    id: 42226, title: 'Tipping Dump Truck', setNumber: '42226', description: null, theme: 'City', ageRecommendation: null, pieceCount: null,
+    category: null, catalogueArtworkUrl: null, catalogueArtworkPublicId: null, isFeatureProduct: false, isRetired: false,
+    productImages: [{ id: 1, url: '/src/assets/categories/vehicles/vehicle-42226-standard.png', altText: 'Tipping Dump Truck', sortOrder: 0 }],
+    offers: [{ id: 42, legoProductId: 42226, condition: 'NEW', usedLifecycle: null, damageDescription: null, originalPrice: '44.99', salePrice: null,
+      effectivePrice: '44.99', currentStock: 5, availableStock: 5, active: true, usedConditionPhotos: [] }],
   }
+  const offer = root.offers.find(item => item.condition === 'NEW' && item.active && item.availableStock > 0)
+    || root.offers.find(item => item.active && item.availableStock > 0 && item.usedLifecycle === 'AVAILABLE')
+  assert(offer, 'Cart inspection requires one sellable ProductListing offer')
   console.log(products?.items?.length ? 'Using public catalogue product in isolated cart fixture' : 'Backend unavailable: using isolated presentation fixture')
-  const item = { productListingId: product.id, listing: { ...product, availableStock: 3 }, quantity: 2 }
+  const listing = { ...offer, availableStock: 3, legoProduct: {
+    id: root.id, setNumber: root.setNumber, title: root.title, description: root.description, theme: root.theme,
+    ageRecommendation: root.ageRecommendation, pieceCount: root.pieceCount, category: root.category,
+    catalogueArtworkUrl: root.catalogueArtworkUrl, catalogueArtworkPublicId: root.catalogueArtworkPublicId,
+    productImages: root.productImages, isFeatureProduct: root.isFeatureProduct, isRetired: root.isRetired,
+  } }
+  const item = { productListingId: offer.id, listing, quantity: 2 }
   await call('Page.addScriptToEvaluateOnNewDocument', { source: `
     sessionStorage.setItem('colorful-life:storefront:jwt','isolated-remove-item-review');
     window.testCartItem=${JSON.stringify(item)};

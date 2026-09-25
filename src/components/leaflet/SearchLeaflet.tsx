@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { CatalogueSearch } from '../../features/catalogue/useCatalogueSearch'
+import { isSellableProduct } from '../../features/catalogue/api'
 import { LeafletShell } from './LeafletShell'
 import { LeafletProduct } from './LeafletProduct'
 import { useLeafletActions } from './LeafletActions'
@@ -44,6 +45,7 @@ export function SearchLeafletContent({ search, onDetails }: Pick<SearchProps, 's
   const title = state.status === 'results' ? 'Search Results' : state.status === 'empty' ? 'No Results Found' : 'Find a Set'
   const banner = state.status === 'results' ? resultsBanner : state.status === 'empty' ? emptyBanner : findBanner
   const count = state.status === 'results' ? state.data.pagination.totalItems : undefined
+  const availableResults = state.status === 'results' ? state.data.items.filter(isSellableProduct) : []
   const pagination = state.status === 'results' && state.data.pagination.totalPages > 1 ? state.data.pagination : undefined
   return <>
     <header className="search-leaflet__heading">
@@ -68,10 +70,11 @@ export function SearchLeafletContent({ search, onDetails }: Pick<SearchProps, 's
       {state.status === 'empty' && <div className="search-leaflet__state"><img src={emptyArt} width={503} height={289} alt="" /><h2>No matching sets this time.</h2><p>Check the spelling, try a shorter name,<br />or search by set number.</p></div>}
       {state.status === 'error' && <div className="search-leaflet__state search-leaflet__error" role="alert"><h2>A little trouble searching</h2><p>{state.message}</p><button type="button" onClick={retry}>Try again</button></div>}
       {state.status === 'results' && <div className="leaflet__products">
-        {state.data.items.map(listing => <LeafletProduct key={listing.id} listing={listing} showCategory linkedArtwork linkedTitle onDetails={id => {
+        {availableResults.map(product => <LeafletProduct key={product.id} product={product} showCategory linkedArtwork linkedTitle onDetails={id => {
           const scrollTop = area.current?.scrollTop ?? 0
           void leave(() => onDetails(id, scrollTop))
         }} />)}
+        {!availableResults.length && <p className="search-leaflet__empty-availability">No matching sets are available right now.</p>}
       </div>}
     </div>
     <footer className="leaflet__footer search-leaflet__footer">

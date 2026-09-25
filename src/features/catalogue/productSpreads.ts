@@ -1,32 +1,19 @@
-import type { ProductListing } from './api'
+import { isSellableProduct, type CatalogueProduct } from './api'
 
 export interface ProductSpread {
-  left: ProductListing[]
-  right: ProductListing[]
+  left: CatalogueProduct[]
+  right: CatalogueProduct[]
 }
 
-function chronological(a: ProductListing, b: ProductListing) {
-  const timestamp = (value: string) => {
-    const parsed = Date.parse(value)
-    return Number.isFinite(parsed) ? parsed : Infinity
-  }
-  const difference = timestamp(a.createdAt) - timestamp(b.createdAt)
-  return (Number.isNaN(difference) ? 0 : difference) || a.id - b.id
-}
-
-/** Presentation only: input is already category-filtered. Never infer feature
- * status from artwork, set number, or any merchandising attribute. */
-export function selectCategoryProducts(products: readonly ProductListing[]) {
-  const ordered = [...new Map(products.map(product => [product.id, product])).values()].sort(chronological)
-  // Malformed multiple features: show the earliest flagged listing as feature;
-  // retain every other listing in standard slots rather than losing products.
+/** Product-level API order is authoritative; offers never become extra cards. */
+export function selectCategoryProducts(products: readonly CatalogueProduct[]) {
+  const ordered = [...new Map(products.map(product => [product.id, product])).values()].filter(isSellableProduct)
   const feature = ordered.find(product => product.isFeatureProduct)
   return { feature, others: ordered.filter(product => product !== feature) }
 }
 
-/** The opening owns the feature. Subsequent paper spreads contain only the
- * remaining listings, flowing into the normal four slots from the outset. */
-export function planProductSpreads(products: readonly ProductListing[]): ProductSpread[] {
+/** The opening owns the product-level feature; later spreads contain products. */
+export function planProductSpreads(products: readonly CatalogueProduct[]): ProductSpread[] {
   const { others: standards } = selectCategoryProducts(products)
   const spreads: ProductSpread[] = []
   for (let start = 0; start < standards.length; start += 4) {

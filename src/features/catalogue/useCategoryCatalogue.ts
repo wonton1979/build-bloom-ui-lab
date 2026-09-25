@@ -1,22 +1,22 @@
 import { useEffect, useState } from 'react'
-import { getProducts, type BackendCategory, type ProductListing } from './api'
+import { getProducts, type BackendCategory, type CatalogueProduct } from './api'
 import { selectCategoryProducts } from './productSpreads'
 
 export type CategoryState =
   | { status: 'loading' }
   | { status: 'error' }
-  | { status: 'ready'; category: BackendCategory; listings: ProductListing[] }
+  | { status: 'ready'; category: BackendCategory; products: CatalogueProduct[] }
 
-/** Load products by the already-resolved backend identity; do not look categories up by display name again. */
+/** Load products by the already-resolved backend category ID. */
 export function useCategoryCatalogue(category: BackendCategory | undefined, categoriesResolved = true) {
   const [result, setResult] = useState<{ id: number; state: CategoryState }>()
   const [attempt, setAttempt] = useState(0)
   useEffect(() => {
     if (!category) return
     const controller = new AbortController()
-    getProducts({ categoryId: category.id }, controller.signal).then(listings => {
+    getProducts({ categoryId: category.id }, controller.signal).then(products => {
       if (!controller.signal.aborted) setResult({ id: category.id, state: {
-        status: 'ready', category, listings: listings.filter(item => item.category?.id === category.id),
+        status: 'ready', category, products: products.filter(item => item.category?.id === category.id),
       } })
     }).catch(() => {
       if (!controller.signal.aborted) setResult({ id: category.id, state: { status: 'error' } })
@@ -30,7 +30,6 @@ export function useCategoryCatalogue(category: BackendCategory | undefined, cate
   return { state, retry }
 }
 
-/** Reuse the established feature/deduplication/order rules; never invent a feature. */
-export function categoryProducts(listings: readonly ProductListing[]) {
-  return selectCategoryProducts(listings)
+export function categoryProducts(products: readonly CatalogueProduct[]) {
+  return selectCategoryProducts(products)
 }

@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CatalogueApiError, searchProducts } from './api'
-import { listing } from './catalogueFixtures'
+import { offer, product } from './catalogueFixtures'
 
 afterEach(() => vi.unstubAllGlobals())
 
 describe('server-paginated public search', () => {
   it.each(['Ferrari', '77240', '  City & car  '])('sends %s as q without a category restriction', async query => {
-    const items = [listing(1), listing(2, { category: { id: 13, name: 'Others', subtitle: null, description: null, imageUrl: null } })]
+    const items = [product(1), product(2, [offer(22, { legoProductId: 2 })], { category: { id: 13, name: 'Others', subtitle: null, description: null, imageUrl: null } })]
     const data = { items, pagination: { page: 2, pageSize: 12, totalItems: 26, totalPages: 3 } }
     const fetcher = vi.fn().mockResolvedValue({ ok: true, json: async () => data })
     vi.stubGlobal('fetch', fetcher)

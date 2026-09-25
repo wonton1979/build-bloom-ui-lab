@@ -1,9 +1,9 @@
-import type { ProductListing } from '../catalogue/api'
+import type { CartProductListing } from '../catalogue/api'
 
 export type PersistentCartItem = {
   productListingId: number
   quantity: number
-  productListing: ProductListing
+  productListing: CartProductListing
 }
 
 export type PersistentCart = { items: PersistentCartItem[] }

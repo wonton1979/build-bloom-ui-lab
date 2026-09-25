@@ -19,7 +19,7 @@ import type { CatalogueLeafletSide, CatalogueSpread } from './catalogueSpread'
 import { categoryLocation, categorySpreadIndex, isCategoryIndexSpread, normalizeProductLocation, sameSpread, spreadAfterAction } from './catalogueSpread'
 import { planProductSpreads } from '../../features/catalogue/productSpreads'
 import { CatalogueProductDetails, VehiclesProductPage } from './VehiclesProductPage'
-import type { ProductListing } from '../../features/catalogue/api'
+import type { ProductListingOffer } from '../../features/catalogue/api'
 
 export type { CatalogueSpread } from './catalogueSpread'
 type SearchDetails = { kind: 'search-details'; listingId: number }
@@ -31,7 +31,7 @@ type CatalogueProps = {
   spread: CatalogueSpread
   onSpreadChange: (spread: CatalogueSpread) => void
   onClose: () => void
-  onAddToCart?: (listing: ProductListing) => void
+  onAddToCart?: (listing: ProductListingOffer, productTitle: string) => void
   leafletSide?: CatalogueLeafletSide | null
   onLeafletSideChange?: (side: CatalogueLeafletSide | null, settled?: boolean) => void
   onSpreadNormalize?: (spread: CatalogueSpread) => void
@@ -84,7 +84,7 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
   const categoryOrigin = origin ? origin.kind === 'category' ? origin : categoryLocation(origin.slug, resolvedCategories) : undefined
   const categoryRecord = resolvedCategories.find(category => category.id === categoryOrigin?.slug)
   const { state: categoryState, retry: retryCategory } = useCategoryCatalogue(categoryRecord?.backendCategory, backendCategoriesState.status === 'ready')
-  const listings = categoryState.status === 'ready' ? categoryState.listings : []
+  const products = categoryState.status === 'ready' ? categoryState.products : []
   const [internalLeafletSide, setInternalLeafletSide] = useState<CatalogueLeafletSide | null>(null)
   const leafletSide = controlledLeafletSide === undefined ? internalLeafletSide : controlledLeafletSide
   const setLeaflet = (side: CatalogueLeafletSide | null, settled = true) => {
@@ -94,7 +94,7 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
   const displayCategoryName = categoryState.status === 'ready' ? categoryState.category.name : categoryRecord?.label ?? 'Collection'
   const retryCategoryData = backendCategoriesState.status === 'error' ? onRetryCategories : retryCategory
 
-  const productSpreads = planProductSpreads(listings)
+  const productSpreads = planProductSpreads(products)
   const current: PresentedSpread = searchDetails ?? (typeof spread !== 'string' && spread.kind === 'products'
     ? { ...spread, index: Math.max(0, Math.min(spread.index, productSpreads.length - 1)) }
     : spread)
@@ -143,8 +143,8 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
   }
   const pageContent = (location: PresentedSpread, side: 'left' | 'right') => {
     if (typeof location !== 'string') {
-      if (isSearchDetails(location)) return <CatalogueProductDetails side={side} listing={search.state.status === 'results' ? search.state.data.items.find(item => item.id === location.listingId) : undefined} onAddToCart={onAddToCart} />
-      if (location.kind === 'details') return <CatalogueProductDetails side={side} listing={listings.find(item => item.id === location.listingId)} onAddToCart={onAddToCart} />
+      if (isSearchDetails(location)) return <CatalogueProductDetails side={side} product={search.state.status === 'results' ? search.state.data.items.find(item => item.offers.some(offer => offer.id === location.listingId)) : undefined} selectedOfferId={location.listingId} onAddToCart={onAddToCart} />
+      if (location.kind === 'details') return <CatalogueProductDetails side={side} product={products.find(item => item.offers.some(offer => offer.id === location.listingId))} selectedOfferId={location.listingId} onAddToCart={onAddToCart} />
       if (location.kind === 'category') return <CategoryOpeningPage side={side} state={categoryState} onRetry={retryCategoryData} onLeaflet={() => { if (!locked.current) setLeaflet('front') }} onDetails={listingId => beginTurn('forward', { kind: 'details', listingId, returnTo: location })} />
       return <VehiclesProductPage side={side} spread={productSpreads[location.index]} status={categoryState.status} categoryName={displayCategoryName} onRetry={retryCategoryData}
         onViewDetails={listingId => beginTurn('forward', { kind: 'details', listingId, returnTo: location })} />
@@ -206,7 +206,7 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
         front={frozenPage(turn.from, turn.direction === 'forward' ? 'right' : 'left')}
         back={frozenPage(turn.to, turn.direction === 'forward' ? 'left' : 'right')} /> : null}
     />
-    {leafletSide && categoryOrigin && categoryState.status === 'ready' && createPortal(<CategoryLeaflet category={categoryState.category} listings={categoryState.listings} side={leafletSide}
+    {leafletSide && categoryOrigin && categoryState.status === 'ready' && createPortal(<CategoryLeaflet category={categoryState.category} products={categoryState.products} side={leafletSide}
       onSideChange={setLeaflet} onClose={() => setLeaflet(null)} onDetails={listingId => { setLeaflet(null); beginTurn('forward', { kind: 'details', listingId, returnTo: categoryOrigin }) }} />, document.body)}
     {searchVisible && searchSession && createPortal(<SearchLeaflet search={search} session={searchSession}
       onClose={() => { setSearchVisible(false); setSearchSession(null); search.reset() }}
