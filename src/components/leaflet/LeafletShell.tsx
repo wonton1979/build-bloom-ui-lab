@@ -6,7 +6,7 @@ import './CategoryLeaflet.css'
 type Leave = (complete: () => void) => Promise<void>
 
 /** Shared paper/dialog lifecycle; category turnover remains owned by CategoryLeaflet. */
-export function LeafletShell({ children, onClose, sheetRef, side, categoryId, busy = false, search = false, onReady, returnFocus }: {
+export function LeafletShell({ children, onClose, sheetRef, side, categoryId, busy = false, search = false, showBackNavigation = true, onReady, returnFocus }: {
   children: ReactNode
   onClose: () => void
   sheetRef?: Ref<HTMLDivElement>
@@ -14,6 +14,7 @@ export function LeafletShell({ children, onClose, sheetRef, side, categoryId, bu
   categoryId?: number
   busy?: boolean
   search?: boolean
+  showBackNavigation?: boolean
   onReady?: (dialog: HTMLDialogElement) => void
   returnFocus?: HTMLElement | null | (() => HTMLElement | null)
 }) {
@@ -63,7 +64,7 @@ export function LeafletShell({ children, onClose, sheetRef, side, categoryId, bu
     onKeyDownCapture={search ? event => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); void leave(onClose) } } : undefined}
     onCancel={event => { event.preventDefault(); void leave(onClose) }}>
     <div ref={sheetRef} className={search ? 'leaflet search-leaflet' : 'leaflet'} data-side={side} data-category-id={categoryId} aria-busy={busy || closing} inert={closing}>
-      <div className="leaflet__toolbar"><button type="button" onClick={() => void leave(onClose)}>← Back to the storybook</button><button type="button" aria-label="Close leaflet" onClick={() => void leave(onClose)}>×</button></div>
+      <div className={`leaflet__toolbar${showBackNavigation ? '' : ' leaflet__toolbar--close-only'}`}>{showBackNavigation && <button type="button" onClick={() => void leave(onClose)}>← Back to the storybook</button>}<button type="button" aria-label="Close leaflet" onClick={() => void leave(onClose)}>×</button></div>
       <LeafletActions.Provider value={{ leave, closing }}>{children}</LeafletActions.Provider>
     </div>
   </dialog>

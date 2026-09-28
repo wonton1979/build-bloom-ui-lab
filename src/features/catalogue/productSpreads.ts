@@ -5,11 +5,17 @@ export interface ProductSpread {
   right: CatalogueProduct[]
 }
 
+/** Feature cards use product-level API order; offers never become extra cards. */
+export function selectCategoryFeaturedProducts(products: readonly CatalogueProduct[], limit = Number.POSITIVE_INFINITY) {
+  const ordered = [...new Map(products.map(product => [product.id, product])).values()].filter(isSellableProduct)
+  return ordered.filter(product => product.isFeatureProduct).slice(0, Math.max(0, limit))
+}
+
 /** Product-level API order is authoritative; offers never become extra cards. */
 export function selectCategoryProducts(products: readonly CatalogueProduct[]) {
   const ordered = [...new Map(products.map(product => [product.id, product])).values()].filter(isSellableProduct)
   const feature = ordered.find(product => product.isFeatureProduct)
-  return { feature, others: ordered.filter(product => product !== feature) }
+  return { feature, others: ordered.filter(product => product.id !== feature?.id) }
 }
 
 /** The opening owns the product-level feature; later spreads contain products. */
