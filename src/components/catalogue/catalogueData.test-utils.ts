@@ -7,6 +7,7 @@ export const curatedBackendCategories: BackendCategory[] = categoryPresentation.
   subtitle: null,
   description: null,
   imageUrl: null,
+  thumbnailUrl: null,
 }))
 
 export const backendCategory = (id: number, name: string, overrides: Partial<BackendCategory> = {}): BackendCategory => ({
@@ -15,5 +16,6 @@ export const backendCategory = (id: number, name: string, overrides: Partial<Bac
   subtitle: null,
   description: null,
   imageUrl: null,
+  thumbnailUrl: null,
   ...overrides,
 })

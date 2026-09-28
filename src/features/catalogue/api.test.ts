@@ -8,6 +8,17 @@ afterEach(() => vi.unstubAllGlobals())
 const productPage = (items: ReturnType<typeof product>[], page = 1, totalPages = 1, totalItems = totalPages * 100) => ({ items, pagination: { page, pageSize: 100, totalItems, totalPages } })
 
 describe('product-level public catalogue API', () => {
+  it('parses managed category thumbnails and accepts a null thumbnail URL', async () => {
+    const managed = { ...fixtureCategory, id: 42, thumbnailUrl: '/managed-category-thumbnail.png' }
+    const legacyOnly = { ...fixtureCategory, id: 43, thumbnailUrl: null }
+    const legacyContract = { id: 44, name: 'Legacy Theme', subtitle: null, description: null, imageUrl: null }
+    const fetcher = vi.fn().mockResolvedValue({ ok: true, json: async () => [managed, legacyOnly, legacyContract] })
+    vi.stubGlobal('fetch', fetcher)
+
+    await expect(getCategories()).resolves.toEqual([managed, legacyOnly, { ...legacyContract, thumbnailUrl: null }])
+    expect(fetcher).toHaveBeenCalledWith('/api/categories', { signal: undefined })
+  })
+
   it('loads category products by backend category ID and keeps nested offers', async () => {
     const item = product(1, [offer(11, { legoProductId: 1 }), offer(12, { legoProductId: 1, condition: 'USED_LIKE_NEW', usedLifecycle: 'AVAILABLE', effectivePrice: '18.00', damageDescription: 'Corner crushed' })], { category: { ...fixtureCategory, id: 42 } })
     const fetcher = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => [{ ...fixtureCategory, id: 42 }] }).mockResolvedValueOnce({ ok: true, json: async () => productPage([item]) })
