@@ -31,6 +31,13 @@ describe('Shared category opening spread', () => {
     expect(markup).toContain('src="/future-category.png"')
     expect(markup).toContain('alt=""')
   })
+  it('continues using imageUrl for Category Opening Artwork when a managed thumbnail exists', () => {
+    const markup = renderToStaticMarkup(<CategoryOpeningPage side="left" state={{ status: 'ready', category: {
+      ...category, imageUrl: '/opening-art.png', thumbnailUrl: '/catalogue-thumbnail.png',
+    }, products: [] }} {...callbacks} />)
+    expect(markup).toContain('src="/opening-art.png"')
+    expect(markup).not.toContain('/catalogue-thumbnail.png')
+  })
   it('shows only the actual featured LegoProduct on the right', () => {
     const feature = product(3, [offer(3, { effectivePrice: '19.95' })], { isFeatureProduct: true })
     const markup = renderToStaticMarkup(<CategoryOpeningPage side="right" state={{ status: 'ready', category, products: [product(2), feature] }} {...callbacks} />)

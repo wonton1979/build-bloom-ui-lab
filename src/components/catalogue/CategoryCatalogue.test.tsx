@@ -1,8 +1,9 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import { CategoryCatalogue, CataloguePageContent } from './CategoryCatalogue'
+import { CatalogueIndexPage } from './CatalogueIndexPage'
 import { paginateCatalogueCategories, pairCataloguePages } from './cataloguePages'
-import { resolveCatalogueCategories } from './categories'
+import { categoryPresentation, resolveCatalogueCategories } from './categories'
 import type { CatalogueSpread } from './catalogueSpread'
 import { categoryLocation, spreadAfterAction } from './catalogueSpread'
 import { backendCategory, curatedBackendCategories } from './catalogueData.test-utils'
@@ -30,6 +31,49 @@ describe('Category catalogue data and pagination', () => {
     expect(markup).toContain('Minecraft')
     expect(markup).not.toContain('<img')
     expect(resolved[0].backendCategory.id).toBe(701)
+  })
+
+  it('uses managed thumbnails before legacy art and keeps category navigation unchanged', () => {
+    const category = backendCategory(702, 'Star Wars', { thumbnailUrl: '/managed-star-wars.png', imageUrl: '/opening-star-wars.png' })
+    const [resolved] = resolve([category])
+    const cardMarkup = renderToStaticMarkup(<CataloguePageContent categories={[resolved]} start={1} onCategory={() => {}} />)
+    const previewMarkup = renderToStaticMarkup(<CatalogueIndexPage categories={[resolved]} />)
+
+    expect(resolved.image).toBe('/managed-star-wars.png')
+    expect(cardMarkup).toContain('src="/managed-star-wars.png"')
+    expect(cardMarkup).toContain('href="/categories/star-wars"')
+    expect(previewMarkup).toContain('src="/managed-star-wars.png"')
+    expect(previewMarkup).not.toContain('/opening-star-wars.png')
+  })
+
+  it('uses bundled legacy art when a managed thumbnail is null or empty', () => {
+    const legacy = categoryPresentation.find(item => item.label === 'Star Wars')!.image
+    for (const thumbnailUrl of [null, '', '   ']) {
+      const [resolved] = resolve([backendCategory(703, 'Star Wars', { thumbnailUrl })])
+      expect(resolved.image).toBe(legacy)
+    }
+  })
+
+  it('uses a managed thumbnail for a dynamic category without a legacy mapping', () => {
+    const dynamic = backendCategory(704, 'New Theme', { thumbnailUrl: '/new-theme.png', imageUrl: '/opening-art.png' })
+    const [resolved] = resolve([dynamic])
+    const markup = renderToStaticMarkup(<CataloguePageContent categories={[resolved]} start={1} />)
+
+    expect(resolved.image).toBe('/new-theme.png')
+    expect(markup).toContain('src="/new-theme.png"')
+    expect(markup).toContain('href="/categories/new-theme"')
+  })
+
+  it('preserves the existing imageUrl fallback after managed and legacy artwork are absent', () => {
+    const [resolved] = resolve([backendCategory(705, 'New Theme', { imageUrl: '/existing-final-fallback.png' })])
+    expect(resolved.image).toBe('/existing-final-fallback.png')
+  })
+
+  it('continues rendering bundled thumbnails for existing categories without managed artwork', () => {
+    const resolved = resolve()
+    expect(resolved.every(category => category.backendCategory.thumbnailUrl === null && Boolean(category.image))).toBe(true)
+    const markup = renderToStaticMarkup(<CataloguePageContent categories={resolved.slice(0, 1)} start={1} />)
+    expect(markup).toContain(`src="${resolved[0].image}"`)
   })
 
   it('generates deterministic safe slugs and resolves absent artwork without removing the category', () => {

@@ -1,7 +1,7 @@
 // Test data only; never imported by storefront runtime modules.
 import type { BackendCategory, CartProductListing, CatalogueProduct, ProductImage, ProductListingOffer } from './api'
 
-export const fixtureCategory: BackendCategory = { id: 11, name: 'Vehicles', subtitle: 'Built for the thrill', description: 'Test editorial copy', imageUrl: null }
+export const fixtureCategory: BackendCategory = { id: 11, name: 'Vehicles', subtitle: 'Built for the thrill', description: 'Test editorial copy', imageUrl: null, thumbnailUrl: null }
 
 export function productImage(id: number, sortOrder = Math.max(0, id - 380)): ProductImage {
   return { id, url: '/product-image-' + id + '.jpg', altText: 'Product image ' + id, sortOrder }

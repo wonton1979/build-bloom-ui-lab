@@ -4,7 +4,10 @@ export interface BackendCategory {
   name: string
   subtitle: string | null
   description: string | null
+  /** Category Opening Artwork. */
   imageUrl: string | null
+  /** Catalogue index thumbnail, separate from Category Opening Artwork. */
+  thumbnailUrl: string | null
 }
 
 /** Shared presentation image owned by the LegoProduct, not an offer. */
@@ -177,10 +180,11 @@ export async function getCategories(signal?: AbortSignal): Promise<BackendCatego
   const data: unknown = await response.json()
   if (!Array.isArray(data) || data.some(category => !category || !Number.isSafeInteger(category.id) || category.id <= 0 ||
     typeof category.name !== 'string' || !category.name.trim() ||
-    ![category.subtitle, category.description, category.imageUrl].every(value => value === null || typeof value === 'string'))) {
+    ![category.subtitle, category.description, category.imageUrl].every(value => value === null || typeof value === 'string') ||
+    (category.thumbnailUrl !== undefined && category.thumbnailUrl !== null && typeof category.thumbnailUrl !== 'string'))) {
     throw new Error('Invalid categories response')
   }
-  return data as BackendCategory[]
+  return data.map(category => ({ ...category, thumbnailUrl: category.thumbnailUrl ?? null })) as BackendCategory[]
 }
 
 export async function getProducts(filters: { categoryId: number }, signal?: AbortSignal): Promise<CatalogueProduct[]> {

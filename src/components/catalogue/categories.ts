@@ -71,7 +71,8 @@ export function resolveCatalogueCategories(categories: readonly BackendCategory[
     if (usedSlugs.has(slug)) slug = `${baseSlug}-${category.id}`
     while (usedSlugs.has(slug)) slug = `${slug}-${category.id}`
     usedSlugs.add(slug)
-    const image = presentation?.image ?? category.imageUrl ?? undefined
+    const managedThumbnail = category.thumbnailUrl?.trim() || undefined
+    const image = managedThumbnail ?? presentation?.image ?? category.imageUrl ?? undefined
     return {
       backendCategory: category,
       ...(presentation ?? { id: slug, label: category.name }),
