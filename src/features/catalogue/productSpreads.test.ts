@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { offer, product } from './catalogueFixtures'
-import { planProductSpreads, selectCategoryProducts } from './productSpreads'
+import { planProductSpreads, selectCategoryFeaturedProducts, selectCategoryProducts } from './productSpreads'
 
 describe('product-level category spread planner', () => {
   it.each([[0, 0], [1, 1], [2, 1], [3, 1], [6, 2], [7, 2], [10, 3], [11, 3], [103, 26]])('keeps the product feature in the opening and flows %i products across %i normal spreads', (count, expected) => {
@@ -23,6 +23,19 @@ describe('product-level category spread planner', () => {
     const items = [product(8), feature, product(2), product(80)]
     expect(selectCategoryProducts(items).feature).toBe(feature)
     expect(planProductSpreads(items).flatMap(s => [...s.left, ...s.right]).map(item => item.id)).toEqual([8, 2, 80])
+  })
+
+  it('selects up to three sellable featured products in stable API order', () => {
+    const featureA = product(101, [offer(1101)], { isFeatureProduct: true })
+    const standard = product(102)
+    const featureB = product(103, [offer(1103)], { isFeatureProduct: true })
+    const featureC = product(104, [offer(1104)], { isFeatureProduct: true })
+    const featureD = product(105, [offer(1105)], { isFeatureProduct: true })
+    const items = [standard, featureA, featureB, featureC, featureD, featureA]
+
+    expect(selectCategoryFeaturedProducts(items, 3).map(item => item.id)).toEqual([101, 103, 104])
+    expect(selectCategoryFeaturedProducts(items).map(item => item.id)).toEqual([101, 103, 104, 105])
+    expect(items).toHaveLength(6)
   })
 
   it('uses four standard slots from the first spread when no feature is selected', () => {

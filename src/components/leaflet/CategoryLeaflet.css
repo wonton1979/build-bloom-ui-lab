@@ -13,6 +13,7 @@
 .leaflet button:focus-visible, .leaflet__print-area:focus-visible { outline: 2px solid #37777c; outline-offset: 3px; }
 .leaflet button:disabled { cursor: wait; }
 .leaflet__toolbar { display: flex; justify-content: space-between; gap: 12px; flex-shrink: 0; }
+.leaflet__toolbar--close-only { justify-content: flex-end; }
 .leaflet__toolbar button { font-size: 12px; padding: 0; color: #70664e; }
 .leaflet__toolbar button:last-child { font: 26px Georgia, serif; width: 36px; }
 .leaflet__masthead { display: flex; justify-content: space-between; align-items: center; padding: 0 0 12px; gap: 20px; }
@@ -60,6 +61,420 @@
 .leaflet__footer > span { color: #8a785a; font-size: 12px; }
 .leaflet .leaflet__turn { background: #eadba3; border-radius: 22% 4% 16% 3%; padding: 6px 22px; font-size: 17px; color: #5e5d3f; }
 .leaflet__no-feature, .leaflet__empty { margin: auto; padding: 36px; text-align: center; font-size: 16px; }
+.leaflet__environment { display: none; }
+@media (min-width: 901px) {
+  .leaflet__environment { display: block; position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; object-fit: contain; object-position: center; border-radius: inherit; pointer-events: none; }
+
+  /* Harry Potter visual spike: let the storybook's paper and painted world show through. */
+  .leaflet-dialog:has(.leaflet__environment)::backdrop { background: #30271fb3; backdrop-filter: blur(2px); }
+  .leaflet-dialog:has(.leaflet__environment) { width: 94vw; }
+  body:has(.leaflet[data-side="front"] .leaflet__environment) .catalogue-stage {
+    background-image: url('../../assets/backgrounds/desktop-tabletop-leaflet-background.png');
+  }
+  .leaflet:has(.leaflet__environment) {
+    height: min(92svh, 960px);
+    border-color: #bca77d99;
+    box-shadow: 0 2px 3px #342a2933, 3px 14px 30px #30261f55;
+    container-type: size;
+    /* Follow the contained 1672 × 941 environment, inset within the sheet's padding. */
+    --leaflet-navigation-width: min(100cqw, calc(100cqh * 1672 / 941));
+    --leaflet-navigation-height: min(100cqh, calc(100cqw * 941 / 1672));
+  }
+  body:has(.leaflet-dialog[open] .leaflet[data-side="front"] .leaflet__environment) .category-opening--editorial > .category-opening__eyebrow,
+  body:has(.leaflet-dialog[open] .leaflet[data-side="front"] .leaflet__environment) .category-opening--editorial > h1,
+  body:has(.leaflet-dialog[open] .leaflet[data-side="front"] .leaflet__environment) .category-opening--editorial > .category-opening__subtitle,
+  body:has(.leaflet-dialog[open] .leaflet[data-side="front"] .leaflet__environment) .category-opening--editorial > .category-opening__description,
+  body:has(.leaflet-dialog[open] .leaflet[data-side="front"] .leaflet__environment) .category-opening--editorial > .category-opening__invitation,
+  body:has(.leaflet-dialog[open] .leaflet[data-side="front"] .leaflet__environment) .category-opening-feature > .vehicles-page__heading,
+  body:has(.leaflet-dialog[open] .leaflet[data-side="front"] .leaflet__environment) .category-opening-feature > .vehicles-feature-product,
+  body:has(.leaflet-dialog[open] .leaflet[data-side="front"] .leaflet__environment) .spread-page--category-opening > .spread-page__navigation { visibility: hidden; }
+  body:has(.leaflet[data-side="front"] .leaflet__environment) .leaflet[data-side="front"] .leaflet__toolbar:not(.leaflet__toolbar--close-only) > button:first-child { visibility: hidden; }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__footer > span { visibility: hidden; }
+  .leaflet:has(.leaflet__environment) .leaflet__toolbar button { color: #68533e; text-shadow: 0 1px 5px #fff8e8cc; }
+  .leaflet:has(.leaflet__environment) .leaflet__toolbar button:last-child {
+    display: grid;
+    place-items: center;
+    width: 50px;
+    min-width: 50px;
+    height: 50px;
+    min-height: 50px;
+    margin: 0;
+    border-radius: 50%;
+    background: #fff9ebf5;
+    box-shadow: 0 2px 8px #3c302b40;
+    color: #4d3e2b;
+    font: 26px/1 Georgia, serif;
+    text-shadow: 0 1px 3px #fff;
+    position: absolute;
+    top: calc(50% - var(--leaflet-navigation-height) * .42 - 30px);
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+  }
+  .leaflet:has(.leaflet__environment) .leaflet__toolbar button:last-child:hover:not(:disabled) { background: #fffdf6; box-shadow: 0 3px 10px #3c302b66; text-decoration: none; }
+  .leaflet:has(.leaflet__environment) .leaflet__toolbar button:last-child:focus-visible { outline: 3px solid #37777c; outline-offset: 3px; }
+  .leaflet:has(.leaflet__environment) .leaflet__masthead { padding-bottom: 8px; }
+  .leaflet:has(.leaflet__environment) .leaflet__brand,
+  .leaflet:has(.leaflet__environment) .leaflet__motto { text-shadow: 0 1px 6px #fff8e8d9; }
+  .leaflet:has(.leaflet__environment) .leaflet__category-band {
+    padding: 8px 22px 10px;
+    border-radius: 0;
+    background: radial-gradient(ellipse 78% 135% at 52% 50%, #fff9e9d9 0%, #fff9e99c 58%, #fff9e900 100%);
+  }
+  .leaflet:has(.leaflet__environment) .leaflet__edition,
+  .leaflet:has(.leaflet__environment) .leaflet__category-band h1,
+  .leaflet:has(.leaflet__environment) .leaflet__category-band > p,
+  .leaflet:has(.leaflet__environment) .leaflet__editorial { text-shadow: 0 1px 6px #fff8e8d9; }
+  .leaflet:has(.leaflet__environment) .leaflet__editorial { margin-bottom: 6px; color: #5a5649; }
+  .leaflet:has(.leaflet__environment) .leaflet__feature-label {
+    padding: 3px 8px;
+    background: transparent;
+    border-radius: 0;
+    color: #76512c;
+    text-shadow: 0 1px 6px #fff8e8e6;
+  }
+  .leaflet:has(.leaflet__environment) .leaflet-product--featured .leaflet-product__copy,
+  .leaflet:has(.leaflet__environment) .leaflet__teasers .leaflet-product__copy { position: relative; isolation: isolate; }
+  .leaflet:has(.leaflet__environment) .leaflet-product--featured .leaflet-product__copy::before,
+  .leaflet:has(.leaflet__environment) .leaflet__teasers .leaflet-product__copy::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: -16px -14px;
+    background: radial-gradient(ellipse at center, #fff9ebc9 0%, #fff9eb8c 57%, #fff9eb00 100%);
+    pointer-events: none;
+  }
+  .leaflet:has(.leaflet__environment) .leaflet__teasers .leaflet-product { padding: 8px 4px; border-radius: 0; background: transparent; }
+  .leaflet:has(.leaflet__environment) .leaflet__teasers h2 { color: #70583c; text-shadow: 0 1px 5px #fff8e8d9; }
+  .leaflet:has(.leaflet__environment) .leaflet__footer { padding-top: 4px; border-top: 0; }
+  .leaflet:has(.leaflet__environment) .leaflet__footer > span { color: #735c40; font-style: italic; text-shadow: 0 1px 5px #fff8e8d9; }
+  .leaflet:has(.leaflet__environment) .leaflet__turn {
+    position: absolute;
+    right: calc(50% - var(--leaflet-navigation-width) * .25);
+    top: calc(50% + clamp(145px, 13.5vw, 260px));
+    z-index: 3;
+    min-height: 48px;
+    padding: 8px 16px;
+    font-size: clamp(18px, 1.05vw, 20px);
+    background: radial-gradient(ellipse, #fff9ebf2 30%, #fff9ebcc 55%, #fff9eb00 75%);
+    border-radius: 0;
+    color: #5e503b;
+    font-style: italic;
+    text-shadow: 0 1px 5px #fff8e8d9;
+    text-decoration: none;
+    transform: rotate(-1deg);
+  }
+  .leaflet:has(.leaflet__environment) .leaflet__turn:hover:not(:disabled) { color: #4e4635; text-decoration: none; }
+
+  /* World → Collection: reserve the scenery for story art, then let commerce settle into the paper. */
+  .leaflet:has(.leaflet__environment) .leaflet__print-area--front { padding: 10px 8px 18px; }
+  .leaflet:has(.leaflet__environment) .leaflet__editorial { margin-bottom: 4px; }
+  .leaflet:has(.leaflet__environment) .leaflet__front-promotions--with-teasers {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, .85fr);
+    grid-template-rows: 300px auto;
+    gap: 0 28px;
+    flex: none;
+    align-items: stretch;
+  }
+  .leaflet:has(.leaflet__environment) .leaflet__front-hero {
+    display: grid;
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-width: 0;
+  }
+  .leaflet:has(.leaflet__environment) .leaflet__front-hero .leaflet-product--featured {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 350px auto;
+    align-content: start;
+    align-items: start;
+    gap: 0;
+    min-width: 0;
+    padding: 0 8px;
+  }
+  .leaflet:has(.leaflet__environment) .leaflet__front-hero .leaflet-product__art {
+    grid-row: 1;
+    justify-self: center;
+    width: min(100%, 510px);
+    height: 350px;
+    margin: 0;
+    z-index: 1;
+  }
+  .leaflet:has(.leaflet__environment) .leaflet__front-hero .leaflet-product__copy {
+    grid-row: 2;
+    align-self: start;
+    padding: 14px 14px 10px;
+  }
+  .leaflet:has(.leaflet__environment) .leaflet__teasers {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+    grid-template-rows: auto repeat(2, minmax(0, auto));
+    gap: 12px;
+    padding: 8px 2px 12px;
+  }
+  .leaflet:has(.leaflet__environment) .leaflet__teasers .leaflet-product {
+    grid-template-columns: minmax(115px, .82fr) minmax(0, 1.18fr);
+    gap: 14px;
+    align-items: center;
+    padding: 8px 2px;
+  }
+  .leaflet:has(.leaflet__environment) .leaflet__teasers .leaflet-product__art,
+  .leaflet:has(.leaflet__environment) .leaflet__products .leaflet-product__art {
+    height: 142px;
+    border: 3px solid #f7eedf;
+    background: #f7eedf;
+    box-shadow: 0 3px 9px #342a2926;
+    transform: rotate(-.3deg);
+  }
+  .leaflet:has(.leaflet__environment) .leaflet__teasers .leaflet-product__copy { padding: 8px 4px; }
+  .leaflet:has(.leaflet__environment) .leaflet__print-area--back { padding: clamp(300px, 40svh, 360px) 14px 20px; }
+  .leaflet:has(.leaflet__environment) .leaflet__count { margin-bottom: 20px; color: #62513b; text-shadow: 0 1px 6px #fff8e8d9; }
+  .leaflet:has(.leaflet__environment) .leaflet__products {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: min(820px, 100%);
+    margin-inline: auto;
+  }
+  .leaflet:has(.leaflet__environment) .leaflet__products .leaflet-product {
+    display: grid;
+    grid-template-columns: minmax(160px, .42fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 28px;
+    padding: 8px 14px;
+    border-radius: 0;
+    background: transparent;
+  }
+  .leaflet:has(.leaflet__environment) .leaflet__products .leaflet-product__art { height: 170px; }
+  .leaflet:has(.leaflet__environment) .leaflet__products .leaflet-product__copy { padding: 12px 18px; }
+
+  /* The Harry Potter front is one transparent physical sheet, with one story at its centre. */
+  .leaflet[data-side="front"]:has(.leaflet__environment) {
+    padding: 16px 34px 12px;
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment)::before { background: none; }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__environment { border-radius: 0; }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__print-area--harry-potter-front {
+    display: flex;
+    justify-content: center;
+    min-height: 0;
+    padding: 0;
+    overflow: visible;
+    scrollbar-width: none;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__harry-potter-story {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__harry-potter-story .leaflet-product--featured {
+    display: grid;
+    grid-template-columns: minmax(0, 42%) minmax(0, 38%);
+    grid-template-rows: auto;
+    align-content: center;
+    align-items: center;
+    justify-content: space-between;
+    justify-items: stretch;
+    width: min(57%, 920px);
+    height: auto;
+    max-height: 100%;
+    min-width: 0;
+    min-height: 0;
+    flex: none;
+    gap: 0;
+    padding: 0;
+    background: transparent;
+    transform: translateY(6svh);
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__harry-potter-story .leaflet-product__art {
+    /* Restore Astra's approved art bounds and inward offset; the copy column stays fixed. */
+    grid-column: 1 / -1;
+    grid-row: 1;
+    justify-self: end;
+    width: 36.75%;
+    max-width: 332.5px;
+    height: min(40.25svh, 25.375vw, 367.5px);
+    max-height: 100%;
+    min-height: 0;
+    margin: 0 calc(38% + clamp(24px, 2.4vw, 40px)) 0 0;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__harry-potter-story .leaflet-product__copy {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    width: 100%;
+    padding: 0;
+    text-align: left;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__harry-potter-story .leaflet-product__set {
+    margin: 0 0 clamp(2px, .2vw, 3px);
+    font-size: clamp(9px, .78vw, 11px);
+    color: #66533d;
+    letter-spacing: .06em;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__harry-potter-story h3 {
+    color: #34495a;
+    font: 500 clamp(19px, 2.02vw, 29px)/1.25 Georgia, serif;
+    text-shadow: 0 1px 5px #fff9e9cc;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__harry-potter-story .leaflet-product__facts {
+    margin: clamp(2px, .28vw, 4px) 0;
+    font-size: clamp(9px, .78vw, 11px);
+    color: #625743;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__harry-potter-story .leaflet-product__purchase {
+    justify-content: flex-start;
+    gap: clamp(8px, 1vw, 14px);
+    margin: clamp(8px, .83vw, 12px) 0 clamp(5px, .56vw, 8px);
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__harry-potter-story .leaflet-product__price { margin: 0; font-size: clamp(12px, 1.112vw, 16px); }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__harry-potter-story .leaflet-product__price strong { font-size: clamp(18px, 1.82vw, 26px); }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__harry-potter-story .leaflet-product__stock { color: #544d3e; font-size: clamp(9px, .78vw, 11px); }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__harry-potter-story .leaflet-product__copy > button {
+    align-self: flex-start;
+    margin: 0;
+    padding: clamp(2px, .28vw, 4px) clamp(6px, .7vw, 10px);
+    color: #4e503c;
+    font-size: clamp(12px, 1.05vw, 15px);
+    text-decoration: underline dotted;
+    text-underline-offset: 5px;
+    text-shadow: 0 1px 5px #fff9e9d9;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__harry-potter-story .leaflet__no-feature {
+    align-self: center;
+    background: transparent;
+    text-shadow: 0 1px 5px #fff9e9d9;
+  }
+
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__print-area--vehicles-front {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    min-height: 0;
+    padding: clamp(230px, 35cqh, 310px) 20% 0;
+    overflow: visible;
+    scrollbar-width: none;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-story {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    flex: none;
+    min-width: 0;
+    margin-top: clamp(48px, calc(11cqh - 30px), 74px);
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    outline: none;
+    transform: translateX(clamp(84px, calc(3cqw + 60px), 104px));
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-story .leaflet-product--featured {
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr);
+    align-items: center;
+    width: min(75%, 600px);
+    min-width: 0;
+    gap: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    outline: none;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-story .leaflet-product__art {
+    grid-column: 1;
+    grid-row: 1;
+    width: 100%;
+    height: min(26.25cqh, 240px);
+    min-height: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-story .leaflet-product__copy {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    width: 100%;
+    padding: 0 9px;
+    text-align: left;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    outline: none;
+    position: static;
+    isolation: auto;
+    transform: translate(-6cqw, calc(2.5cqh + 98px));
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-story .leaflet-product__copy::before,
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-story .leaflet-product__copy::after {
+    content: none;
+    display: none;
+    background: none;
+    border: none;
+    box-shadow: none;
+    outline: none;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-story .leaflet-product__set {
+    margin: 0 0 clamp(2px, .15vw, 2.25px);
+    font-size: clamp(7px, .585vw, 8.25px);
+    color: #66533d;
+    letter-spacing: .06em;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-story h3 {
+    color: #34495a;
+    font: 500 clamp(15px, 1.52vw, 22px)/1.25 Georgia, serif;
+    text-shadow: 0 1px 5px #fff9e9cc;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-story .leaflet-product__facts {
+    margin: clamp(2px, .21vw, 3px) 0;
+    font-size: clamp(7px, .585vw, 8.25px);
+    color: #625743;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-story .leaflet-product__purchase {
+    justify-content: flex-start;
+    gap: clamp(6px, .75vw, 10.5px);
+    margin: clamp(6px, .62vw, 9px) 0 clamp(4px, .42vw, 6px);
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-story .leaflet-product__price { margin: 0; font-size: clamp(9px, .834vw, 12px); }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-story .leaflet-product__price strong { font-size: clamp(13.5px, 1.365vw, 19.5px); }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-story .leaflet-product__stock { color: #544d3e; font-size: clamp(7px, .585vw, 8.25px); }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-story .leaflet-product__copy > button {
+    align-self: flex-start;
+    margin: 0;
+    min-height: 0;
+    padding: clamp(2px, .21vw, 3px) clamp(4.5px, .525vw, 7.5px);
+    color: #4e503c;
+    font-size: clamp(9px, .79vw, 11.25px);
+    text-decoration: underline dotted;
+    text-underline-offset: 5px;
+    text-shadow: 0 1px 5px #fff9e9d9;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__print-area--vehicles-front) .leaflet__turn {
+    top: calc(50% + clamp(145px, 13.5vw, 260px) - 26px);
+  }
+}
 /* Front merchandising only. The Back grid and physical sheet stay unchanged. */
 .leaflet__front-promotions { display: grid; flex: 1; gap: 24px; }
 .leaflet__front-promotions--with-teasers { grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); }
@@ -96,6 +511,53 @@
   .leaflet__teasers { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto; }
   .leaflet__teasers h2 { grid-column: 1 / -1; }
 }
+@media (max-width: 900px) {
+  .leaflet[data-side="front"]:has(.leaflet__print-area--vehicles-front) .leaflet__print-area--vehicles-front {
+    align-items: center;
+    justify-content: center;
+    padding: clamp(8px, 2.5svh, 20px) clamp(8px, 3vw, 24px);
+  }
+  .leaflet[data-side="front"]:has(.leaflet__print-area--vehicles-front) .leaflet__vehicles-story {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    flex: 1;
+    margin: 0;
+    transform: none;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__print-area--vehicles-front) .leaflet__vehicles-story .leaflet-product--featured {
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr);
+    align-items: center;
+    width: min(100%, 760px);
+    min-width: 0;
+    gap: clamp(8px, 2vw, 18px);
+    padding: 0;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__print-area--vehicles-front) .leaflet__vehicles-story .leaflet-product__art {
+    width: 100%;
+    height: clamp(125px, min(28svh, 19vw), 220px);
+  }
+  .leaflet[data-side="front"]:has(.leaflet__print-area--vehicles-front) .leaflet__vehicles-story .leaflet-product__copy {
+    min-width: 0;
+    padding-inline: clamp(4px, 1vw, 10px);
+    transform: translateY(0);
+  }
+  .leaflet[data-side="front"]:has(.leaflet__print-area--vehicles-front) .leaflet__vehicles-story h3 {
+    font-size: clamp(13px, 1.8vw, 17px);
+  }
+  .leaflet[data-side="front"]:has(.leaflet__print-area--vehicles-front) .leaflet__vehicles-story .leaflet-product__set,
+  .leaflet[data-side="front"]:has(.leaflet__print-area--vehicles-front) .leaflet__vehicles-story .leaflet-product__facts,
+  .leaflet[data-side="front"]:has(.leaflet__print-area--vehicles-front) .leaflet__vehicles-story .leaflet-product__stock {
+    font-size: clamp(8px, 1.1vw, 10px);
+  }
+  .leaflet[data-side="front"]:has(.leaflet__print-area--vehicles-front) .leaflet__vehicles-story .leaflet-product__price { font-size: clamp(10px, 1.3vw, 13px); }
+  .leaflet[data-side="front"]:has(.leaflet__print-area--vehicles-front) .leaflet__vehicles-story .leaflet-product__price strong { font-size: clamp(16px, 2.2vw, 23px); }
+  .leaflet[data-side="front"]:has(.leaflet__print-area--vehicles-front) .leaflet__vehicles-story .leaflet-product__copy > button { font-size: clamp(11px, 1.35vw, 14px); }
+}
 @media (max-width: 600px) {
   .leaflet-dialog { width: calc(100vw - 24px); }
   .leaflet { height: calc(100svh - 32px); padding: 8px 16px 12px; }
@@ -116,4 +578,634 @@
   .leaflet__front-hero .leaflet-product__art { height: 200px; }
   .leaflet__teasers { grid-template-columns: minmax(0, 1fr); }
   .leaflet__teasers .leaflet-product { grid-template-columns: minmax(0, .85fr) minmax(0, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .leaflet[data-side="front"]:has(.leaflet__print-area--vehicles-front) .leaflet__print-area--vehicles-front {
+    padding: 4px 0 0;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__print-area--vehicles-front) .leaflet__vehicles-story .leaflet-product--featured {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    justify-items: center;
+    width: min(100%, 440px);
+    gap: clamp(2px, 1svh, 8px);
+  }
+  .leaflet[data-side="front"]:has(.leaflet__print-area--vehicles-front) .leaflet__vehicles-story .leaflet-product__art {
+    grid-column: 1;
+    grid-row: 1;
+    width: 100%;
+    height: clamp(110px, min(24svh, 30vw), 145px);
+    justify-self: center;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__print-area--vehicles-front) .leaflet__vehicles-story .leaflet-product__copy {
+    grid-column: 1;
+    grid-row: 2;
+    align-items: center;
+    width: min(100%, 380px);
+    padding: 0 clamp(8px, 3vw, 18px);
+    text-align: center;
+    transform: none;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__print-area--vehicles-front) .leaflet__vehicles-story h3 {
+    font-size: clamp(13px, 4vw, 17px);
+  }
+  .leaflet[data-side="front"]:has(.leaflet__print-area--vehicles-front) .leaflet__vehicles-story .leaflet-product__purchase {
+    justify-content: center;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__print-area--vehicles-front) .leaflet__vehicles-story .leaflet-product__copy > button {
+    align-self: center;
+  }
+}
+
+.leaflet__vehicles-layout { display: contents; }
+
+/* The full-size composition remains the reference. When the sheet is smaller,
+   use the contained environment's cream opening as one grid coordinate system.
+   The 68/28px additions account for the sheet padding excluded from cqw/cqh. */
+@media (min-width: 901px) {
+  @container (max-width: 1716px) or (max-height: 900px) {
+    .leaflet__vehicles-layout {
+      --vehicles-paper-width: min(calc(100cqw + 68px), calc((100cqh + 28px) * 1670 / 942));
+      --vehicles-paper-height: min(calc(100cqh + 28px), calc((100cqw + 68px) * 942 / 1670));
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(180px, 1fr);
+      gap: 12px clamp(16px, calc(var(--vehicles-paper-width) * .018), 30px);
+      align-items: start;
+      position: absolute;
+      top: calc(50% - var(--vehicles-paper-height) * .08);
+      right: calc(50% - var(--vehicles-paper-width) * .30);
+      width: min(calc(var(--vehicles-paper-width) * .47), 840px);
+    }
+    .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-layout .leaflet__print-area--vehicles-front,
+    .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-layout .leaflet__vehicles-story,
+    .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-layout .leaflet-product--featured {
+      display: contents;
+    }
+    .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-layout .leaflet-product__art {
+      grid-column: 1;
+      grid-row: 1 / span 2;
+      align-self: start;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 3 / 2;
+      max-height: 240px;
+    }
+    .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-layout .leaflet-product__copy {
+      grid-column: 2;
+      grid-row: 1;
+      width: 100%;
+      min-width: 0;
+      padding: 0;
+      margin-top: max(calc(var(--vehicles-paper-height) * .095), calc((var(--vehicles-paper-width) - 1280px) * .4));
+      transform: none;
+    }
+    .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-layout h3 {
+      font-size: clamp(13px, calc(var(--vehicles-paper-width) * .015), 22px);
+    }
+    .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-layout .leaflet-product__set,
+    .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-layout .leaflet-product__facts,
+    .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-layout .leaflet-product__stock {
+      font-size: clamp(8px, calc(var(--vehicles-paper-width) * .006), 8.25px);
+    }
+    .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-layout .leaflet-product__price strong {
+      font-size: clamp(13.5px, calc(var(--vehicles-paper-width) * .0144), 19.5px);
+    }
+    .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-layout .leaflet-product__copy > button {
+      font-size: clamp(9px, calc(var(--vehicles-paper-width) * .0083), 11.25px);
+    }
+    .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-layout .leaflet__footer {
+      grid-column: 2;
+      grid-row: 2;
+      display: flex;
+      justify-content: flex-start;
+      padding: 0;
+    }
+    .leaflet__vehicles-layout .leaflet__footer > span { display: none; }
+    .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-layout .leaflet__turn {
+      position: static;
+      min-height: 36px;
+      padding: 4px 12px;
+      font-size: clamp(16px, calc(var(--vehicles-paper-width) * .014), 20px);
+    }
+    .leaflet__vehicles-layout .leaflet__no-feature { grid-column: 1 / -1; }
+    @container (min-width: 1400px) and (min-height: 800px) {
+      .leaflet__vehicles-layout {
+        grid-template-columns: minmax(0, 1fr) minmax(180px, 1.25fr);
+        right: calc(50% - var(--vehicles-paper-width) * .305);
+        width: min(calc(var(--vehicles-paper-width) * .49), 840px);
+      }
+      .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-layout .leaflet__footer {
+        justify-content: center;
+      }
+    }
+  }
+}
+@media (min-width: 901px) and (max-width: 1199px) {
+  .leaflet__vehicles-layout {
+    top: calc(50% - var(--vehicles-paper-height) * .03);
+    right: calc(50% - var(--vehicles-paper-width) * .25);
+    width: calc(var(--vehicles-paper-width) * .50);
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-layout .leaflet-product__copy {
+    margin-top: calc(var(--vehicles-paper-height) * .035);
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__vehicles-layout .leaflet__turn {
+    min-height: 32px;
+    font-size: 16px;
+  }
+}
+@media (min-width: 901px) and (max-width: 1100px) {
+  .leaflet__vehicles-layout { top: calc(50% - var(--vehicles-paper-height) * .05); }
+}
+
+/* Themed reverse sides share the printed collection layout inside their supplied frame. */
+.leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__print-area--collection-back {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 12px 10px;
+  overflow: hidden;
+}
+.leaflet__collection-heading { flex: none; text-align: center; }
+.leaflet__collection-heading h1 { margin: 0; color: #34495a; font: 500 clamp(19px, 1.5vw, 24px)/1.3 Georgia, serif; }
+.leaflet__collection-heading p { margin: 3px 0 0; color: #625743; font: 12px/1.4 Georgia, serif; }
+.leaflet__products--collection {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 12px 20px;
+  width: 100%;
+  margin: 0;
+}
+.leaflet__products--collection .leaflet-product--browse {
+  display: grid;
+  grid-template-columns: minmax(52px, 68px) minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+}
+.leaflet__products--collection .leaflet-product__art {
+  width: 100%;
+  height: 56px;
+  min-height: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+.leaflet__products--collection .leaflet-product__art-button:hover img { transform: scale(1.025); }
+.leaflet__products--collection .leaflet-product__copy { align-items: flex-start; justify-content: center; width: 100%; min-width: 0; padding: 0; }
+.leaflet__products--collection .leaflet-product__set { margin: 0 0 1px; color: #665b4a; font-size: 9px; line-height: 1.2; letter-spacing: .04em; }
+.leaflet__products--collection .leaflet-product h3 { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; color: #34495a; font: 500 12px/1.18 Georgia, serif; }
+.leaflet__products--collection .leaflet-product__purchase--browse { justify-content: flex-start; gap: 2px 8px; margin-top: 2px; }
+.leaflet__products--collection .leaflet-product__price { margin: 0; color: #3a5144; }
+.leaflet__products--collection .leaflet-product__price strong { font: 600 15px/1.2 Georgia, serif; }
+.leaflet__products--collection .leaflet-product__stock { color: #59684e; font: 9px/1.2 'Segoe UI', sans-serif; }
+.leaflet__products--collection .leaflet-product__title-button { color: inherit !important; text-align: left; }
+.leaflet__products--collection .leaflet-product__art-button:focus-visible,
+.leaflet__products--collection .leaflet-product__title-button:focus-visible { outline-offset: 2px; }
+
+@media (min-width: 901px) {
+  .leaflet[data-side="back"]:has(.leaflet__environment) {
+    padding: 16px 34px 12px;
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__environment)::before { background: none; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__environment { border-radius: 0; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__print-area--collection-back {
+    gap: 7px;
+    padding: clamp(112px, 20cqh, 190px) clamp(180px, 24cqw, 420px) clamp(110px, 20cqh, 190px);
+    padding-top: calc(clamp(112px, 20cqh, 190px) + clamp(30px, 4cqh, 40px));
+    overflow: hidden;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__collection-heading h1 {
+    font-size: clamp(19px, 1.36vw, 23px);
+    text-shadow: 0 1px 5px #fff9e9d9;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__collection-heading p { text-shadow: 0 1px 5px #fff9e9d9; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--collection {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    justify-content: stretch;
+    align-content: start;
+    align-self: stretch;
+    width: 100%;
+    gap: 7px 14px;
+    margin: 0;
+    margin-top: 10px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    outline: none;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--collection .leaflet-product--browse {
+    display: grid;
+    grid-template-columns: minmax(94px, 111px) minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    outline: none;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--collection .leaflet-product__art {
+    height: 94px;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--collection .leaflet-product__copy { padding: 0; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--collection .leaflet-product__set { font-size: 10.5px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--collection .leaflet-product h3 { font-size: 14px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--collection .leaflet-product__price strong { font-size: 17px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--collection .leaflet-product__stock { font-size: 10.5px; }
+  /* The rally artwork has a tighter central opening; keep four compact rows clear of its lower track. */
+  .leaflet[data-side="back"]:has(.leaflet__environment) :is(.leaflet__products--vehicles-collection, .leaflet__products--friends-collection) {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    margin-top: 0;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--vehicles-collection .leaflet-product--browse { grid-column: span 2; grid-template-columns: minmax(82px, 94px) minmax(0, 1fr); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--vehicles-collection .leaflet-product__art { height: 88px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) :is(.leaflet__products--vehicles-collection, .leaflet__products--friends-collection) > .leaflet-product--browse:nth-last-child(2):nth-child(3n + 1) { grid-column: 2 / span 2; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) :is(.leaflet__products--vehicles-collection, .leaflet__products--friends-collection) > .leaflet-product--browse:last-child:nth-child(3n + 2) { grid-column: 4 / span 2; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) :is(.leaflet__products--vehicles-collection, .leaflet__products--friends-collection) > .leaflet-product--browse:last-child:nth-child(3n + 1) { grid-column: 3 / span 2; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__turn {
+    top: calc(50% + var(--leaflet-navigation-height) * .29 - 38px);
+    right: calc(50% - var(--leaflet-navigation-width) * .30);
+  }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__footer > span { display: none; }
+}
+
+@media (min-width: 1200px) and (max-width: 1399px) {
+  .leaflet[data-side="back"]:has(.leaflet__products--vehicles-collection):has(.leaflet__environment) .leaflet__toolbar button[aria-label="Close leaflet"] { top: calc(50% - var(--leaflet-navigation-height) * .42 - 70px); }
+  .leaflet[data-side="back"]:has(.leaflet__products--vehicles-collection):has(.leaflet__environment) .leaflet__print-area--vehicles-back { --vehicles-back-content-drop: 24px; }
+  .leaflet[data-side="back"]:has(.leaflet__products--vehicles-collection):has(.leaflet__environment) .leaflet__print-area--vehicles-back:not(:has(.leaflet__products--vehicles-collection > .leaflet-product--browse:nth-child(9))) { --vehicles-back-content-drop: 44px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__print-area--vehicles-back { padding-inline: clamp(160px, 22cqw, 390px); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__print-area--vehicles-back { padding-top: calc(clamp(112px, 20cqh, 190px) + clamp(30px, 4cqh, 40px) + clamp(24px, 3cqh, 32px) + var(--vehicles-back-content-drop)); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--vehicles-collection { gap: 5px 14px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--vehicles-collection .leaflet-product--browse { grid-template-columns: minmax(70px, 82px) minmax(0, 1fr); gap: 7px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--vehicles-collection .leaflet-product__art { height: clamp(70px, 6.4cqw, 82px); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--vehicles-collection .leaflet-product__set { font-size: clamp(9.5px, .86cqw, 10.5px); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--vehicles-collection .leaflet-product h3 { font-size: clamp(12px, 1.05cqw, 14px); line-height: 1.12; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--vehicles-collection .leaflet-product__title-button { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--vehicles-collection .leaflet-product__price strong { font-size: clamp(15px, 1.25cqw, 16px); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--vehicles-collection .leaflet-product__stock { font-size: clamp(9px, .84cqw, 10px); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__turn { top: calc(50% + var(--leaflet-navigation-height) * .29 - 30px); min-height: 36px; padding: 4px 12px; font-size: clamp(14px, 1.25vw, 17px); }
+}
+
+@media (min-width: 901px) and (max-width: 1199px) {
+  .leaflet[data-side="back"]:has(.leaflet__products--vehicles-collection):has(.leaflet__environment) .leaflet__toolbar button[aria-label="Close leaflet"] { top: calc(50% - var(--leaflet-navigation-height) * .42 - 70px); }
+  .leaflet[data-side="back"]:has(.leaflet__products--vehicles-collection):has(.leaflet__environment) .leaflet__print-area--vehicles-back { --vehicles-back-content-drop: clamp(3px, calc(8cqw - 63px), 16px); }
+  .leaflet[data-side="back"]:has(.leaflet__products--vehicles-collection):has(.leaflet__environment) .leaflet__print-area--vehicles-back:not(:has(.leaflet__products--vehicles-collection > .leaflet-product--browse:nth-child(9))) { --vehicles-back-content-drop: 44px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__print-area--vehicles-back { padding-inline: clamp(132px, 20cqw, 290px); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__print-area--vehicles-back { gap: 3px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__print-area--vehicles-back { padding-top: calc(clamp(112px, 20cqh, 190px) + clamp(30px, 4cqh, 40px) + clamp(24px, 3cqh, 32px) + var(--vehicles-back-content-drop)); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--vehicles-collection { gap: 3px 10px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--vehicles-collection .leaflet-product--browse { grid-template-columns: minmax(62px, 70px) minmax(0, 1fr); gap: 6px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--vehicles-collection .leaflet-product__art { height: clamp(60px, 6.2cqw, 68px); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--vehicles-collection .leaflet-product__set { font-size: clamp(9.5px, 1cqw, 10.5px); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--vehicles-collection .leaflet-product h3 { font-size: clamp(10px, 1.05cqw, 12px); line-height: 1.1; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--vehicles-collection .leaflet-product__title-button { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--vehicles-collection .leaflet-product__purchase--browse { gap: 2px 5px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--vehicles-collection .leaflet-product__price strong { font-size: clamp(13px, 1.25cqw, 15px); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--vehicles-collection .leaflet-product__stock { font-size: clamp(8.5px, .9cqw, 9.5px); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__turn { top: calc(50% + var(--leaflet-navigation-height) * .29 - 30px); right: calc(50% - var(--leaflet-navigation-width) * .30 - 30px); min-height: 34px; padding: 3px 10px; font-size: clamp(13px, 1.4vw, 16px); }
+}
+
+@media (min-width: 1200px) and (max-width: 1399px) {
+  .leaflet[data-side="front"]:has(.leaflet__vehicles-layout):has(.leaflet__environment) .leaflet__toolbar button[aria-label="Close leaflet"] { top: calc(50% - var(--leaflet-navigation-height) * .42 - 60px); }
+  .leaflet[data-side="back"]:has(.leaflet__products--vehicles-collection):has(.leaflet__environment) .leaflet__toolbar button[aria-label="Close leaflet"] { top: calc(50% - var(--leaflet-navigation-height) * .42 - 100px); }
+}
+
+@media (min-width: 1400px) {
+  .leaflet[data-side="front"]:has(.leaflet__vehicles-layout):has(.leaflet__environment) .leaflet__toolbar button[aria-label="Close leaflet"],
+  .leaflet[data-side="back"]:has(.leaflet__products--vehicles-collection):has(.leaflet__environment) .leaflet__toolbar button[aria-label="Close leaflet"] { top: max(calc(50% - var(--leaflet-navigation-height) * .42 - 105px), 0px); }
+}
+
+@media (max-width: 900px) {
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__print-area--collection-back { gap: 8px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--collection {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    align-self: stretch;
+    width: 100%;
+    gap: 8px 12px;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--collection .leaflet-product--browse { grid-template-columns: minmax(56px, 66px) minmax(0, 1fr); gap: 5px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--collection .leaflet-product__art { height: 54px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--vehicles-collection .leaflet-product--browse { grid-column: auto; grid-template-columns: minmax(56px, 66px) minmax(0, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__print-area--collection-back { padding: 6px 2px 10px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__collection-heading h1 { font-size: 18px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__collection-heading p { font-size: 11px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--collection { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 8px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--collection .leaflet-product--browse {
+    display: grid;
+    grid-template-columns: minmax(38px, 48px) minmax(0, 1fr);
+    gap: 4px;
+    padding: 0;
+    text-align: left;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--vehicles-collection .leaflet-product--browse { grid-column: auto; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--collection .leaflet-product__art { height: 44px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--collection .leaflet-product__copy { align-items: flex-start; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--collection .leaflet-product__set { font-size: 8px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--collection .leaflet-product h3 { font-size: 10px; line-height: 1.08; text-align: left; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--collection .leaflet-product__price strong { font-size: 13px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--collection .leaflet-product__stock { font-size: 8px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--collection .leaflet-product__purchase--browse { justify-content: flex-start; }
+}
+
+.leaflet__friends-layout { display: contents; }
+
+/* Friends follows Vehicles' contained-paper coordinate system. The two supplied
+   illustrations have different clearings, so only their safe-area bounds differ. */
+@media (min-width: 901px) {
+  .leaflet__friends-layout,
+  .leaflet:has(.leaflet__friends-story, .leaflet__print-area--friends-back) :is(.leaflet__print-area, .leaflet__turn) {
+    --friends-paper-width: min(calc(100cqw + 68px), calc((100cqh + 28px) * 1670 / 942));
+    --friends-paper-height: min(calc(100cqh + 28px), calc((100cqw + 68px) * 942 / 1670));
+  }
+  .leaflet__friends-layout {
+    position: absolute;
+    left: calc(50% - var(--friends-paper-width) * .19);
+    top: calc(50% - var(--friends-paper-height) * .01);
+    width: calc(var(--friends-paper-width) * .46);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px clamp(16px, calc(var(--friends-paper-width) * .02), 34px);
+    align-items: center;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__print-area--friends-front,
+  .leaflet__friends-story,
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__friends-story > .leaflet-product--featured { display: contents; }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__friends-story .leaflet-product__art {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    width: 100%;
+    height: calc(var(--friends-paper-height) * .30);
+    min-height: 0;
+    transform: translate(8px, -20px);
+  }
+  .leaflet__friends-layout .leaflet-product__copy { grid-column: 2; grid-row: 1; }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__friends-layout .leaflet__footer { grid-column: 2; grid-row: 2; padding: 0; justify-content: flex-start; }
+  .leaflet__friends-layout .leaflet__footer > span { display: none; }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__friends-story .leaflet-product__copy { min-width: 0; padding: 0; justify-content: center; }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__friends-story .leaflet-product__copy::before { content: none; }
+  .leaflet__friends-story .leaflet-product__set,
+  .leaflet__friends-story .leaflet-product__facts,
+  .leaflet__friends-story .leaflet-product__stock { font-size: clamp(10px, calc(var(--friends-paper-width) * .008), 13px); }
+  .leaflet__friends-story .leaflet-product__set { margin: 0 0 3px; }
+  .leaflet__friends-story .leaflet-product__facts { margin: 3px 0; }
+  .leaflet__friends-story .leaflet-product h3 { font: 700 clamp(15px, calc(var(--friends-paper-width) * .013), 23px)/1.16 Georgia, serif; }
+  .leaflet__friends-story .leaflet-product__purchase { justify-content: flex-start; gap: 4px 6px; margin-top: 3px; }
+  .leaflet__friends-story .leaflet-product__price { gap: 4px; margin: 2px 0; line-height: 1.15; font-size: clamp(11px, calc(var(--friends-paper-width) * .009), 14px); }
+  .leaflet__friends-story .leaflet-product__price strong { font-size: clamp(23px, calc(var(--friends-paper-width) * .021), 34px); }
+  .leaflet__friends-story .leaflet-product__copy > button { min-height: 0; margin-top: 4px; padding: 3px 0; line-height: 1.25; font-size: clamp(13px, calc(var(--friends-paper-width) * .012), 18px); }
+
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__print-area--friends-back {
+    position: absolute;
+    left: calc(50% - var(--friends-paper-width) * .31);
+    top: calc(50% - var(--friends-paper-height) * .21);
+    width: calc(var(--friends-paper-width) * .64);
+    height: calc(var(--friends-paper-height) * .48);
+    padding: 0;
+    overflow: visible;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--friends-collection {
+    margin: 0;
+    gap: clamp(4px, calc(var(--friends-paper-height) * .012), 12px) clamp(10px, calc(var(--friends-paper-width) * .014), 24px);
+  }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--friends-collection > .leaflet-product--browse {
+    grid-column: span 2;
+    grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr);
+    gap: clamp(5px, calc(var(--friends-paper-width) * .006), 10px);
+  }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--friends-collection .leaflet-product__art { height: calc(var(--friends-paper-height) * .098); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--friends-collection .leaflet-product__set { font-size: clamp(9px, calc(var(--friends-paper-width) * .0075), 11px); line-height: 1.1; margin: 0; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--friends-collection .leaflet-product h3 { font-size: clamp(11px, calc(var(--friends-paper-width) * .010), 15px); line-height: 1.1; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--friends-collection .leaflet-product__price strong { font-size: clamp(14px, calc(var(--friends-paper-width) * .012), 18px); line-height: 1.1; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--friends-collection .leaflet-product__stock { font-size: clamp(8.5px, calc(var(--friends-paper-width) * .007), 10.5px); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--friends-collection .leaflet-product__purchase--browse { gap: 2px 4px; }
+
+  .leaflet[data-side="front"]:has(.leaflet__friends-story) .leaflet__turn,
+  .leaflet[data-side="back"]:has(.leaflet__print-area--friends-back) .leaflet__turn {
+    top: calc(50% + var(--friends-paper-height) * .28);
+    right: calc(50% - var(--friends-paper-width) * .17);
+    min-height: 28px;
+    padding: 2px 6px;
+    font-size: clamp(16px, calc(var(--friends-paper-width) * .013), 20px);
+    background: transparent;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__friends-story) .leaflet__turn { position: static; }
+}
+
+/* Keep the existing stacked/split mobile product presentation; place the page
+   action at the end of its footer just as on the desktop paper. */
+@media (max-width: 900px) {
+  .leaflet:has(.leaflet__friends-story, .leaflet__print-area--friends-back) .leaflet__footer { justify-content: flex-end; }
+}
+
+/* Star Wars: one bounded composition, with a separate navigation row.
+   The inner container responds to usable paper width and height, including on
+   wide but short screens where the contained illustration is height-limited. */
+.leaflet__star-wars-layout {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 10px;
+  container: star-wars-content / size;
+}
+.leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet__print-area {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 4px;
+  gap: 0;
+  overflow: visible;
+}
+.leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet__footer {
+  justify-content: center;
+  padding: 0;
+  border: 0;
+}
+.leaflet__star-wars-layout .leaflet__footer > span { display: none; }
+.leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet__turn {
+  position: static;
+  min-height: 36px;
+  padding: 4px 14px;
+  font-size: clamp(15px, 2.2cqw, 20px);
+  transform: none;
+}
+.leaflet__star-wars-layout .leaflet-product__copy { overflow-wrap: anywhere; }
+.leaflet__star-wars-layout .leaflet-product__price { flex-wrap: wrap; }
+.leaflet__star-wars-layout .leaflet__no-feature,
+.leaflet__star-wars-layout .leaflet__empty { padding: 16px; }
+
+/* Only the featured composition is centred; collection rows grow downward. */
+.leaflet__star-wars-layout .leaflet__star-wars-featured-build {
+  flex: none;
+  width: 100%;
+  margin-block: auto;
+}
+.leaflet__star-wars-layout .leaflet__star-wars-featured-build:empty { display: none; }
+.leaflet__star-wars-layout .leaflet-product--featured {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: clamp(14px, 3cqw, 30px);
+  padding: 0;
+}
+.leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__art {
+  width: 100%;
+  height: clamp(200px, 48cqw, 480px);
+  min-height: 0;
+}
+.leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__copy {
+  justify-content: center;
+  padding: 0;
+}
+.leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__copy::before { content: none; }
+.leaflet__star-wars-layout .leaflet-product--featured h3 { font-size: clamp(21px, 3.6cqw, 34px); line-height: 1.2; }
+.leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__set,
+.leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__facts,
+.leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__stock { font-size: clamp(11px, 1.65cqw, 14px); }
+.leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__set { margin: 0 0 6px; }
+.leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__facts { margin: 8px 0; }
+.leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__purchase { justify-content: flex-start; gap: 6px 12px; margin-top: 6px; }
+.leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__price { margin: 4px 0; }
+.leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__price strong { font-size: clamp(27px, 4.2cqw, 40px); }
+.leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__copy > button { min-height: 36px; margin-top: 12px; font-size: clamp(14px, 2.2cqw, 19px); }
+
+/* Two product columns; an odd final item spans the row at half width so it
+   stays centred without introducing slots or depending on product IDs. */
+.leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet__products--star-wars-collection {
+  /* Reserve the footer, print padding and inter-row gaps before sizing cards. */
+  --star-wars-row-gap: min(1.2cqw, calc(6cqh / var(--star-wars-rows, 1)), 12px);
+  --star-wars-column-gap: clamp(8px, 2.6cqw, 26px);
+  --star-wars-row-height: calc((100cqh - 52px - (var(--star-wars-rows, 1) - 1) * var(--star-wars-row-gap)) / var(--star-wars-rows, 1));
+  display: grid;
+  flex: none;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  width: 100%;
+  margin: 0;
+  gap: var(--star-wars-row-gap) var(--star-wars-column-gap);
+}
+.leaflet__star-wars-layout .leaflet__products--star-wars-collection:has(> :nth-child(3)) { --star-wars-rows: 2; }
+.leaflet__star-wars-layout .leaflet__products--star-wars-collection:has(> :nth-child(5)) { --star-wars-rows: 3; }
+.leaflet__star-wars-layout .leaflet__products--star-wars-collection:has(> :nth-child(7)) { --star-wars-rows: 4; }
+.leaflet__star-wars-layout .leaflet__products--star-wars-collection:has(> :nth-child(9)) { --star-wars-rows: 5; }
+.leaflet__star-wars-layout .leaflet__products--star-wars-collection:has(> :nth-child(11)) { --star-wars-rows: 6; }
+.leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet__products--star-wars-collection > .leaflet-product--browse {
+  grid-column: span 1;
+  grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+  gap: min(clamp(4px, 1.5cqw, 15px), calc(var(--star-wars-row-height) * .12));
+}
+.leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet__products--star-wars-collection > .leaflet-product--browse:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  width: calc((100% - var(--star-wars-column-gap)) / 2);
+  justify-self: center;
+}
+.leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet__products--star-wars-collection .leaflet-product__art { height: min(clamp(48px, 11.2cqw, 112px), var(--star-wars-row-height)); min-height: 0; }
+.leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet__products--star-wars-collection .leaflet-product__set { margin: 0 0 min(4px, .5cqh); font-size: min(clamp(9px, 1.4cqw, 12px), calc(var(--star-wars-row-height) * .15)); line-height: 1.2; }
+.leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet__products--star-wars-collection .leaflet-product h3 {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+  font-size: min(clamp(11px, 1.9cqw, 17px), calc(var(--star-wars-row-height) * .19));
+  line-height: 1.2;
+}
+.leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet__products--star-wars-collection .leaflet-product__purchase--browse { margin-top: min(6px, .8cqh); gap: min(4px, .5cqh) min(8px, 1cqw); }
+.leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet__products--star-wars-collection .leaflet-product__price strong { font-size: min(clamp(14px, 2.5cqw, 23px), calc(var(--star-wars-row-height) * .24)); }
+.leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet__products--star-wars-collection .leaflet-product__stock { font-size: min(clamp(9px, 1.4cqw, 12px), calc(var(--star-wars-row-height) * .15)); line-height: 1.2; }
+
+@media (min-width: 901px) {
+  .leaflet__star-wars-layout {
+    /* Match object-fit: contain for the unchanged 1670 × 942 artwork. Sheet
+       padding (68px / 28px) is excluded from its size container's dimensions. */
+    --star-wars-paper-width: min(calc(100cqw + 68px), calc((100cqh + 28px) * 1670 / 942));
+    --star-wars-paper-height: min(calc(100cqh + 28px), calc((100cqw + 68px) * 942 / 1670));
+    position: absolute;
+    left: calc(50% - var(--star-wars-paper-width) * .22);
+    top: calc(50% - var(--star-wars-paper-height) * .19);
+    width: calc(var(--star-wars-paper-width) * .54);
+    height: calc(var(--star-wars-paper-height) * .53);
+    gap: 8px;
+  }
+  /* Preserve the previous lift; LG/XL gets an additional 3% of usable height.
+     Both adjustments leave the separate navigation row in place. */
+  .leaflet__star-wars-layout .leaflet__print-area--star-wars-front {
+    transform: translateY(max(-20px, -2cqw));
+  }
+  @container star-wars-content (min-width: 600px) and (min-height: 300px) {
+    .leaflet__star-wars-layout .leaflet__print-area--star-wars-front {
+      transform: translateY(calc(max(-20px, -2cqw) - 3cqh));
+    }
+  }
+  .leaflet[data-side="back"] .leaflet__star-wars-layout {
+    left: calc(50% - var(--star-wars-paper-width) * .265);
+    top: calc(50% - var(--star-wars-paper-height) * .215);
+    width: calc(var(--star-wars-paper-width) * .55);
+    height: calc(var(--star-wars-paper-height) * .56);
+  }
+}
+
+/* Medium paper keeps two columns. Give copy more of each card and compact
+   the feature using both container axes, rather than creating a long stack. */
+@container star-wars-content (max-width: 600px) or (max-height: 380px) {
+  .leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet__products--star-wars-collection > .leaflet-product--browse {
+    grid-column: span 1;
+    grid-template-columns: minmax(0, .6fr) minmax(0, 1.4fr);
+  }
+  .leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet__products--star-wars-collection > .leaflet-product--browse:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    width: calc((100% - var(--star-wars-column-gap)) / 2);
+    justify-self: center;
+  }
+  .leaflet__star-wars-layout .leaflet-product--featured { gap: min(2cqw, 12px); }
+  .leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__art { height: min(44cqw, 65cqh); }
+  .leaflet__star-wars-layout .leaflet-product--featured h3 { font-size: min(clamp(14px, 3cqw, 21px), 7cqh); }
+  .leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__set,
+  .leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__facts,
+  .leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__stock { font-size: min(11px, 2.2cqw, 4.5cqh); }
+  .leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__set { margin-bottom: min(4px, 1cqh); }
+  .leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__facts { margin-block: min(4px, 1cqh); }
+  .leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__purchase { margin-top: min(4px, 1cqh); gap: 3px 6px; }
+  .leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__price { margin-block: min(3px, 1cqh); font-size: min(12px, 2.4cqw, 5cqh); }
+  .leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__price strong { font-size: min(26px, 5cqw, 10cqh); }
+  .leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__copy > button { min-height: 24px; margin-top: min(6px, 2cqh); font-size: min(14px, 2.8cqw, 5cqh); }
+}
+
+/* Tall mobile sheets have room for artwork above the copy. Keep two product
+   columns, but remove the cramped image/text split inside each small card. */
+@container star-wars-content (max-width: 400px) and (min-height: 450px) {
+  .leaflet__star-wars-layout .leaflet-product--featured { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__art { height: min(55cqw, 35cqh); }
+  .leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__copy { width: min(100%, 380px); justify-self: center; }
+  .leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__set,
+  .leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__facts,
+  .leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__stock { font-size: 11px; }
+  .leaflet__star-wars-layout .leaflet-product--featured h3 { font-size: 21px; }
+  .leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__price strong { font-size: 27px; }
+  .leaflet__star-wars-layout .leaflet-product--featured .leaflet-product__copy > button { font-size: 14px; }
+  .leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet__products--star-wars-collection > .leaflet-product--browse { grid-template-columns: minmax(0, 1fr); gap: 3px; align-content: start; }
+  .leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet__products--star-wars-collection .leaflet-product__art { height: min(18cqw, calc(var(--star-wars-row-height) * .24)); }
+  .leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet__products--star-wars-collection .leaflet-product__set { margin-bottom: 2px; }
+  .leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet__products--star-wars-collection .leaflet-product__purchase--browse { margin-top: 2px; }
 }
