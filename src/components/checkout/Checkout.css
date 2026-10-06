@@ -1,0 +1,20 @@
+.checkout { min-height: 100vh; padding: clamp(16px, 4vw, 64px); background: #e6ddf1; }
+.checkout__paper { max-width: 1050px; margin: auto; padding: clamp(20px, 4vw, 52px); background: #fffaf0; border: 1px solid #d7cbbd; border-radius: 22px; box-shadow: 0 12px 35px #50405b20; }
+.checkout h1, .checkout h2 { font-family: Georgia, serif; color: #5a496c; }
+.checkout h1 { font-size: clamp(28px, 4vw, 42px); margin-top: 8px; }
+.checkout h2 { font-size: 24px; }
+.checkout__eyebrow { color: #786487; letter-spacing: .08em; }
+.checkout__columns { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+.checkout__items { padding: 0; list-style: none; }
+.checkout__items li { padding: 15px 0; border-bottom: 1px solid #dfd4c9; display: grid; gap: 7px; }
+.checkout__total { display: flex; justify-content: space-between; gap: 16px; font-size: 21px; }
+.checkout address { font-style: normal; line-height: 1.6; margin: 18px 0; }
+.checkout select { display: block; width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #b9a9c8; border-radius: 10px; background: white; color: inherit; }
+.checkout button { background: #66527c; color: white; border: 1px solid #66527c; border-radius: 12px; padding: 12px 20px; font: inherit; cursor: pointer; margin: 8px 12px 8px 0; }
+.checkout button:disabled { opacity: .5; cursor: default; }
+.checkout button:focus-visible, .checkout select:focus-visible { outline: 3px solid #9379b1; outline-offset: 3px; }
+.checkout .checkout__secondary { background: transparent; color: #66527c; }
+.checkout__error { color: #8f343c; background: #fbe9e6; padding: 16px; border-radius: 10px; }
+.checkout__notice { background: #edf0df; padding: 20px; border-radius: 12px; }
+.checkout__payment { margin: 24px 0; max-width: 650px; }
+@media (max-width: 700px) { .checkout__columns { grid-template-columns: 1fr; gap: 12px; } }

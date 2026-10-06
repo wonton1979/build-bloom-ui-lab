@@ -13,6 +13,8 @@ import { AccountModal } from './components/homepage/AccountModal'
 import { CartModal } from './components/cart/CartModal'
 import { ConditionConfirmationDialog } from './components/catalogue/ConditionConfirmationDialog'
 import { CartItems } from './components/cart/CartItems'
+import { Checkout } from './components/checkout/Checkout'
+import { navigateCheckout } from './features/checkout/state'
 import { BookOwnedCart } from './components/catalogue/BookOwnedCart'
 import { BookOwnedUser } from './components/catalogue/BookOwnedUser'
 import { CustomerInformationFallback } from './components/homepage/CustomerInformationFallback'
@@ -25,6 +27,12 @@ import { resolveCatalogueCategories } from './components/catalogue/categories'
 import { USER_ACCOUNT_HINT, USER_WELCOME_GREETING_MS, USER_WELCOME_HINT_MS, welcomeGreeting } from './components/catalogue/userWelcome'
 
 function App() {
+  const [pathname, setPathname] = useState(() => typeof window === 'undefined' ? '/' : window.location.pathname)
+  useEffect(() => {
+    const update = () => setPathname(window.location.pathname)
+    window.addEventListener('popstate', update)
+    return () => window.removeEventListener('popstate', update)
+  }, [])
   const { state: backendCategoriesState, retry: retryBackendCategories } = useCatalogueCategories()
   const resolvedCategories = useMemo(() => backendCategoriesState.status === 'ready' ? resolveCatalogueCategories(backendCategoriesState.categories) : [], [backendCategoriesState])
   const [view] = useState<'live' | 'reference'>('live')
@@ -51,7 +59,7 @@ function App() {
   const previouslyOpen = useRef(false)
   const previousAuthStatus = useRef<string | undefined>(undefined)
   const { state: authState } = useAuth()
-  const { items: cartItems, addListing } = useCart()
+  const { items: cartItems, addListing, isLoading: cartLoading, pendingItemIds } = useCart()
   const showReference = import.meta.env.DEV && view === 'reference'
   const showGuestHint = (source: 'user' | 'cart') => {
     if (guestHintTimer.current !== null) window.clearTimeout(guestHintTimer.current)
@@ -254,8 +262,16 @@ function App() {
 
   const closeAccount = () => {
     setAccountOpen(false)
-    requestAnimationFrame(() => stageRef.current?.querySelector<HTMLButtonElement>('.stage-user')?.focus({ preventScroll: true }))
+    requestAnimationFrame(() => {
+      const target = stageRef.current?.querySelector<HTMLButtonElement>('.stage-user') ?? document.querySelector<HTMLElement>('.checkout')
+      target?.focus({ preventScroll: true })
+    })
   }
+
+  if (pathname === '/checkout' || pathname.startsWith('/checkout/')) return <>
+    <div inert={accountOpen}><Checkout key={`${pathname}:${authState.status === 'authenticated' ? authState.user.id : 'guest'}`} onAccount={openAccount} /></div>
+    {accountOpen && <AccountModal onClose={closeAccount} />}
+  </>
 
   return (
     <>
@@ -318,11 +334,9 @@ function App() {
         onCancel={conditionConfirmation.cancel} onConfirm={conditionConfirmation.confirm} />}
       {!showReference && accountOpen && <AccountModal onClose={closeAccount} />}
       {!showReference && cartOpen && authState.status === 'authenticated' && <CartModal onClose={closeCart}
-        content={cartItems.length ? { kind: 'filled', items: <CartItems items={cartItems} /> } : { kind: 'empty' }} />}
+        content={cartItems.length ? { kind: 'filled', items: <CartItems items={cartItems} />, actions: <button className="cart-modal__action" disabled={cartLoading || pendingItemIds.length > 0} onClick={() => { setCartOpen(false); navigateCheckout('/checkout') }}>Checkout</button> } : { kind: 'empty' }} />}
     </>
   )
 }
 
 export default App
-
-

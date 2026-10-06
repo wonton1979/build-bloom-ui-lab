@@ -119,3 +119,55 @@ checks are conditional on backend URLs. Local product artwork is not required.
 Both modes check persistent book identity, navigation, responsive containment,
 Back, Close and reopen. Screenshots at 1440×900, 820×900 and 390×844 are saved under
 ignored node_modules/.tmp/vehicles-inspection/{live,fixtures}/.
+
+## Storefront checkout (Issue #41)
+
+Set `VITE_STRIPE_PUBLISHABLE_KEY` to the Stripe account's publishable test/live
+key before starting Vite or building. Never put a secret key in a `VITE_`
+variable. Missing/invalid configuration leaves checkout usable for order review
+and shows a payment configuration message. Stripe.js loads the secure Payment
+Element; card details never enter the storefront API or browser storage.
+
+Cart's Checkout action opens `/checkout`. Delivery is selected from existing
+saved addresses. Country codes are validated against ISO two-letter codes; the
+existing UK/United Kingdom/Great Britain values map explicitly to GB. Other
+country names must be corrected in My Account. The saved default billing address
+is shown and never changed by checkout.
+
+Each logical creation attempt uses `crypto.randomUUID()` as its `Idempotency-Key`.
+The key and exact request snapshot (listing IDs, quantities, delivery address)
+are stored per user in **sessionStorage before sending**. This minimal temporary
+snapshot permits an identical retry after a lost response, rerender, or refresh;
+retry never substitutes a changed cart/address or creates a fresh key. Session
+storage must be available to create an order. Once its ID is known, the URL is
+replaced with `/checkout/orders/:orderId` and the temporary snapshot is removed.
+Explicitly leaving a saved checkout abandons that recovery attempt; retry it
+first if the outcome was uncertain.
+
+The order-specific URL reads `GET /orders/:orderId` to reconstruct server totals,
+address snapshots, reservation expiry, and safe payment state. Configure hosting
+with SPA fallback for `/checkout` and `/checkout/orders/*`. Stripe authentication
+returns to the order URL, and returned query parameters are removed after use.
+Client secrets remain in memory and are reacquired through the existing Stripe
+initialization endpoint when needed.
+
+Browser confirmation starts bounded backend verification (seven reads over
+approximately 29 seconds). Only Payment SUCCEEDED plus Order CONFIRMED,
+DISPATCHED, or COMPLETED shows confirmation. Pending verification preserves the
+order URL and provides Recheck; it never creates another order. Expired and
+terminal orders stop payment. A recorded payment on an expired/canceled order
+requires support/reconciliation and is not displayed as a normal success.
+
+**Cart cleanup limitation:** cart PATCH/DELETE have no conditional revision or
+atomic subtract-purchased-quantity operation. Even reading first cannot prevent
+another tab changing that listing before the mutation. Checkout therefore keeps
+all cart contents after authoritative success and explains this on confirmation.
+This protects unrelated/new quantities, but customers must review purchased
+items before another checkout. No cart is cleared on order creation, intent
+creation, browser payment success, or backend confirmation.
+
+Checkout tests mock Stripe and HTTP; normal tests never contact Stripe. Run
+`npm run test:run`, `npx tsc -b`, `npm run build`, and `npm run lint`. A real test-mode
+end-to-end checkout additionally needs the Backend #144 contract, matching Stripe
+keys, and delivery of verified payment webhooks to that backend. It is not part
+of the automated frontend suite.
