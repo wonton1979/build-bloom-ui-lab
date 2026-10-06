@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { CheckoutApiError, createOrder, getOrder, preparePayment, type Order, type OrderInput } from './api'
+import { CheckoutApiError, createOrder, getOrder, preparePayment, recoverPayment, type Order, type OrderInput } from './api'
 import { clearAttempt, isConfirmed, isTerminal, navigateCheckout, readAttempt, saveAttempt, type CreationAttempt } from './state'
 import { AuthApiError, getCurrentUser, isVerificationRequired } from '../auth/api'
 
@@ -104,6 +104,24 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
     finally { busy.current = false }
   }, [accept, fail, order, orderId, token])
 
+  // Provider recovery is an explicit customer action, never part of GET polling.
+  const recheck = async () => {
+    const id = orderId ?? order?.id
+    if (!id || busy.current || !active.current || (order && (isConfirmed(order) || isTerminal(order)))) return
+    busy.current = true; setPhase('waiting'); setSecret(null); setMessage(null)
+    const currentRun = ++run.current
+    try {
+      const next = await recoverPayment(token, id)
+      if (!active.current || run.current !== currentRun) return
+      if (!accept(next)) setPhase('pending')
+    } catch (reason) {
+      if (active.current && run.current === currentRun) {
+        fail(reason)
+        if (!(reason instanceof CheckoutApiError) || ![401, 403, 404].includes(reason.status)) setPhase('pending')
+      }
+    } finally { busy.current = false }
+  }
+
   const prepare = async () => {
     if (!order || busy.current || isTerminal(order) || isConfirmed(order)) return
     busy.current = true; setPhase('preparing'); setMessage(null)
@@ -115,8 +133,15 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
       if (active.current) { setSecret(clientSecret); setPhase('payment') }
     } catch (reason) {
       if (!active.current) return
-      if (reason instanceof CheckoutApiError && reason.code === 'PAYMENT_ALREADY_COMPLETED') {
-        try { accept(await getOrder(token, order.id)); setMessage('Payment was already recorded. Recheck the order if confirmation is still pending.') } catch (readError) { fail(readError) }
+      if (reason instanceof CheckoutApiError && ['PAYMENT_ALREADY_COMPLETED', 'ORDER_NOT_PAYABLE'].includes(reason.code ?? '')) {
+        try {
+          const next = await getOrder(token, order.id)
+          if (!active.current) return
+          if (isConfirmed(next)) { setMessage(null); accept(next) }
+          else if (reason.code === 'PAYMENT_ALREADY_COMPLETED') {
+            accept(next); setMessage('Payment was already recorded. Recheck the order if confirmation is still pending.')
+          } else { setOrder(next); fail(reason) }
+        } catch (readError) { if (active.current) fail(readError) }
       } else fail(reason)
     } finally { busy.current = false }
   }
@@ -138,5 +163,5 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
     if (!isConfirmed(order) && !isTerminal(order)) void Promise.resolve().then(() => { if (active.current) void verify() })
   }, [order, verify])
   const resumeAfterVerification = () => { setMessage(null); setPhase('ready') }
-  return { order, phase, message, secret, attempt, create, prepare, verify, restart, reloadOrder, resumeAfterVerification }
+  return { order, phase, message, secret, attempt, create, prepare, verify, recheck, restart, reloadOrder, resumeAfterVerification }
 }

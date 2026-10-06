@@ -107,10 +107,10 @@ function AuthenticatedCheckout({ token, userId, onAccount, onAuthenticate }: { t
     {order && !confirmed && phase !== 'terminal' && <section className="checkout__payment" aria-labelledby="checkout-payment"><h2 id="checkout-payment">Payment</h2>
       {phase === 'reserved' && <><p>Your order is reserved. Review the final total above before continuing to payment.</p>{order.reservationExpiresAt && <p>Reserved until {new Date(order.reservationExpiresAt).toLocaleTimeString('en-GB')}.</p>}<button onClick={() => void checkout.prepare()}>Continue to secure payment</button></>}
       {phase === 'preparing' && <p role="status">Preparing secure payment…</p>}
-      {phase === 'payment' && secret && <StripePaymentForm clientSecret={secret} orderId={order.id} onVerify={() => void checkout.verify()} />}
+      {phase === 'payment' && secret && <StripePaymentForm clientSecret={secret} orderId={order.id} onVerify={() => void checkout.verify()} onRecheck={() => void checkout.recheck()} />}
       {phase === 'waiting' && <p role="status">Payment is being verified. Confirming your order…</p>}
-      {phase === 'pending' && <><p role="status">Your payment confirmation is still pending. You can safely return to this order URL or recheck. Do not start another payment.</p><button onClick={() => void checkout.verify()}>Recheck order status</button></>}
-      {phase === 'failure' && <><button onClick={() => void checkout.verify()}>Check order status</button><button onClick={() => void checkout.prepare()}>Retry payment setup</button></>}
+      {phase === 'pending' && <><p role="status">Your payment confirmation is still pending. You can safely return to this order URL or recheck. Do not start another payment.</p><button onClick={() => void checkout.recheck()}>Recheck order status</button></>}
+      {phase === 'failure' && <><button onClick={() => void checkout.recheck()}>Check order status</button><button onClick={() => void checkout.prepare()}>Retry payment setup</button></>}
     </section>}
     {orderId && !order && phase === 'failure' && <button onClick={() => void checkout.reloadOrder()}>Retry loading order</button>}
   </>

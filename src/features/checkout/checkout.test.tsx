@@ -2,7 +2,7 @@
 import { act, useEffect, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { CheckoutApiError, createOrder, getOrder, preparePayment, type Order } from './api'
+import { CheckoutApiError, createOrder, getOrder, preparePayment, recoverPayment, type Order } from './api'
 import { checkoutOrderId, clearAttempt, deliverySnapshot, isConfirmed, isExpired, orderInput, readAttempt, saveAttempt } from './state'
 import { useCheckout } from './useCheckout'
 import { AuthApiError, getCurrentUser } from '../auth/api'
@@ -10,7 +10,7 @@ import type { Address } from '../account/addressApi'
 import { cartListing, offer } from '../catalogue/catalogueFixtures'
 
 vi.mock('../auth/api', async original => ({ ...await original<typeof import('../auth/api')>(), getCurrentUser: vi.fn() }))
-vi.mock('./api', async importOriginal => ({ ...await importOriginal<typeof import('./api')>(), createOrder: vi.fn(), getOrder: vi.fn(), preparePayment: vi.fn() }))
+vi.mock('./api', async importOriginal => ({ ...await importOriginal<typeof import('./api')>(), createOrder: vi.fn(), getOrder: vi.fn(), preparePayment: vi.fn(), recoverPayment: vi.fn() }))
 const address: Address = { id: 1, recipientName: 'Customer', line1: '1 Street', line2: null, city: 'London', postcode: 'SW1A 1AA', country: 'United Kingdom', phone: null, isDefaultShipping: true, isDefaultBilling: true }
 const input = { items: [{ productListingId: 16901, quantity: 1 }], deliveryAddress: deliverySnapshot(address) }
 export const pendingOrder: Order = { id: 41, status: 'PENDING', totalAmount: '20.50', reservationExpiresAt: new Date(Date.now() + 1800000).toISOString(), payment: null, billingRecipientName: 'Billing', billingLine1: '2 Street', billingLine2: null, billingCity: 'London', billingPostcode: 'SW1A 1AA', billingCountryCode: 'GB', deliveryRecipientName: 'Customer', deliveryLine1: '1 Street', deliveryLine2: null, deliveryCity: 'London', deliveryPostcode: 'SW1A 1AA', deliveryCountryCode: 'GB', orderItems: [{ id: 1, quantity: 1, unitPrice: '20.50', lineTotal: '20.50', conditionSnapshot: 'USED_LIKE_NEW', productListing: { id: 16901, legoProduct: { title: 'Flowers', setNumber: '123' } } }] }
@@ -104,6 +104,81 @@ describe('checkout orchestration', () => {
     await act(async () => current.verify())
     expect(current.phase).toBe('confirmed'); expect(createOrder).not.toHaveBeenCalled()
   })
+  it.each(['CONFIRMED', 'DISPATCHED', 'COMPLETED'])('explicit recovery recognizes paid %s without a new order, intent or key', async status => {
+    saveAttempt(1, { key: 'original-key', input })
+    const uuid = vi.spyOn(crypto, 'randomUUID')
+    vi.mocked(recoverPayment).mockResolvedValue({ ...paidOrder, status })
+    await mount(<Harness id={41} />)
+    expect(recoverPayment).not.toHaveBeenCalled()
+    await act(async () => current.recheck())
+    expect(recoverPayment).toHaveBeenCalledExactlyOnceWith('token', 41)
+    expect(current.phase).toBe('confirmed'); expect(current.secret).toBeNull()
+    expect(getOrder).toHaveBeenCalledTimes(1)
+    await act(async () => current.recheck())
+    expect(recoverPayment).toHaveBeenCalledTimes(1)
+    expect(createOrder).not.toHaveBeenCalled(); expect(preparePayment).not.toHaveBeenCalled()
+    expect(uuid).not.toHaveBeenCalled(); uuid.mockRestore()
+    expect(readAttempt(1)).toEqual({ key: 'original-key', input })
+  })
+  it.each(['PENDING', 'PROCESSING', 'FAILED', 'SUCCEEDED'])('does not confirm a non-success %s recovery response or offer another payment', async status => {
+    vi.mocked(recoverPayment).mockResolvedValue({ ...pendingOrder, payment: { status, paidAt: null } })
+    await mount(<Harness id={41} />); await act(async () => current.recheck())
+    expect(current.phase).toBe('pending'); expect(current.order?.payment?.status).toBe(status)
+    expect(current.secret).toBeNull(); expect(preparePayment).not.toHaveBeenCalled()
+    await act(async () => current.recheck())
+    expect(recoverPayment).toHaveBeenCalledTimes(2); expect(createOrder).not.toHaveBeenCalled()
+  })
+  it.each(['CANCELED', 'expired'])('stops %s authoritative recovery without restarting payment', async status => {
+    vi.mocked(recoverPayment).mockResolvedValue(status === 'expired' ? { ...pendingOrder, status: 'EXPIRED' } : { ...pendingOrder, payment: { status, paidAt: null } })
+    await mount(<Harness id={41} />); await act(async () => current.recheck())
+    expect(current.phase).toBe('terminal'); await act(async () => current.recheck())
+    expect(recoverPayment).toHaveBeenCalledTimes(1); expect(preparePayment).not.toHaveBeenCalled()
+  })
+  it.each([new Error('offline'), new CheckoutApiError(503), new CheckoutApiError(409, 'STRIPE_RECOVERY_UNAVAILABLE'), new CheckoutApiError(409, 'STRIPE_RECOVERY_MISMATCH')])('keeps recovery failures retryable without creation or payment setup: %s', async reason => {
+    saveAttempt(1, { key: 'original-key', input })
+    vi.mocked(recoverPayment).mockRejectedValueOnce(reason).mockResolvedValue(paidOrder)
+    await mount(<Harness id={41} />); await act(async () => current.recheck())
+    expect(current.phase).toBe('pending'); expect(current.message).toBeTruthy(); expect(current.secret).toBeNull()
+    expect(readAttempt(1)).toEqual({ key: 'original-key', input })
+    await act(async () => current.recheck())
+    expect(current.phase).toBe('confirmed'); expect(current.message).toBeNull()
+    expect(createOrder).not.toHaveBeenCalled(); expect(preparePayment).not.toHaveBeenCalled()
+  })
+  it.each([401, 403, 404])('preserves recovery authentication/ownership failures (%s)', async status => {
+    vi.mocked(recoverPayment).mockRejectedValue(new CheckoutApiError(status))
+    await mount(<Harness id={41} />); await act(async () => current.recheck())
+    expect(current.phase).toBe(status === 404 ? 'terminal' : 'auth')
+    expect(createOrder).not.toHaveBeenCalled(); expect(preparePayment).not.toHaveBeenCalled()
+  })
+  it('locks duplicate rechecks until the existing recovery completes', async () => {
+    let finish!: (order: Order) => void
+    vi.mocked(recoverPayment).mockImplementation(() => new Promise(resolve => { finish = resolve }))
+    await mount(<Harness id={41} />)
+    await act(async () => { void current.recheck(); void current.recheck() })
+    expect(current.phase).toBe('waiting'); expect(recoverPayment).toHaveBeenCalledTimes(1)
+    await act(async () => finish(paidOrder)); expect(current.phase).toBe('confirmed')
+  })
+  it('does not recover during normal order reads, polling or redirect return', async () => {
+    vi.mocked(getOrder).mockResolvedValue(paidOrder)
+    history.replaceState({}, '', '/checkout/orders/41?payment_intent=pi_mock')
+    await mount(<Harness id={41} />); await act(async () => current.reloadOrder()); await act(async () => current.verify())
+    expect(recoverPayment).not.toHaveBeenCalled()
+  })
+  it('resolves the non-payable initiation race through authoritative confirmation', async () => {
+    await mount(<Harness id={41} />)
+    vi.mocked(getOrder).mockResolvedValueOnce(pendingOrder).mockResolvedValue(paidOrder)
+    vi.mocked(preparePayment).mockRejectedValue(new CheckoutApiError(409, 'ORDER_NOT_PAYABLE'))
+    await act(async () => current.prepare())
+    expect(getOrder).toHaveBeenCalledTimes(3); expect(current.phase).toBe('confirmed')
+    expect(current.secret).toBeNull(); expect(current.message).toBeNull(); expect(recoverPayment).not.toHaveBeenCalled()
+  })
+  it('does not reread or conceal unrelated payment initiation errors', async () => {
+    await mount(<Harness id={41} />)
+    vi.mocked(preparePayment).mockRejectedValue(new CheckoutApiError(409, 'OTHER_CONFLICT'))
+    await act(async () => current.prepare())
+    expect(getOrder).toHaveBeenCalledTimes(2); expect(current.phase).toBe('failure')
+    expect(current.message).toBeTruthy()
+  })
   it('stops expired orders and never starts Stripe', async () => {
     vi.mocked(getOrder).mockResolvedValue({ ...pendingOrder, status: 'EXPIRED' })
     await mount(<Harness id={41} />); await act(async () => current.prepare())
@@ -134,7 +209,7 @@ describe('checkout orchestration', () => {
     await mount(<Harness id={41} />)
     vi.mocked(preparePayment).mockRejectedValue(new CheckoutApiError(409, 'ORDER_NOT_PAYABLE'))
     await act(async () => current.prepare())
-    expect(current.phase).toBe('terminal'); expect(current.secret).toBeNull()
+    expect(current.phase).toBe('terminal'); expect(current.secret).toBeNull(); expect(current.message).toContain('no longer available'); expect(getOrder).toHaveBeenCalledTimes(3)
   })
   it('retains the original identity after a definite verification rejection and blocks another order POST', async () => {
     vi.mocked(createOrder).mockRejectedValue(new CheckoutApiError(403, 'EMAIL_VERIFICATION_REQUIRED'))

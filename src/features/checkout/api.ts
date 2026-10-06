@@ -43,3 +43,5 @@ export async function preparePayment(token: string, id: number) {
   if (!result?.clientSecret || typeof result.clientSecret !== 'string') throw new Error('Payment setup is unavailable. Please try again.')
   return result.clientSecret
 }
+
+export const recoverPayment = (token: string, id: number) => request<Order>(token, `/orders/${id}/payments/stripe/reconcile`, { method: 'POST' })

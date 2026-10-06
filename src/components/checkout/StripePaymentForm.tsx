@@ -5,7 +5,7 @@ import { loadStripe } from '@stripe/stripe-js'
 const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined
 const stripePromise = publishableKey && /^pk_(test|live)_\S+$/.test(publishableKey) ? loadStripe(publishableKey).catch(() => null) : null
 
-export function StripePaymentForm({ clientSecret, orderId, onVerify }: { clientSecret: string; orderId: number; onVerify: () => void }) {
+export function StripePaymentForm({ clientSecret, orderId, onVerify, onRecheck }: { clientSecret: string; orderId: number; onVerify: () => void; onRecheck?: () => void }) {
   const [unavailable, setUnavailable] = useState(false)
   useEffect(() => {
     let active = true
@@ -14,10 +14,10 @@ export function StripePaymentForm({ clientSecret, orderId, onVerify }: { clientS
   }, [])
   if (!stripePromise) return <p role="alert">Payments are not configured.{import.meta.env.DEV && ' Set VITE_STRIPE_PUBLISHABLE_KEY to a valid Stripe publishable key, then reload.'}</p>
   if (unavailable) return <p role="alert">Secure payment could not load. Check your connection and reload this order to try again.</p>
-  return <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#65547c', borderRadius: '12px' } } }}><PaymentForm orderId={orderId} clientSecret={clientSecret} onVerify={onVerify} /></Elements>
+  return <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#65547c', borderRadius: '12px' } } }}><PaymentForm orderId={orderId} clientSecret={clientSecret} onVerify={onVerify} onRecheck={onRecheck} /></Elements>
 }
 
-export function PaymentForm({ orderId, clientSecret, onVerify }: { orderId: number; clientSecret: string; onVerify: () => void }) {
+export function PaymentForm({ orderId, clientSecret, onVerify, onRecheck }: { orderId: number; clientSecret: string; onVerify: () => void; onRecheck?: () => void }) {
   const stripe = useStripe()
   const elements = useElements()
   const locked = useRef(false)
@@ -52,6 +52,6 @@ export function PaymentForm({ orderId, clientSecret, onVerify }: { orderId: numb
     <PaymentElement onLoadError={() => { setState('unknown'); setError('Secure payment could not load. Please check your order and try again.') }} />
     {error && <p role="alert">{error}</p>}
     <p role="status">{state === 'loading' ? 'Checking payment details…' : state === 'submitting' ? 'Submitting payment… Complete any authentication requested by your bank.' : ''}</p>
-    {state === 'unknown' ? <button type="button" onClick={onVerify}>Check order status</button> : <button type="submit" disabled={!stripe || !elements || state !== 'ready'}>{state === 'submitting' ? 'Processing payment…' : 'Pay now'}</button>}
+    {state === 'unknown' ? <button type="button" onClick={onRecheck ?? onVerify}>Check order status</button> : <button type="submit" disabled={!stripe || !elements || state !== 'ready'}>{state === 'submitting' ? 'Processing payment…' : 'Pay now'}</button>}
   </form>
 }
