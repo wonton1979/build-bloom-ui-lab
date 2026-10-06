@@ -31,7 +31,7 @@ beforeEach(() => {
   vi.resetAllMocks(); sessionStorage.clear(); history.replaceState({}, '', '/verify-email?token=test-verification-token')
   vi.mocked(getCurrentUser).mockResolvedValue(user); vi.mocked(verifyEmail).mockResolvedValue(); vi.mocked(resendVerification).mockResolvedValue()
 })
-afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.innerHTML = ''; vi.useRealTimers() })
+afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.innerHTML = ''; vi.useRealTimers(); vi.unstubAllGlobals() })
 
 describe('verification route and token handling', () => {
   it('routes /verify-email, consumes a token once in StrictMode and removes it from the URL/storage', async () => {
@@ -43,79 +43,78 @@ describe('verification route and token handling', () => {
     expect(JSON.stringify(sessionStorage)).not.toContain('test-verification-token')
     expect(auth.state.status).toBe('authenticated')
   })
-  it('shows a single shopping CTA for normal signup verification without a checkout', async () => {
-    sessionStorage.setItem(AUTH_STORAGE_KEY, 'jwt')
-    await mount(<VerifyEmail onAccount={vi.fn()} />)
+  it.each([false, true])('opens sign-in after three seconds without depending on saved checkout (%s)', async saved => {
+    vi.useFakeTimers()
+    if (saved) saveAttempt(user.id, savedAttempt)
+    const getItem = vi.spyOn(Storage.prototype, 'getItem')
+    const onSignIn = vi.fn()
+    await mount(<VerifyEmail onSignIn={onSignIn} />, true)
     expect(container.querySelector('h1')?.textContent).toBe('Email verified')
-    expect(container.textContent).toContain('Your Build & Bloom account is ready')
-    expect(container.textContent).toContain('Continue shopping')
-    for (const text of ['Continue to checkout', 'saved request', 'Open account', 'refresh your account', 'Back to storefront', 'Sign in']) expect(container.textContent).not.toContain(text)
-    expect(container.querySelectorAll('button')).toHaveLength(1)
-    await click('Continue shopping'); expect(location.pathname).toBe('/')
+    expect(container.textContent).toContain('You can now sign in to your Build & Bloom account')
+    expect(container.textContent).toContain('Sign in now')
+    for (const text of ['Continue shopping', 'Continue to checkout', 'saved request', 'Open account', 'refresh your account']) expect(container.textContent).not.toContain(text)
+    expect(getItem.mock.calls.some(([key]) => key.startsWith('colorful-life:checkout-attempt:'))).toBe(false)
+    getItem.mockRestore()
+    expect(auth.state.status).toBe('signedOut')
+    expect(getCurrentUser).not.toHaveBeenCalled(); expect(signIn).not.toHaveBeenCalled()
+    await act(async () => vi.advanceTimersByTimeAsync(2999)); expect(onSignIn).not.toHaveBeenCalled()
+    await act(async () => vi.advanceTimersByTimeAsync(1)); expect(onSignIn).toHaveBeenCalledOnce()
+    expect(readAttempt(user.id)).toEqual(saved ? savedAttempt : null)
   })
-  it('does not require sign-in just to continue shopping from an email opened without a session', async () => {
-    await mount(<VerifyEmail onAccount={vi.fn()} />)
-    expect(container.textContent).toContain('Continue shopping'); expect(container.querySelectorAll('button')).toHaveLength(1)
-    expect(container.textContent).not.toContain('Sign in'); expect(container.textContent).not.toContain('Continue to checkout')
+  it('allows immediate sign-in without repeating the timed transition', async () => {
+    vi.useFakeTimers(); const onSignIn = vi.fn()
+    await mount(<VerifyEmail onSignIn={onSignIn} />)
+    await click('Sign in now'); await click('Sign in now')
+    await act(async () => vi.advanceTimersByTimeAsync(3000))
+    expect(onSignIn).toHaveBeenCalledOnce()
   })
-  it('finishes the existing auth refresh before choosing success actions', async () => {
-    sessionStorage.setItem(AUTH_STORAGE_KEY, 'jwt')
-    let finish!: (value: typeof user) => void
-    vi.mocked(getCurrentUser).mockImplementation(() => new Promise(resolve => { finish = resolve }))
-    await mount(<VerifyEmail onAccount={vi.fn()} />)
-    expect(container.textContent).toContain('Verifying your email'); expect(container.textContent).not.toContain('Continue shopping'); expect(container.textContent).not.toContain('Sign in')
-    await act(async () => finish(user))
-    expect(container.textContent).toContain('Continue shopping'); expect(auth.state.status).toBe('authenticated')
+  it('opens the actual Sign In form even with an existing authenticated session', async () => {
+    vi.useFakeTimers(); sessionStorage.setItem(AUTH_STORAGE_KEY, 'jwt')
+    vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
+    await mount(<App />)
+    expect(auth.state.status).toBe('authenticated')
+    await act(async () => vi.advanceTimersByTimeAsync(3000))
+    expect(location.pathname).toBe('/')
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull()
+    expect(container.querySelector('input[type="password"]')).not.toBeNull()
+    expect(auth.state.status).toBe('signedOut'); expect(signIn).not.toHaveBeenCalled()
   })
-  it.each(['another customer', 'no verification rejection', 'empty items', 'invalid key', 'invalid quantity'])('does not infer checkout intent from %s', async reason => {
-    sessionStorage.setItem(AUTH_STORAGE_KEY, 'jwt')
-    const attempt = { ...savedAttempt, input: { ...savedAttempt.input } }
-    if (reason === 'no verification rejection') saveAttempt(1, { key: attempt.key, input: attempt.input })
-    else {
-      if (reason === 'empty items') attempt.input.items = []
-      if (reason === 'invalid key') attempt.key = 'invalid key with spaces'
-      if (reason === 'invalid quantity') attempt.input.items = [{ productListingId: 16901, quantity: 0 }]
-      saveAttempt(reason === 'another customer' ? 2 : 1, attempt)
-    }
-    await mount(<VerifyEmail onAccount={vi.fn()} />)
-    expect(container.textContent).toContain('Continue shopping'); expect(container.textContent).not.toContain('Continue to checkout')
-  })
-  it('offers a clearly named sign-in only when an existing session actually expired', async () => {
-    sessionStorage.setItem(AUTH_STORAGE_KEY, 'expired-jwt'); vi.mocked(getCurrentUser).mockRejectedValue(new AuthApiError(401, 'Expired'))
-    const onAccount = vi.fn(); await mount(<VerifyEmail onAccount={onAccount} />)
-    expect(container.textContent).toContain('Your session has expired'); expect(container.textContent).not.toContain('Open account'); expect(container.textContent).not.toContain('refresh your account')
-    await click('Sign in'); expect(onAccount).toHaveBeenCalledOnce()
+  it('cancels the automatic transition when the page unmounts', async () => {
+    vi.useFakeTimers(); const onSignIn = vi.fn()
+    await mount(<VerifyEmail onSignIn={onSignIn} />)
+    await act(async () => root!.unmount()); root = null
+    await act(async () => vi.advanceTimersByTimeAsync(3000))
+    expect(onSignIn).not.toHaveBeenCalled()
   })
   it('renders a verifying state while the request is pending', async () => {
     vi.mocked(verifyEmail).mockImplementation(() => new Promise(() => {}))
-    await mount(<VerifyEmail onAccount={vi.fn()} />)
+    await mount(<VerifyEmail onSignIn={vi.fn()} />)
     expect(container.textContent).toContain('Verifying your email'); expect(verifyEmail).toHaveBeenCalledOnce(); expect(location.search).toBe('')
   })
   it.each(['/verify-email', '/verify-email?token=%20'])('does not submit a missing or whitespace token at %s', async path => {
     history.replaceState({}, '', path)
-    await mount(<VerifyEmail onAccount={vi.fn()} />)
+    await mount(<VerifyEmail onSignIn={vi.fn()} />)
     expect(container.textContent).toContain('no verification token'); expect(verifyEmail).not.toHaveBeenCalled()
   })
-  it('handles an invalid/expired token without displaying server detail or raw token', async () => {
+  it('handles invalid/expired/used links neutrally and transitions to sign-in after three seconds', async () => {
+    vi.useFakeTimers(); const onSignIn = vi.fn()
     vi.mocked(verifyEmail).mockRejectedValue(new AuthApiError(400, 'private details test-verification-token'))
-    await mount(<VerifyEmail onAccount={vi.fn()} />)
-    expect(container.textContent).toContain('invalid or has expired'); expect(container.textContent).not.toContain('private details'); expect(location.search).toBe('')
+    await mount(<VerifyEmail onSignIn={onSignIn} />)
+    expect(container.querySelector('h1')?.textContent).toBe('Verification link unavailable')
+    expect(container.textContent).toContain('invalid, expired, or has already been used')
+    expect(container.textContent).toContain('Sign in to check your account status or request a new verification email')
+    expect(container.textContent).not.toContain('Sign in to resend verification')
+    expect(container.textContent).not.toContain('private details'); expect(location.search).toBe('')
+    expect(container.querySelector('button')?.textContent).toBe('Sign in')
+    await act(async () => vi.advanceTimersByTimeAsync(2999)); expect(onSignIn).not.toHaveBeenCalled()
+    await act(async () => vi.advanceTimersByTimeAsync(1)); expect(onSignIn).toHaveBeenCalledOnce()
   })
   it('offers a guarded retry for network failure without persisting the token', async () => {
     vi.mocked(verifyEmail).mockRejectedValueOnce(new Error('offline')).mockResolvedValue()
-    await mount(<VerifyEmail onAccount={vi.fn()} />); expect(container.textContent).toContain('could not confirm')
+    await mount(<VerifyEmail onSignIn={vi.fn()} />); expect(container.textContent).toContain('could not confirm')
     await click('Retry verification'); expect(container.textContent).toContain('Your email has been verified'); expect(verifyEmail).toHaveBeenCalledTimes(2)
   })
-  it('refreshes backend-authoritative auth after verification and requires explicit checkout continuation', async () => {
-    sessionStorage.setItem(AUTH_STORAGE_KEY, 'jwt')
-    saveAttempt(user.id, savedAttempt)
-    vi.mocked(getCurrentUser).mockRejectedValueOnce(verificationError()).mockResolvedValue(user)
-    await mount(<VerifyEmail onAccount={vi.fn()} />)
-    expect(auth.state.status).toBe('authenticated'); expect(getCurrentUser).toHaveBeenCalledTimes(2)
-    expect(location.pathname).toBe('/verify-email'); expect(container.textContent).not.toContain('Continue shopping')
-    expect(readAttempt(user.id)).toEqual(savedAttempt)
-    await click('Continue to checkout'); expect(location.pathname).toBe('/checkout'); expect(readAttempt(user.id)?.key).toBe(savedAttempt.key)
-  })
+
 })
 
 describe('unverified account and resend UX', () => {

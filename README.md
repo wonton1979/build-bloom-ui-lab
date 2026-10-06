@@ -182,9 +182,11 @@ requires opening the original email link again or requesting a new one.
 
 Signup and unverified login use the existing verification-required auth state.
 Account and Checkout provide resend feedback and a 30-second resend cooldown.
-Successful verification refreshes the session through `GET /users/me`; a
-verification link opened without the existing session asks the customer to sign
-in. Return to the original checkout tab to recover its session-scoped request.
+Successful verification confirms email ownership only; it does not authenticate.
+Successful and unavailable links open the existing Sign In experience after
+three seconds, or immediately when the customer chooses Sign in. The verification
+page does not inspect or recover checkout requests. After sign-in, Checkout
+independently recovers the original session-scoped request.
 
 A definite `EMAIL_VERIFICATION_REQUIRED` order rejection records that reason
 alongside the original saved request. It does not delete or regenerate the

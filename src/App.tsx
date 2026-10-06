@@ -59,7 +59,7 @@ function App() {
   const previousSpread = useRef(spread)
   const previouslyOpen = useRef(false)
   const previousAuthStatus = useRef<string | undefined>(undefined)
-  const { state: authState } = useAuth()
+  const { state: authState, logout } = useAuth()
   const { items: cartItems, addListing, isLoading: cartLoading, pendingItemIds } = useCart()
   const showReference = import.meta.env.DEV && view === 'reference'
   const showGuestHint = (source: 'user' | 'cart') => {
@@ -113,6 +113,13 @@ function App() {
     cancelUserDialogue()
     dismissGuestHint()
     setAccountOpen(true)
+  }
+  const openVerificationSignIn = () => {
+    // Email verification does not authenticate: use the normal sign-in form.
+    logout()
+    window.history.pushState({}, '', '/')
+    window.dispatchEvent(new PopStateEvent('popstate'))
+    openAccount()
   }
   const openCart = () => {
     if (authState.status !== 'authenticated') { showGuestHint('cart'); return }
@@ -272,7 +279,7 @@ function App() {
   }
 
   if (pathname === '/verify-email' || pathname === '/checkout' || pathname.startsWith('/checkout/')) return <>
-    <div inert={accountOpen}>{pathname === '/verify-email' ? <VerifyEmail onAccount={openAccount} /> : <Checkout key={`${pathname}:${authState.status === 'authenticated' ? authState.user.id : 'guest'}`} onAccount={openAccount} />}</div>
+    <div inert={accountOpen}>{pathname === '/verify-email' ? <VerifyEmail onSignIn={openVerificationSignIn} /> : <Checkout key={`${pathname}:${authState.status === 'authenticated' ? authState.user.id : 'guest'}`} onAccount={openAccount} />}</div>
     {accountOpen && <AccountModal onClose={closeAccount} />}
   </>
 
