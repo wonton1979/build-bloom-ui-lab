@@ -5,9 +5,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CheckoutApiError, createOrder, getOrder, preparePayment, type Order } from './api'
 import { checkoutOrderId, clearAttempt, deliverySnapshot, isConfirmed, isExpired, orderInput, readAttempt, saveAttempt } from './state'
 import { useCheckout } from './useCheckout'
+import { AuthApiError, getCurrentUser } from '../auth/api'
 import type { Address } from '../account/addressApi'
 import { cartListing, offer } from '../catalogue/catalogueFixtures'
 
+vi.mock('../auth/api', async original => ({ ...await original<typeof import('../auth/api')>(), getCurrentUser: vi.fn() }))
 vi.mock('./api', async importOriginal => ({ ...await importOriginal<typeof import('./api')>(), createOrder: vi.fn(), getOrder: vi.fn(), preparePayment: vi.fn() }))
 const address: Address = { id: 1, recipientName: 'Customer', line1: '1 Street', line2: null, city: 'London', postcode: 'SW1A 1AA', country: 'United Kingdom', phone: null, isDefaultShipping: true, isDefaultBilling: true }
 const input = { items: [{ productListingId: 16901, quantity: 1 }], deliveryAddress: deliverySnapshot(address) }
@@ -133,6 +135,30 @@ describe('checkout orchestration', () => {
     vi.mocked(preparePayment).mockRejectedValue(new CheckoutApiError(409, 'ORDER_NOT_PAYABLE'))
     await act(async () => current.prepare())
     expect(current.phase).toBe('terminal'); expect(current.secret).toBeNull()
+  })
+  it('retains the original identity after a definite verification rejection and blocks another order POST', async () => {
+    vi.mocked(createOrder).mockRejectedValue(new CheckoutApiError(403, 'EMAIL_VERIFICATION_REQUIRED'))
+    await mount(<Harness />); await act(async () => current.create(input))
+    expect(current.phase).toBe('verification')
+    const saved = readAttempt(1)!
+    expect(saved).toMatchObject({ input, rejection: 'EMAIL_VERIFICATION_REQUIRED' })
+    await act(async () => current.create(input)); expect(createOrder).toHaveBeenCalledTimes(1)
+    await act(async () => root.unmount()); await mount(<Harness />)
+    vi.mocked(getCurrentUser).mockRejectedValue(new AuthApiError(403, 'Verify', 'New wording', 'EMAIL_VERIFICATION_REQUIRED'))
+    await act(async () => current.create(input))
+    expect(current.phase).toBe('verification'); expect(createOrder).toHaveBeenCalledTimes(1)
+    expect(readAttempt(1)?.key).toBe(saved.key)
+  })
+  it('continues the original request after verification and retains ambiguous recovery on a subsequent timeout', async () => {
+    saveAttempt(1, { key: 'original-key', input, rejection: 'EMAIL_VERIFICATION_REQUIRED' })
+    vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, email: 'test@example.com', firstName: null, lastName: null, phone: null })
+    vi.mocked(createOrder).mockRejectedValueOnce(new Error('Response lost')).mockResolvedValue({ id: 41 })
+    await mount(<Harness />); await act(async () => current.create({ items: [{ productListingId: 999, quantity: 3 }] }))
+    expect(current.phase).toBe('failure'); expect(readAttempt(1)).toEqual({ key: 'original-key', input })
+    await act(async () => current.create(input))
+    expect(createOrder).toHaveBeenNthCalledWith(1, 'token', input, 'original-key')
+    expect(createOrder).toHaveBeenNthCalledWith(2, 'token', input, 'original-key')
+    expect(location.pathname).toBe('/checkout/orders/41')
   })
   it('handles idempotency mismatch intentionally', async () => {
     vi.mocked(createOrder).mockRejectedValue(new CheckoutApiError(409, 'ORDER_IDEMPOTENCY_MISMATCH'))

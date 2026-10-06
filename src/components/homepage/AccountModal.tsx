@@ -79,7 +79,7 @@ export function AccountModal({ onClose }: { onClose: () => void }) {
     <div className="account-modal" role="dialog" aria-modal="true" aria-labelledby="account-modal-title" onMouseDown={(event) => {
       if (event.target === event.currentTarget) onClose()
     }}>
-      <section className={`account-modal__surface${state.status === 'authenticated' ? activeView === 'personal' ? ' account-modal__surface--personal' : ' account-modal__surface--hub' : ''}`}>
+      <section className={`account-modal__surface${state.status === 'authenticated' ? activeView === 'personal' ? ' account-modal__surface--personal' : ' account-modal__surface--hub' : state.status === 'verificationRequired' ? ' account-modal__surface--verification' : ''}`}>
         <AccountModalCloseButton closeRef={closeRef} onClose={onClose} />
         <h1 id="account-modal-title" className="account-modal__accessible-title">My Account</h1>
         {state.status === 'authenticated' ? activeView === 'personal' ? <PersonalInformation onBack={() => setView('hub')} /> : <AuthenticatedAccountHub email={state.user.email} onOpenAccount={() => setView('personal')} onSignOut={() => { logout(); onClose() }} /> : <AccountForms />}

@@ -26,3 +26,8 @@ export function authReducer(_state: AuthState, action: AuthAction): AuthState {
     case 'error': return { status: 'error', message: action.message, token: action.token }
   }
 }
+
+/** Both states have a backend-issued session; verification gates protected operations only. */
+export function isSignedIn(state: AuthState): state is Extract<AuthState, { status: 'authenticated' | 'verificationRequired' }> {
+  return state.status === 'authenticated' || state.status === 'verificationRequired'
+}

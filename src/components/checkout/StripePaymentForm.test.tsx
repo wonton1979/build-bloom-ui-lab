@@ -2,9 +2,9 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { PaymentForm, StripePaymentForm } from './StripePaymentForm'
+import { PaymentForm } from './StripePaymentForm'
 const mocks = vi.hoisted(() => ({ confirm: vi.fn(), retrieve: vi.fn(), elements: {} }))
-vi.mock('@stripe/stripe-js', () => ({ loadStripe: vi.fn() }))
+vi.mock('@stripe/stripe-js', () => ({ loadStripe: vi.fn(() => Promise.resolve(null)) }))
 vi.mock('@stripe/react-stripe-js', () => {
   const stripe = { confirmPayment: mocks.confirm, retrievePaymentIntent: mocks.retrieve }
   return { useStripe: () => stripe, useElements: () => mocks.elements, PaymentElement: () => <div data-payment-element="true" />, Elements: ({ children }: { children: React.ReactNode }) => children }
@@ -15,7 +15,7 @@ let container: HTMLDivElement
 async function mount() { container = document.createElement('div'); document.body.append(container); root = createRoot(container); const verify = vi.fn(); await act(async () => root.render(<PaymentForm clientSecret="secret" orderId={41} onVerify={verify} />)); return verify }
 async function submit() { await act(async () => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) }) }
 beforeEach(() => { mocks.confirm.mockReset(); mocks.retrieve.mockReset().mockResolvedValue({ paymentIntent: { status: 'requires_payment_method' } }) })
-afterEach(async () => { if (root) await act(async () => root.unmount()); document.body.innerHTML = '' })
+afterEach(async () => { if (root) await act(async () => root.unmount()); document.body.innerHTML = ''; vi.unstubAllEnvs() })
 describe('Stripe payment submission', () => {
   it('blocks duplicate payment submission and uses order-specific return URL', async () => {
     let resolve!: (value: object) => void
@@ -42,9 +42,12 @@ describe('Stripe payment submission', () => {
     mocks.retrieve.mockResolvedValue({ paymentIntent: { status: 'processing' } })
     const verify = await mount(); expect(verify).toHaveBeenCalledOnce(); expect(mocks.confirm).not.toHaveBeenCalled()
   })
-  it('handles missing development configuration gracefully', async () => {
+  it.each(['', 'pk_test_mock'])('handles unavailable Stripe configuration/SDK with key %s', async key => {
+    vi.stubEnv('VITE_STRIPE_PUBLISHABLE_KEY', key)
+    vi.resetModules()
+    const { StripePaymentForm } = await import('./StripePaymentForm')
     container = document.createElement('div'); document.body.append(container); root = createRoot(container)
     await act(async () => root.render(<StripePaymentForm clientSecret="secret" orderId={41} onVerify={vi.fn()} />))
-    expect(container.textContent).toContain('Payments are not configured')
+    expect(container.textContent).toContain(key ? 'Secure payment could not load' : 'Payments are not configured')
   })
 })
