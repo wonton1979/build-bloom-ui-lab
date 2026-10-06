@@ -3,6 +3,7 @@ import cottage from '../../assets/illustrations/opening-welcome-illustration.png
 import flower from '../../assets/decorations/catalogue-title-flower.png'
 import { useAuth } from '../../features/auth/AuthProvider'
 import './AccountExperience.css'
+import { VerificationNotice } from './VerificationNotice'
 
 export type AccountMode = 'signin' | 'create'
 type FieldName = 'email' | 'password' | 'confirmPassword'
@@ -137,6 +138,7 @@ export function AccountForms() {
     setFormError(undefined)
     await authenticate(mode === 'create' ? 'signup' : 'signin', { email: current.email, password: current.password })
   }
+  if (state.status === 'verificationRequired') return <VerificationNotice token={state.token} message={state.message} />
   return (
     <div ref={container}>
       <AccountView mode={mode} onModeChange={setMode} draft={drafts[mode]}

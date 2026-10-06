@@ -27,7 +27,7 @@ export function navigateCheckout(path: string) {
   window.dispatchEvent(new PopStateEvent('popstate'))
 }
 
-export type CreationAttempt = { key: string; input: OrderInput }
+export type CreationAttempt = { key: string; input: OrderInput; rejection?: 'EMAIL_VERIFICATION_REQUIRED' }
 const storageKey = (userId: number) => `colorful-life:checkout-attempt:${userId}`
 export function readAttempt(userId: number): CreationAttempt | null {
   try {

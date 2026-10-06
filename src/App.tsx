@@ -14,6 +14,7 @@ import { CartModal } from './components/cart/CartModal'
 import { ConditionConfirmationDialog } from './components/catalogue/ConditionConfirmationDialog'
 import { CartItems } from './components/cart/CartItems'
 import { Checkout } from './components/checkout/Checkout'
+import { VerifyEmail } from './components/account/VerifyEmail'
 import { navigateCheckout } from './features/checkout/state'
 import { BookOwnedCart } from './components/catalogue/BookOwnedCart'
 import { BookOwnedUser } from './components/catalogue/BookOwnedUser'
@@ -270,8 +271,8 @@ function App() {
     })
   }
 
-  if (pathname === '/checkout' || pathname.startsWith('/checkout/')) return <>
-    <div inert={accountOpen}><Checkout key={`${pathname}:${authState.status === 'authenticated' ? authState.user.id : 'guest'}`} onAccount={openAccount} /></div>
+  if (pathname === '/verify-email' || pathname === '/checkout' || pathname.startsWith('/checkout/')) return <>
+    <div inert={accountOpen}>{pathname === '/verify-email' ? <VerifyEmail onAccount={openAccount} /> : <Checkout key={`${pathname}:${authState.status === 'authenticated' ? authState.user.id : 'guest'}`} onAccount={openAccount} />}</div>
     {accountOpen && <AccountModal onClose={closeAccount} />}
   </>
 

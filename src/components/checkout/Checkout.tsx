@@ -8,6 +8,7 @@ import { useCheckout } from '../../features/checkout/useCheckout'
 import { StripePaymentForm } from './StripePaymentForm'
 import { BotanicalDivider } from '../shared/BotanicalDivider'
 import './Checkout.css'
+import { VerificationNotice } from '../account/VerificationNotice'
 
 export function Checkout({ onAccount }: { onAccount: () => void }) {
   const { state, logout } = useAuth()
@@ -16,7 +17,7 @@ export function Checkout({ onAccount }: { onAccount: () => void }) {
     <div className="checkout__paper">
       {!validLocation ? <><h1>Checkout</h1><p role="alert">This order link is invalid. Please return to the storefront.</p></> : state.status === 'authenticated' ? <AuthenticatedCheckout token={state.token} userId={state.user.id} onAccount={onAccount} onAuthenticate={() => { logout(); onAccount() }} /> : <>
         <h1>Checkout</h1>
-        <p role="status">{state.status === 'resolving' ? 'Restoring your account…' : state.status === 'verificationRequired' ? 'Please verify your email to continue.' : 'Please sign in to continue your checkout.'}</p>
+        {state.status === 'verificationRequired' ? <VerificationNotice token={state.token} message="Verify your email before an order can be created. Your saved checkout request will be retained." /> : <p role="status">{state.status === 'resolving' ? 'Restoring your account…' : 'Please sign in to continue your checkout.'}</p>}
         {state.status !== 'resolving' && <button onClick={onAccount}>Open account</button>}
       </>}
       <BotanicalDivider />
@@ -60,7 +61,9 @@ function AuthenticatedCheckout({ token, userId, onAccount, onAuthenticate }: { t
   const pending = ['creating', 'loading', 'preparing', 'waiting'].includes(phase)
   const confirmed = phase === 'confirmed'
   const frozen = Boolean(attempt)
-  const canCreate = !orderId && !order && !pending && phase !== 'terminal' && (frozen || (cart.items.length > 0 && !cart.isLoading && !cart.pendingItemIds.length && Boolean(selected && billing) && !addressLoading))
+  const verificationBlocked = phase === 'verification'
+  const definiteRejection = attempt?.rejection === 'EMAIL_VERIFICATION_REQUIRED'
+  const canCreate = !orderId && !order && !pending && phase !== 'terminal' && !verificationBlocked && (frozen || (cart.items.length > 0 && !cart.isLoading && !cart.pendingItemIds.length && Boolean(selected && billing) && !addressLoading))
 
   return <>
     <p className="checkout__eyebrow">Build &amp; Bloom · Your purchase</p>
@@ -70,6 +73,7 @@ function AuthenticatedCheckout({ token, userId, onAccount, onAuthenticate }: { t
     {confirmed && <div className="checkout__notice" role="status"><strong>Payment confirmed · {order?.status === 'CONFIRMED' ? 'Order confirmed' : order?.status === 'DISPATCHED' ? 'Order dispatched' : 'Order completed'}</strong><p>Your order is confirmed. Your cart has been preserved to protect changes made while you were paying. Please review purchased items before checking out again.</p></div>}
     {phase === 'terminal' && <div className="checkout__notice" role="status"><p>{order && isExpired(order) ? 'Your reservation has expired. This order can no longer be paid.' : 'This checkout cannot continue.'}{order?.payment?.status === 'SUCCEEDED' && ' Payment was recorded; please contact us about this order before making another payment.'}</p><button onClick={checkout.restart}>Return to storefront and review cart</button></div>}
     {(phase === 'auth' || addressAuthRequired) && <button onClick={onAuthenticate}>Sign in / verify account</button>}
+    {verificationBlocked && <VerificationNotice token={token} message="Your order request was not accepted because your email is not verified. No order was created by this request. Your checkout details are saved." onVerified={checkout.resumeAfterVerification} />}
     {phase === 'loading' && <p role="status">Loading your order…</p>}
 
     {(order || !orderId) && <div className="checkout__columns">
@@ -83,7 +87,7 @@ function AuthenticatedCheckout({ token, userId, onAccount, onAuthenticate }: { t
       </section>
       <section aria-labelledby="checkout-delivery"><h2 id="checkout-delivery">Delivery address</h2>
         {order ? <AddressCopy name={order.deliveryRecipientName} line1={order.deliveryLine1} line2={order.deliveryLine2} city={order.deliveryCity} postcode={order.deliveryPostcode} country={order.deliveryCountryCode} /> : <>
-          {frozen ? <><p>A checkout request is saved. Retry uses the original items and delivery address, even if your cart has since changed.</p><ul>{attempt?.input.items.map(item => <li key={item.productListingId}>Listing #{item.productListingId} · Quantity {item.quantity}</li>)}</ul>{attempt?.input.deliveryAddress && <AddressCopy name={attempt.input.deliveryAddress.recipientName} line1={attempt.input.deliveryAddress.line1} line2={attempt.input.deliveryAddress.line2} city={attempt.input.deliveryAddress.city} postcode={attempt.input.deliveryAddress.postcode} country={attempt.input.deliveryAddress.countryCode} />}</> : addressLoading ? <p role="status">Loading addresses…</p> : <>
+          {frozen ? <><p>{definiteRejection ? 'Your checkout request is saved. Continuing after verification uses the same items and delivery address.' : 'A checkout request is saved. Retry uses the original items and delivery address, even if your cart has since changed.'}</p><ul>{attempt?.input.items.map(item => <li key={item.productListingId}>Listing #{item.productListingId} · Quantity {item.quantity}</li>)}</ul>{attempt?.input.deliveryAddress && <AddressCopy name={attempt.input.deliveryAddress.recipientName} line1={attempt.input.deliveryAddress.line1} line2={attempt.input.deliveryAddress.line2} city={attempt.input.deliveryAddress.city} postcode={attempt.input.deliveryAddress.postcode} country={attempt.input.deliveryAddress.countryCode} />}</> : addressLoading ? <p role="status">Loading addresses…</p> : <>
             <label>Saved delivery address<select value={addressId ?? ''} onChange={event => { setAddressId(Number(event.target.value)); setInputError(null) }} disabled={pending}><option value="" disabled>Choose an address</option>{addresses.map(address => <option key={address.id} value={address.id}>{address.recipientName} · {address.line1} · {address.postcode}</option>)}</select></label>
             {selected && <AddressCopy name={selected.recipientName} line1={selected.line1} line2={selected.line2} city={selected.city} postcode={selected.postcode} country={selected.country} />}
           </>}
@@ -98,8 +102,8 @@ function AuthenticatedCheckout({ token, userId, onAccount, onAuthenticate }: { t
     {!orderId && phase !== 'terminal' && <button disabled={!canCreate} onClick={() => {
       try { const input = attempt?.input ?? (selected ? orderInput(cart.items, selected) : null); if (input) { setInputError(null); void checkout.create(input) } }
       catch (reason) { setInputError(reason instanceof Error ? reason.message : 'Please check your delivery address.') }
-    }}>{phase === 'creating' ? 'Reserving your order…' : frozen ? 'Retry saved order request' : 'Create order and review total'}</button>}
-    {!orderId && frozen && !pending && phase !== 'terminal' && <p>Retry first if the previous response was lost. Starting again abandons recovery of that request. <button className="checkout__secondary" onClick={checkout.restart}>Leave saved checkout and review cart</button></p>}
+    }}>{phase === 'creating' ? 'Reserving your order…' : verificationBlocked ? 'Verify email before creating order' : definiteRejection ? 'Continue saved checkout' : frozen ? 'Retry saved order request' : 'Create order and review total'}</button>}
+    {!orderId && frozen && !definiteRejection && !pending && phase !== 'terminal' && <p>Retry first if the previous response was lost. Starting again abandons recovery of that request. <button className="checkout__secondary" onClick={checkout.restart}>Leave saved checkout and review cart</button></p>}
     {order && !confirmed && phase !== 'terminal' && <section className="checkout__payment" aria-labelledby="checkout-payment"><h2 id="checkout-payment">Payment</h2>
       {phase === 'reserved' && <><p>Your order is reserved. Review the final total above before continuing to payment.</p>{order.reservationExpiresAt && <p>Reserved until {new Date(order.reservationExpiresAt).toLocaleTimeString('en-GB')}.</p>}<button onClick={() => void checkout.prepare()}>Continue to secure payment</button></>}
       {phase === 'preparing' && <p role="status">Preparing secure payment…</p>}

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CheckoutApiError, createOrder, getOrder, preparePayment, type Order, type OrderInput } from './api'
 import { clearAttempt, isConfirmed, isTerminal, navigateCheckout, readAttempt, saveAttempt, type CreationAttempt } from './state'
+import { AuthApiError, getCurrentUser, isVerificationRequired } from '../auth/api'
 
-export type Phase = 'ready' | 'creating' | 'loading' | 'reserved' | 'preparing' | 'payment' | 'waiting' | 'pending' | 'confirmed' | 'failure' | 'terminal' | 'auth'
+export type Phase = 'ready' | 'creating' | 'loading' | 'reserved' | 'preparing' | 'payment' | 'waiting' | 'pending' | 'confirmed' | 'failure' | 'terminal' | 'auth' | 'verification'
 export const verificationDelays = [0, 1000, 2000, 3000, 5000, 8000, 10000]
 
 export function useCheckout(token: string, userId: number, orderId: number | null) {
@@ -27,7 +28,7 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
 
   const fail = useCallback((reason: unknown) => {
     setMessage(reason instanceof Error ? reason.message : 'Connection lost. Please try again.')
-    setPhase(reason instanceof CheckoutApiError && [401, 403].includes(reason.status) ? 'auth' : reason instanceof CheckoutApiError && (reason.status === 404 || ['ORDER_EXPIRED', 'ORDER_NOT_PAYABLE', 'ORDER_IDEMPOTENCY_MISMATCH', 'INVALID_IDEMPOTENCY_KEY'].includes(reason.code ?? '')) ? 'terminal' : 'failure')
+    setPhase(reason instanceof CheckoutApiError && reason.status === 403 && reason.code === 'EMAIL_VERIFICATION_REQUIRED' ? 'verification' : reason instanceof CheckoutApiError && [401, 403].includes(reason.status) ? 'auth' : reason instanceof CheckoutApiError && (reason.status === 404 || ['ORDER_EXPIRED', 'ORDER_NOT_PAYABLE', 'ORDER_IDEMPOTENCY_MISMATCH', 'INVALID_IDEMPOTENCY_KEY'].includes(reason.code ?? '')) ? 'terminal' : 'failure')
   }, [])
 
   useEffect(() => {
@@ -47,10 +48,20 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
   }, [order, phase])
 
   const create = async (input: OrderInput) => {
-    if (busy.current || obtainedOrderId.current || orderId || order) return
+    if (busy.current || obtainedOrderId.current || orderId || order || phase === 'verification') return
     busy.current = true; setMessage(null); setPhase('creating')
     try {
-      const current: CreationAttempt = attemptRef.current ?? { key: crypto.randomUUID(), input }
+      if (attemptRef.current?.rejection === 'EMAIL_VERIFICATION_REQUIRED') {
+        // A deliberate continuation checks backend authority before another POST.
+        try { await getCurrentUser(token); if (!active.current) return }
+        catch (reason) {
+          if (isVerificationRequired(reason)) throw new CheckoutApiError(403, 'EMAIL_VERIFICATION_REQUIRED')
+          if (reason instanceof AuthApiError) throw new CheckoutApiError(reason.status, reason.code)
+          throw reason
+        }
+      }
+      const saved = attemptRef.current
+      const current: CreationAttempt = saved ? { key: saved.key, input: saved.input } : { key: crypto.randomUUID(), input }
       // Persist before sending. A lost response must replay the same key AND payload.
       saveAttempt(userId, current); attemptRef.current = current; setAttempt(current)
       const result = await createOrder(token, current.input, current.key)
@@ -59,7 +70,18 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
       window.history.replaceState({}, '', `/checkout/orders/${result.id}`)
       clearAttempt(userId)
       window.dispatchEvent(new PopStateEvent('popstate'))
-    } catch (reason) { if (active.current) fail(reason) }
+    } catch (reason) {
+      if (active.current) {
+        if (reason instanceof CheckoutApiError && reason.status === 403 && reason.code === 'EMAIL_VERIFICATION_REQUIRED' && attemptRef.current) {
+          const rejected: CreationAttempt = { ...attemptRef.current, rejection: 'EMAIL_VERIFICATION_REQUIRED' }
+          attemptRef.current = rejected; setAttempt(rejected)
+          // Keep the original identity and payload. This response is definite,
+          // unlike a timeout: it must not be described as a lost order response.
+          try { saveAttempt(userId, rejected) } catch { /* The original request was already persisted before sending. */ }
+        }
+        fail(reason)
+      }
+    }
     finally { busy.current = false }
   }
 
@@ -115,5 +137,6 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
     window.history.replaceState({}, '', `/checkout/orders/${order.id}`)
     if (!isConfirmed(order) && !isTerminal(order)) void Promise.resolve().then(() => { if (active.current) void verify() })
   }, [order, verify])
-  return { order, phase, message, secret, attempt, create, prepare, verify, restart, reloadOrder }
+  const resumeAfterVerification = () => { setMessage(null); setPhase('ready') }
+  return { order, phase, message, secret, attempt, create, prepare, verify, restart, reloadOrder, resumeAfterVerification }
 }

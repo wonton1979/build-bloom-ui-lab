@@ -11,12 +11,14 @@ export type CurrentUser = {
 export class AuthApiError extends Error {
   readonly status: number
   readonly serverMessage?: string
+  readonly code?: string
 
-  constructor(status: number, message: string, serverMessage?: string) {
+  constructor(status: number, message: string, serverMessage?: string, code?: string) {
     super(message)
     this.name = 'AuthApiError'
     this.status = status
     this.serverMessage = serverMessage
+    this.code = code
   }
 }
 
@@ -30,11 +32,26 @@ export async function requestJson<T>(path: string, init: RequestInit = {}, token
   let body: unknown = null
   try { body = await response.json() } catch { /* Empty error responses are handled below. */ }
   if (!response.ok) {
-    const serverMessage = typeof body === 'object' && body !== null && 'error' in body && typeof body.error === 'string' ? body.error : undefined
-    const message = response.status === 401 ? 'Invalid credentials' : response.status === 403 ? 'Email verification required' : response.status === 409 ? 'Email already in use' : serverMessage || 'Unable to complete that request'
-    throw new AuthApiError(response.status, message, serverMessage)
+    const error = typeof body === 'object' && body !== null && 'error' in body ? body.error : undefined
+    const nested = typeof error === 'object' && error !== null ? error as { code?: unknown; message?: unknown } : undefined
+    const code = typeof nested?.code === 'string' ? nested.code : undefined
+    const serverMessage = typeof error === 'string' ? error : typeof nested?.message === 'string' ? nested.message : undefined
+    const message = code === 'EMAIL_VERIFICATION_REQUIRED' ? 'Email verification required' : response.status === 401 ? 'Invalid credentials' : response.status === 409 && path === '/auth/signup' ? 'Email already in use' : serverMessage || 'Unable to complete that request'
+    throw new AuthApiError(response.status, message, serverMessage, code)
   }
   return body as T
+}
+
+export function isVerificationRequired(error: unknown): boolean {
+  return error instanceof AuthApiError && error.status === 403 && (error.code === 'EMAIL_VERIFICATION_REQUIRED' || (!error.code && error.serverMessage === 'Email verification required'))
+}
+
+export function verifyEmail(token: string) {
+  return requestJson<void>('/auth/verify-email', { method: 'POST', body: JSON.stringify({ token }) })
+}
+
+export function resendVerification(token: string) {
+  return requestJson<void>('/auth/resend-verification', { method: 'POST' }, token)
 }
 
 export function signUp(email: string, password: string) {

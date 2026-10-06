@@ -171,3 +171,26 @@ Checkout tests mock Stripe and HTTP; normal tests never contact Stripe. Run
 end-to-end checkout additionally needs the Backend #144 contract, matching Stripe
 keys, and delivery of verified payment webhooks to that backend. It is not part
 of the automated frontend suite.
+
+## Email verification (Issue #44)
+
+`/verify-email?token=...` consumes the existing backend verification link via
+`POST /auth/verify-email`. Hosting must serve the SPA for `/verify-email` as well
+as checkout routes. The token is captured in memory, immediately removed from
+the visible URL, and never stored in browser storage. Reloading a cleaned link
+requires opening the original email link again or requesting a new one.
+
+Signup and unverified login use the existing verification-required auth state.
+Account and Checkout provide resend feedback and a 30-second resend cooldown.
+Successful verification refreshes the session through `GET /users/me`; a
+verification link opened without the existing session asks the customer to sign
+in. Return to the original checkout tab to recover its session-scoped request.
+
+A definite `EMAIL_VERIFICATION_REQUIRED` order rejection records that reason
+alongside the original saved request. It does not delete or regenerate the
+idempotency key, and it does not show lost-response recovery guidance. The
+customer explicitly continues after verification; the backend profile is
+checked before replaying the identical order request. Once replay starts, any
+new ambiguous response uses the existing recovery UX with the same key.
+Frontend tests and browser smoke checks mock verification/resend; real SES
+email delivery remains entirely in the unchanged backend.
