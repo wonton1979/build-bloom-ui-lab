@@ -48,6 +48,8 @@ function App() {
   const [closedRect, setClosedRect] = useState<DOMRect | null>(null)
   const [spread, setSpread] = useState<CatalogueSpread>(initialLocation.spread)
   const [leafletSide, setLeafletSide] = useState<CatalogueLeafletSide | null>(initialLocation.leafletSide)
+  const [accountInitialView, setAccountInitialView] = useState<'hub' | 'personal'>('hub')
+  const [addressRevision, setAddressRevision] = useState(0)
   const [accountOpen, setAccountOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const [guestHint, setGuestHint] = useState<'user' | 'cart' | null>(null)
@@ -112,10 +114,12 @@ function App() {
     }, USER_WELCOME_GREETING_MS)
   }
   const openAccount = () => {
+    setAccountInitialView('hub')
     cancelUserDialogue()
     dismissGuestHint()
     setAccountOpen(true)
   }
+  const openAddresses = () => { openAccount(); setAccountInitialView('personal') }
   const openVerificationSignIn = () => {
     // Email verification does not authenticate: use the normal sign-in form.
     logout()
@@ -273,6 +277,7 @@ function App() {
   }, [spread])
 
   const closeAccount = () => {
+    if (accountInitialView === 'personal') setAddressRevision(value => value + 1)
     setAccountOpen(false)
     requestAnimationFrame(() => {
       const target = stageRef.current?.querySelector<HTMLButtonElement>('.stage-user') ?? document.querySelector<HTMLElement>('.checkout')
@@ -282,12 +287,12 @@ function App() {
 
   if (pathname === '/account/orders' || pathname.startsWith('/account/orders/')) return <>
     <div inert={accountOpen}><CustomerOrders path={pathname} onAccount={openAccount} onAuthenticate={() => { logout(); openAccount() }} /></div>
-    {accountOpen && <AccountModal onClose={closeAccount} />}
+    {accountOpen && <AccountModal onClose={closeAccount} initialView={accountInitialView} />}
   </>
 
   if (pathname === '/verify-email' || pathname === '/checkout' || pathname.startsWith('/checkout/')) return <>
-    <div inert={accountOpen}>{pathname === '/verify-email' ? <VerifyEmail onSignIn={openVerificationSignIn} /> : <Checkout key={`${pathname}:${authState.status === 'authenticated' ? authState.user.id : 'guest'}`} onAccount={openAccount} />}</div>
-    {accountOpen && <AccountModal onClose={closeAccount} />}
+    <div inert={accountOpen}>{pathname === '/verify-email' ? <VerifyEmail onSignIn={openVerificationSignIn} /> : <Checkout key={`${pathname}:${authState.status === 'authenticated' ? authState.user.id : 'guest'}`} onAccount={openAccount} onAddresses={openAddresses} addressRevision={addressRevision} />}</div>
+    {accountOpen && <AccountModal onClose={closeAccount} initialView={accountInitialView} />}
   </>
 
   return (
@@ -349,7 +354,7 @@ function App() {
       )}
       {!showReference && conditionConfirmation.pending && <ConditionConfirmationDialog offer={conditionConfirmation.pending.offer} productTitle={conditionConfirmation.pending.productTitle}
         onCancel={conditionConfirmation.cancel} onConfirm={conditionConfirmation.confirm} />}
-      {!showReference && accountOpen && <AccountModal onClose={closeAccount} />}
+      {!showReference && accountOpen && <AccountModal onClose={closeAccount} initialView={accountInitialView} />}
       {!showReference && cartOpen && isSignedIn(authState) && <CartModal onClose={closeCart}
         content={cartItems.length ? { kind: 'filled', items: <CartItems items={cartItems} />, actions: <button className="cart-modal__action" disabled={cartLoading || pendingItemIds.length > 0} onClick={() => { setCartOpen(false); navigateCheckout('/checkout') }}>Checkout</button> } : { kind: 'empty' }} />}
     </>
