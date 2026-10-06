@@ -3,12 +3,13 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Checkout } from './Checkout'
+import { CheckoutApiError } from '../../features/checkout/api'
 import { CartContext, type CartContextValue } from '../../features/cart/CartContext'
 import { cartListing, offer } from '../../features/catalogue/catalogueFixtures'
-const mocks = vi.hoisted(() => ({ auth: { status: 'authenticated', token: 'jwt', user: { id: 1 } }, addresses: vi.fn(), create: vi.fn(), read: vi.fn(), prepare: vi.fn(), payment: vi.fn() }))
+const mocks = vi.hoisted(() => ({ auth: { status: 'authenticated', token: 'jwt', user: { id: 1 } }, addresses: vi.fn(), create: vi.fn(), read: vi.fn(), prepare: vi.fn(), recover: vi.fn(), payment: vi.fn() }))
 vi.mock('../../features/auth/AuthProvider', () => ({ useAuth: () => ({ state: mocks.auth }) }))
 vi.mock('../../features/account/addressApi', () => ({ getAddresses: mocks.addresses }))
-vi.mock('../../features/checkout/api', async original => ({ ...await original<typeof import('../../features/checkout/api')>(), createOrder: mocks.create, getOrder: mocks.read, preparePayment: mocks.prepare }))
+vi.mock('../../features/checkout/api', async original => ({ ...await original<typeof import('../../features/checkout/api')>(), createOrder: mocks.create, getOrder: mocks.read, preparePayment: mocks.prepare, recoverPayment: mocks.recover }))
 vi.mock('./StripePaymentForm', () => ({ StripePaymentForm: (props: { onVerify: () => void }) => { mocks.payment(); return <button onClick={props.onVerify}>Fake payment completed</button> } }))
 const addresses = [{ id: 1, recipientName: 'Delivery', line1: '1 Street', line2: null, city: 'London', postcode: 'SW1A 1AA', country: 'GB', phone: null, isDefaultShipping: true, isDefaultBilling: false }, { id: 2, recipientName: 'Billing', line1: '2 Street', line2: null, city: 'London', postcode: 'SW1A 1AA', country: 'GB', phone: null, isDefaultShipping: false, isDefaultBilling: true }]
 const listing = cartListing(offer(16901, { effectivePrice: '18.75' }))
@@ -28,6 +29,26 @@ describe('Checkout purchase UI', () => {
   it('blocks invalid country without sending an order', async () => { mocks.addresses.mockResolvedValue([{ ...addresses[0], country: 'Unknown land', isDefaultBilling: true }]); await mount(); await click('Create order'); expect(container.textContent).toContain('valid two-letter'); expect(mocks.create).not.toHaveBeenCalled() })
   it('submits the selected saved delivery without changing default billing', async () => { mocks.create.mockResolvedValue({ id: 41 }); await mount(); await click('Create order'); expect(mocks.create).toHaveBeenCalledWith('jwt', { items: [{ productListingId: 16901, quantity: 1 }], deliveryAddress: { recipientName: 'Delivery', line1: '1 Street', city: 'London', postcode: 'SW1A 1AA', countryCode: 'GB' } }, expect.any(String)); expect(cart.removeItem).not.toHaveBeenCalled(); expect(cart.updateQuantity).not.toHaveBeenCalled() })
   it('recovery replaces estimates with server totals and only mounts payment after setup', async () => { history.replaceState({}, '', '/checkout/orders/41'); await mount(); expect(container.textContent).toContain('£20.50'); expect(container.textContent).not.toContain('£18.75'); expect(mocks.payment).not.toHaveBeenCalled(); await click('Continue to secure payment'); expect(mocks.prepare).toHaveBeenCalledWith('jwt', 41); expect(mocks.payment).toHaveBeenCalled(); expect(cart.removeItem).not.toHaveBeenCalled() })
-  it('keeps backend pending after browser completion and preserves all cart changes', async () => { vi.useFakeTimers(); history.replaceState({}, '', '/checkout/orders/41'); await mount(); await click('Continue to secure payment'); await click('Fake payment completed'); expect(container.textContent).toContain('being verified'); expect(container.textContent).not.toContain('Thank you'); expect(cart.removeItem).not.toHaveBeenCalled(); await act(async () => vi.advanceTimersByTimeAsync(29000)); expect(container.textContent).toContain('still pending'); mocks.read.mockResolvedValue({ ...order, status: 'CONFIRMED', payment: { status: 'SUCCEEDED', paidAt: '2026-10-06' } }); await click('Recheck order'); expect(container.textContent).toContain('Thank you'); expect(container.textContent).toContain('Payment confirmed'); expect(container.textContent).toContain('cart has been preserved'); expect(cart.removeItem).not.toHaveBeenCalled(); expect(cart.updateQuantity).not.toHaveBeenCalled() })
+  it('keeps backend pending after browser completion and preserves all cart changes', async () => { vi.useFakeTimers(); history.replaceState({}, '', '/checkout/orders/41'); await mount(); await click('Continue to secure payment'); await click('Fake payment completed'); expect(container.textContent).toContain('being verified'); expect(container.textContent).not.toContain('Thank you'); expect(cart.removeItem).not.toHaveBeenCalled(); await act(async () => vi.advanceTimersByTimeAsync(29000)); expect(container.textContent).toContain('still pending'); mocks.recover.mockResolvedValue({ ...order, status: 'CONFIRMED', payment: { status: 'SUCCEEDED', paidAt: '2026-10-06' } }); await click('Recheck order'); expect(mocks.recover).toHaveBeenCalledExactlyOnceWith('jwt', 41); expect(mocks.create).not.toHaveBeenCalled(); expect(mocks.prepare).toHaveBeenCalledTimes(1); expect(container.textContent).toContain('Thank you'); expect(container.textContent).toContain('Payment confirmed'); expect(container.textContent).toContain('cart has been preserved'); expect(cart.removeItem).not.toHaveBeenCalled(); expect(cart.updateQuantity).not.toHaveBeenCalled() })
+  it('keeps recovery errors safely recheckable without offering payment setup', async () => {
+    vi.useFakeTimers(); history.replaceState({}, '', '/checkout/orders/41')
+    await mount(); await click('Continue to secure payment'); await click('Fake payment completed')
+    await act(async () => vi.advanceTimersByTimeAsync(29000))
+    mocks.recover.mockRejectedValue(new Error('Recovery temporarily unavailable'))
+    await click('Recheck order')
+    expect(container.textContent).toContain('Recovery temporarily unavailable')
+    expect(container.textContent).toContain('still pending')
+    expect(container.textContent).not.toContain('Retry payment setup'); expect(container.textContent).not.toContain('Thank you')
+    expect(mocks.create).not.toHaveBeenCalled(); expect(mocks.prepare).toHaveBeenCalledTimes(1)
+  })
+  it('shows normal confirmation when order becomes non-payable during payment setup', async () => {
+    history.replaceState({}, '', '/checkout/orders/41'); await mount()
+    mocks.read.mockResolvedValueOnce(order).mockResolvedValue({ ...order, status: 'CONFIRMED', payment: { status: 'SUCCEEDED', paidAt: '2026-10-06' } })
+    mocks.prepare.mockRejectedValue(new CheckoutApiError(409, 'ORDER_NOT_PAYABLE'))
+    await click('Continue to secure payment')
+    expect(container.textContent).toContain('Thank you for your order')
+    expect(container.textContent).not.toContain('no longer available'); expect(container.textContent).not.toContain('Continue to secure payment')
+    expect(mocks.recover).not.toHaveBeenCalled(); expect(mocks.create).not.toHaveBeenCalled(); expect(mocks.payment).not.toHaveBeenCalled()
+  })
   it('revisits paid dispatched orders without payment controls', async () => { history.replaceState({}, '', '/checkout/orders/41'); mocks.read.mockResolvedValue({ ...order, status: 'DISPATCHED', payment: { status: 'SUCCEEDED', paidAt: '2026-10-06' } }); await mount(); expect(container.textContent).toContain('Order dispatched'); expect(mocks.prepare).not.toHaveBeenCalled(); expect(mocks.create).not.toHaveBeenCalled() })
 })

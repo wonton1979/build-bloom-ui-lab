@@ -38,6 +38,15 @@ describe('Stripe payment submission', () => {
     expect(container.textContent).toContain('Connection lost'); expect(container.textContent).not.toContain('Pay now')
     await act(async () => container.querySelector('button')!.click()); expect(verify).toHaveBeenCalledOnce()
   })
+  it('uses explicit recovery only for the customer status-check action', async () => {
+    const verify = vi.fn(); const recover = vi.fn()
+    mocks.confirm.mockRejectedValue(new Error('offline'))
+    container = document.createElement('div'); document.body.append(container); root = createRoot(container)
+    await act(async () => root.render(<PaymentForm clientSecret="secret" orderId={41} onVerify={verify} onRecheck={recover} />))
+    await submit(); expect(recover).not.toHaveBeenCalled(); expect(verify).not.toHaveBeenCalled()
+    await act(async () => container.querySelector('button')!.click())
+    expect(recover).toHaveBeenCalledOnce(); expect(verify).not.toHaveBeenCalled()
+  })
   it('does not offer payment again when a recovered intent is already processing', async () => {
     mocks.retrieve.mockResolvedValue({ paymentIntent: { status: 'processing' } })
     const verify = await mount(); expect(verify).toHaveBeenCalledOnce(); expect(mocks.confirm).not.toHaveBeenCalled()
