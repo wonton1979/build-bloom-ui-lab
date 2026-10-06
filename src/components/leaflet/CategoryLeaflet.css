@@ -1211,6 +1211,113 @@
   .leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet__products--star-wars-collection .leaflet-product__purchase--browse { margin-top: 2px; }
 }
 
+/* NINJAGO reuses Vehicles' front and the shared collection cards. Wrapping
+   centers every incomplete row without depending on a particular product count. */
+.leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__print-area--ninjago-back { overflow-y: auto; overflow-x: hidden; }
+.leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--ninjago-collection {
+  --ninjago-column-gap: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px var(--ninjago-column-gap);
+  margin-top: 0;
+}
+.leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--ninjago-collection > .leaflet-product--browse {
+  flex: 0 0 calc((100% - var(--ninjago-column-gap)) / 2);
+  min-width: min(100%, 200px);
+}
+
+@media (min-width: 901px) {
+  /* Match the contained 1669 × 942 artwork, including the sheet padding. */
+  .leaflet__ninjago-layout,
+  .leaflet:has(.leaflet__print-area--ninjago-back) :is(.leaflet__print-area, .leaflet__turn) {
+    --ninjago-paper-width: min(calc(100cqw + 68px), calc((100cqh + 28px) * 1669 / 942));
+    --ninjago-paper-height: min(calc(100cqh + 28px), calc((100cqw + 68px) * 942 / 1669));
+  }
+  .leaflet__ninjago-layout {
+    display: grid;
+    position: absolute;
+    top: calc(50% - var(--ninjago-paper-height) * .08);
+    right: calc(50% - var(--ninjago-paper-width) * .23);
+    width: calc(var(--ninjago-paper-width) * .46);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: center;
+    gap: 12px clamp(16px, calc(var(--ninjago-paper-width) * .018), 30px);
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__ninjago-layout :is(.leaflet__print-area, .leaflet__vehicles-story, .leaflet-product--featured) { display: contents; }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__ninjago-layout .leaflet-product__art {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: center;
+    width: 100%;
+    height: calc(var(--ninjago-paper-height) * .27);
+    max-height: 240px;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__ninjago-layout .leaflet-product__copy {
+    grid-column: 2;
+    grid-row: 1;
+    padding: 0;
+    margin-top: 0;
+    transform: none;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__ninjago-layout .leaflet__footer {
+    grid-column: 2;
+    grid-row: 2;
+    justify-content: flex-start;
+    padding: 0;
+  }
+  .leaflet__ninjago-layout .leaflet__footer > span { display: none; }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__ninjago-layout .leaflet__turn {
+    position: static;
+    min-height: 36px;
+    padding: 4px 12px;
+    font-size: clamp(14px, calc(var(--ninjago-paper-width) * .014), 20px);
+  }
+  .leaflet__ninjago-layout .leaflet__no-feature { grid-column: 1 / -1; }
+
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__print-area--ninjago-back {
+    position: absolute;
+    left: calc(50% - var(--ninjago-paper-width) * .30);
+    top: calc(50% - var(--ninjago-paper-height) * .22);
+    width: calc(var(--ninjago-paper-width) * .60);
+    height: calc(var(--ninjago-paper-height) * .48);
+    padding: 0;
+    gap: 6px;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__print-area--ninjago-back .leaflet__collection-heading h1 { font-size: clamp(17px, calc(var(--ninjago-paper-width) * .014), 23px); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--ninjago-collection > .leaflet-product--browse {
+    flex-basis: calc((100% - 2 * var(--ninjago-column-gap)) / 3);
+    grid-template-columns: minmax(52px, .8fr) minmax(0, 1.2fr);
+    gap: 8px;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--ninjago-collection .leaflet-product__art { height: clamp(56px, calc(var(--ninjago-paper-height) * .09), 86px); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--ninjago-collection .leaflet-product__set,
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--ninjago-collection .leaflet-product__stock { font-size: clamp(9px, calc(var(--ninjago-paper-width) * .0065), 10.5px); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--ninjago-collection .leaflet-product h3 { font-size: clamp(12px, calc(var(--ninjago-paper-width) * .008), 14px); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--ninjago-collection .leaflet-product__price strong { font-size: clamp(15px, calc(var(--ninjago-paper-width) * .01), 17px); }
+  .leaflet[data-side="back"]:has(.leaflet__print-area--ninjago-back) .leaflet__turn {
+    top: calc(50% + var(--ninjago-paper-height) * .25);
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    min-height: 36px;
+    padding: 4px 12px;
+    font-size: clamp(14px, calc(var(--ninjago-paper-width) * .012), 18px);
+  }
+  .leaflet[data-side="back"]:has(.leaflet__print-area--ninjago-back) .leaflet__toolbar button[aria-label="Close leaflet"] {
+    top: calc(50% - var(--leaflet-navigation-height) * .48 - 30px);
+  }
+}
+
+@media (max-width: 600px) {
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--ninjago-collection > .leaflet-product--browse { flex-basis: 100%; grid-template-columns: 64px minmax(0, 1fr); gap: 8px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--ninjago-collection .leaflet-product__art { height: 60px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--ninjago-collection .leaflet-product__set,
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--ninjago-collection .leaflet-product__stock { font-size: 10px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--ninjago-collection .leaflet-product h3 { font-size: 12px; line-height: 1.2; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--ninjago-collection .leaflet-product__price strong { font-size: 15px; }
+}
+
 /* City uses the open water in the London and York paintings. Coordinates are
    fractions of the contained artwork, so the composition follows sheet scale. */
 @media (min-width: 901px) {
