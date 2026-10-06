@@ -1,18 +1,19 @@
 // Inspect the real local storefront. Explicit DOM fixtures stress future product occupancy.
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import assert from 'node:assert/strict'
 
 const dir = resolve('node_modules/.tmp/category-leaflet-inspection')
 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
 mkdirSync(dir, { recursive: true })
 const browser = spawn(process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe', [
-  '--headless=new', '--disable-gpu', '--no-first-run', '--disable-background-networking',
+  '--headless=new', '--no-sandbox', '--disable-gpu', '--disable-gpu-sandbox', '--no-first-run', '--disable-background-networking',
   '--user-data-dir=' + dir + '/profile', '--remote-debugging-port=0',
 ], { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] })
 let socket
-const timeout = setTimeout(() => { browser.kill(); process.exitCode = 1 }, process.argv.includes('--friends-layout') ? 240000 : 150000)
+const stopBrowser = () => { if (browser.pid) spawnSync('taskkill', ['/PID', String(browser.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' }) }
+const timeout = setTimeout(() => { stopBrowser(); process.exitCode = 1 }, process.argv.includes('--friends-layout') ? 240000 : 150000)
 try {
   const ws = await new Promise((resolve, reject) => {
     let logs = ''
@@ -85,6 +86,60 @@ try {
   }
 
   await call('Page.enable')
+  if (process.argv.includes('--city-visual-fixture')) {
+    const category = { id: 880, name: 'City', subtitle: 'Big adventures on every street', description: 'Explore a bustling city.', imageUrl: null, thumbnailUrl: null }
+    const artwork = color => `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='240' viewBox='0 0 360 240'%3E%3Crect width='360' height='240' rx='18' fill='%23${color}'/%3E%3Cpath d='M55 185h250M90 180l35-82 38 82m38 0 32-62 32 62' fill='none' stroke='%23ffffff' stroke-width='14' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E`
+    const products = [
+      ['Jet vs. Car', '60489', true, '5ab9d0'],
+      ['Jet vs. Car', '60489', false, '5ab9d0'],
+      ['Cement Mixer', '60478', false, 'e58b4e'],
+    ].map(([title, setNumber, isFeatureProduct, color], index) => ({
+      id: 8801 + index, isRetired: false, setNumber, title,
+      description: `City ${title} building set.`, theme: 'City', ageRecommendation: '5+', pieceCount: 100 + index * 40,
+      category, catalogueArtworkUrl: artwork(color), catalogueArtworkPublicId: null,
+      productImages: [], isFeatureProduct,
+      offers: [{ id: 9901 + index, legoProductId: 8801 + index, condition: 'NEW', usedLifecycle: null,
+        damageDescription: null, originalPrice: '24.99', salePrice: null, effectivePrice: '24.99',
+        currentStock: 2, availableStock: 2, active: true, usedConditionPhotos: [] }],
+    }))
+    const source = `(() => {
+      const category = ${JSON.stringify(category)}, items = ${JSON.stringify(products)}, originalFetch = window.fetch.bind(window);
+      window.fetch = (input, init) => {
+        const url = typeof input === 'string' ? input : input.url;
+        if (url.endsWith('/categories')) return Promise.resolve(new Response(JSON.stringify([category]), { headers: { 'Content-Type': 'application/json' } }));
+        if (url.includes('/products?')) return Promise.resolve(new Response(JSON.stringify({ items, pagination: { page: 1, pageSize: 100, totalItems: items.length, totalPages: 1 } }), { headers: { 'Content-Type': 'application/json' } }));
+        return originalFetch(input, init);
+      };
+    })()`
+    await call('Page.addScriptToEvaluateOnNewDocument', { source })
+  }
+  if (process.argv.includes('--disney-visual-fixture')) {
+    const category = { id: 881, name: 'Disney', subtitle: 'Build a little wonder', description: 'Discover a storybook world.', imageUrl: null, thumbnailUrl: null }
+    const artwork = color => `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='240' viewBox='0 0 360 240'%3E%3Crect width='360' height='240' rx='18' fill='%23${color}'/%3E%3Cpath d='M55 185h250M90 180l35-82 38 82m38 0 32-62 32 62' fill='none' stroke='%23ffffff' stroke-width='14' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E`
+    const products = [
+      ['Enchanted Castle', '43200', true, '8e77b5'],
+      ['Moonlit Bookshop', '43201', false, 'e6a8b9'],
+      ['Garden Carriage', '43202', false, '77aeb0'],
+    ].map(([title, setNumber, isFeatureProduct, color], index) => ({
+      id: 8811 + index, isRetired: false, setNumber, title,
+      description: `${title} building set.`, theme: 'Disney', ageRecommendation: '6+', pieceCount: 180 + index * 45,
+      category, catalogueArtworkUrl: artwork(color), catalogueArtworkPublicId: null,
+      productImages: [], isFeatureProduct,
+      offers: [{ id: 9911 + index, legoProductId: 8811 + index, condition: 'NEW', usedLifecycle: null,
+        damageDescription: null, originalPrice: '34.99', salePrice: null, effectivePrice: '34.99',
+        currentStock: 2, availableStock: 2, active: true, usedConditionPhotos: [] }],
+    }))
+    const source = `(() => {
+      const category = ${JSON.stringify(category)}, items = ${JSON.stringify(products)}, originalFetch = window.fetch.bind(window);
+      window.fetch = (input, init) => {
+        const url = typeof input === 'string' ? input : input.url;
+        if (url.endsWith('/categories')) return Promise.resolve(new Response(JSON.stringify([category]), { headers: { 'Content-Type': 'application/json' } }));
+        if (url.includes('/products?')) return Promise.resolve(new Response(JSON.stringify({ items, pagination: { page: 1, pageSize: 100, totalItems: items.length, totalPages: 1 } }), { headers: { 'Content-Type': 'application/json' } }));
+        return originalFetch(input, init);
+      };
+    })()`
+    await call('Page.addScriptToEvaluateOnNewDocument', { source })
+  }
   if (process.argv.includes('--friends-layout')) {
     const inspectFriends = () => evaluate(`(() => {
       const sheet=document.querySelector('.leaflet'), area=sheet?.querySelector('.leaflet__print-area'), grid=sheet?.querySelector('.leaflet__products--friends-collection');
@@ -568,6 +623,181 @@ try {
     assert.deepEqual(await bookGeometry(), harryPotterBefore, 'Harry Potter close preserves category geometry')
     writeFileSync(dir+'/vehicles-layout.json',JSON.stringify(results,null,2))
     console.log('PASS continuous width sweep, existing details flow, Harry Potter flip/close, and focus restoration')
+  } else if (process.argv.includes('--city-layout')) {
+    const sizes = [[1920,1080],[1440,900],[1280,800],[1200,800],[1024,768],[901,768],[900,768],[820,1000],[600,844],[390,844]]
+    const results = {}
+    for (const [width,height] of sizes) {
+      await viewport(width,height)
+      await call('Page.navigate',{url:frontendUrl+'/categories/city'})
+      await ready('.category-opening__invitation button')
+      await evaluate("document.querySelector('.category-opening__invitation button').click()")
+      await ready('.leaflet-dialog[open]')
+      await evaluate("Promise.all(document.querySelector('.leaflet-dialog').getAnimations().map(animation=>animation.finished.catch(()=>{})))")
+      await settle()
+      await evaluate('Promise.all([...document.images].map(image => image.decode().catch(() => {})))')
+      const front = await evaluate(`(() => {
+        const sheet=document.querySelector('.leaflet'), area=sheet.querySelector('.leaflet__print-area'), product=sheet.querySelector('.leaflet-product--featured');
+        const box=element=>element?.getBoundingClientRect().toJSON()??null, art=product?.querySelector('.leaflet-product__art'), copy=product?.querySelector('.leaflet-product__copy');
+        const imageNode=art?.querySelector('img'),layout=sheet.querySelector('.leaflet__city-layout');
+        const image=sheet.querySelector('.leaflet__environment'), imageBox=box(image), scale=image?Math.min(imageBox.width/image.naturalWidth,imageBox.height/image.naturalHeight):0;
+        const painted=image?{left:imageBox.left+(imageBox.width-image.naturalWidth*scale)/2,top:imageBox.top+(imageBox.height-image.naturalHeight*scale)/2,width:image.naturalWidth*scale,height:image.naturalHeight*scale}:null;
+        return {side:sheet.dataset.side,environment:image?.getAttribute('src'),featureId:product?.dataset.leafletProduct,title:copy?.querySelector('h3')?.textContent,
+          layout:box(layout),story:box(sheet.querySelector('.leaflet__vehicles-story')),art:box(art),productImage:imageNode?{src:imageNode.src,naturalWidth:imageNode.naturalWidth,naturalHeight:imageNode.naturalHeight}:null,copy:box(copy),area:box(area),turn:box(sheet.querySelector('.leaflet__turn')),painted,
+          areaOverflow:area.scrollWidth>area.clientWidth,viewportOverflow:document.documentElement.scrollWidth>innerWidth,
+          titleFont:copy?parseFloat(getComputedStyle(copy.querySelector('h3')).fontSize):0,artWidth:art?.clientWidth,artHeight:art?.clientHeight};
+      })()`)
+      console.log('City front measured bounds '+width+'x'+height,JSON.stringify(front))
+      assert(front.environment?.endsWith('/city/environment-desktop.png'),width+': front resolves the London artwork')
+      assert(front.featureId,width+': real featured product is rendered')
+      assert(!front.areaOverflow&&!front.viewportOverflow,width+': front has no horizontal overflow')
+      if(width>=901) {
+        await screenshot('city-front-'+width+'x'+height)
+        if(width>=1100 && process.argv.includes('--city-front-layout')) {
+          assert(front.art.left>=front.painted.left+front.painted.width*.22&&front.art.right<=front.painted.left+front.painted.width*.83,width+': featured artwork stays in the London opening')
+          assert(front.copy.left>=front.painted.left+front.painted.width*.22&&front.copy.right<=front.painted.left+front.painted.width*.83,width+': featured copy stays in the London opening')
+          assert(front.art.right+8<=front.copy.left,width+': featured image and text do not collide')
+          assert(front.copy.bottom+8<=front.turn.top,width+': featured text clears the turn control')
+        }
+        if(!front.productImage?.naturalWidth) console.warn(width+': remote catalogue artwork did not load in the local inspection browser')
+      } else await screenshot('city-front-responsive-'+width+'x'+height)
+      await click('.leaflet__turn')
+      await ready('.leaflet[data-side=back]:not([aria-busy=true])')
+      await settle()
+      await evaluate('Promise.all([...document.images].map(image => image.decode().catch(() => {})))')
+      const back=await evaluate(`(() => {
+        const sheet=document.querySelector('.leaflet'),area=sheet.querySelector('.leaflet__print-area--city-back'),grid=sheet.querySelector('.leaflet__products--city-collection'),layout=sheet.querySelector('.leaflet__city-back-layout'),artboard=sheet.querySelector('.leaflet__city-back-artboard');
+        const box=element=>element?.getBoundingClientRect().toJSON()??null,image=sheet.querySelector('.leaflet__environment'),ir=box(image);
+        const scale=image?Math.min(ir.width/image.naturalWidth,ir.height/image.naturalHeight):0;
+        const painted=image?{left:ir.left+(ir.width-image.naturalWidth*scale)/2,top:ir.top+(ir.height-image.naturalHeight*scale)/2,width:image.naturalWidth*scale,height:image.naturalHeight*scale}:null;
+        const slots=grid?[...grid.querySelectorAll(':scope > .leaflet__city-row')].map(row=>({slot:Number(row.dataset.cityRow),count:row.querySelectorAll('.leaflet-product--browse').length,box:box(row)})):[];
+        const products=grid?[...grid.querySelectorAll('.leaflet-product--browse')].map(item=>({slot:Number(item.closest('.leaflet__city-row')?.dataset.cityRow),box:box(item),art:box(item.querySelector('.leaflet-product__art')),copy:box(item.querySelector('.leaflet-product__copy')),title:item.querySelector('h3')?.textContent,titleFont:parseFloat(getComputedStyle(item.querySelector('h3')).fontSize)})):[];
+        const rows=[];for(const item of products){let row=rows.find(value=>Math.abs(value.top-item.box.top)<2);if(!row)rows.push(row={top:item.box.top,count:0});row.count++;}
+        return {side:sheet.dataset.side,environment:image?.getAttribute('src'),count:products.length,rows,slots,headingPresent:!!area.querySelector('.leaflet__collection-heading'),layout:box(layout),artboard:box(artboard),productsArea:box(grid),products,area:box(area),footer:box(sheet.querySelector('.leaflet__footer')),turn:box(sheet.querySelector('.leaflet__turn')),painted,
+          areaOverflow:area.scrollWidth>area.clientWidth,viewportOverflow:document.documentElement.scrollWidth>innerWidth,areaScrolls:area.scrollHeight>area.clientHeight};
+      })()`)
+      console.log('City reverse measured bounds '+width+'x'+height,JSON.stringify(back))
+      assert(back.environment?.endsWith('/city/environment-desktop-back.png'),width+': reverse resolves the York artwork')
+      assert(back.count===2,width+': back uses the two actual non-feature City products')
+      assert.equal(back.headingPresent,false,width+': the City back has no collection heading or subtitle')
+      assert(!back.viewportOverflow,width+': reverse has no horizontal page overflow')
+      assert(!back.areaScrolls,width+': the two-product collection does not scroll within the artwork')
+      assert(back.products.every(item=>item.box.left>=back.area.left&&item.box.right<=back.area.right),width+': products stay inside the print area')
+      if(width>=901) {
+        await screenshot('city-back-'+width+'x'+height)
+        const close=(a,b,tolerance=2)=>Math.abs(a-b)<=tolerance
+        assert(back.artboard&&close(back.artboard.left,back.painted.left)&&close(back.artboard.top,back.painted.top)&&close(back.artboard.width,back.painted.width)&&close(back.artboard.height,back.painted.height),width+': content artboard exactly matches the rendered York painting')
+        assert(close((back.area.left-back.artboard.left)/back.artboard.width,.24,.01)&&close((back.area.top-back.artboard.top)/back.artboard.height,.34,.01)&&close(back.area.width/back.artboard.width,.60,.01)&&close(back.area.height/back.artboard.height,.52,.01),width+': pale safe-area bounds keep the same artwork-relative proportions')
+        assert(close((back.turn.left-back.artboard.left)/back.artboard.width,.72,.02)&&close((back.turn.top-back.artboard.top)/back.artboard.height,.75,.02),width+': Turn over remains anchored to the York composition')
+        assert(back.products.every(item=>item.box.left>=back.painted.left+back.painted.width*.22&&item.box.right<=back.painted.left+back.painted.width*.90&&item.box.top>=back.painted.top+back.painted.height*.30&&item.box.bottom<=back.painted.top+back.painted.height*.80),width+': products stay within the York paper opening')
+        assert.deepEqual(back.slots.map(slot=>[slot.slot,slot.count]),[[1,2]],width+': two products occupy only the fixed first 2-item row')
+        assert(back.slots[0].box.top<back.area.top+back.area.height*.08,width+': the first occupied row starts at the top of the safe area')
+        assert(back.products.every(item=>item.box.top<back.area.top+back.area.height*.32),width+': two products stay near the top with the unused safe area below')
+        assert.equal(back.rows.length,1,width+': the two real reverse products share the first desktop row')
+        assert(close((back.products[0].box.left+back.products[0].box.right+back.products[1].box.left+back.products[1].box.right)/4,(back.artboard.left+back.artboard.right)/2,4),width+': the first row remains horizontally balanced around the painting')
+        assert(back.products.every(item=>item.box.bottom<=back.turn.top||item.box.top>=back.turn.bottom||item.box.right<=back.turn.left||item.box.left>=back.turn.right),width+': products clear the turn control')
+        if(width===1440) {
+          const stress=await evaluate(`(() => {
+            const grid=document.querySelector('.leaflet__products--city-collection'),original=grid.innerHTML,pool=[...grid.querySelectorAll('.leaflet-product--browse')],counts=[2,3,4,2];let cursor=0;
+            grid.replaceChildren(...counts.map((count,index)=>{const row=document.createElement('div');row.className='leaflet__city-row leaflet__city-row--'+(index+1);row.dataset.cityRow=String(index+1);for(let item=0;item<count;item++)row.append(pool[cursor++%pool.length].cloneNode(true));return row;}));
+            const box=node=>node.getBoundingClientRect().toJSON(),slots=[...grid.querySelectorAll(':scope > .leaflet__city-row')].map(row=>({slot:Number(row.dataset.cityRow),count:row.querySelectorAll('.leaflet-product--browse').length,box:box(row),products:[...row.querySelectorAll('.leaflet-product--browse')].map(box)})),products=[...grid.querySelectorAll('.leaflet-product--browse')].map(box),area=document.querySelector('.leaflet__print-area--city-back'),turn=document.querySelector('.leaflet__turn');
+            const overlaps=(a,b)=>a.left<b.right-1&&a.right>b.left+1&&a.top<b.bottom-1&&a.bottom>b.top+1;
+            return {original,slots,products,area:box(area),turn:box(turn),areaScrolls:area.scrollHeight>area.clientHeight,productOverlap:products.some((a,index)=>products.slice(index+1).some(b=>overlaps(a,b))),turnOverlap:products.some(product=>overlaps(product,box(turn)))};
+          })()`)
+          const originalBackMarkup=stress.original
+          delete stress.original
+          await screenshot('city-back-'+width+'x'+height+'-11-slots')
+          assert.deepEqual(stress.slots.map(slot=>[slot.slot,slot.count]),[[1,2],[2,3],[3,4],[4,2]],width+': eleven products fill the fixed 2 / 3 / 4 / 2 rows')
+          assert(stress.slots.every((slot,index)=>slot.products.every(product=>product.left>=stress.area.left&&product.right<=stress.area.right)&&(index===0||slot.box.top>stress.slots[index-1].box.top)),width+': every fixed row stays inside the York opening and runs top-to-bottom')
+          assert.equal(stress.productOverlap,false,width+': the eleven-slot composition has no product collisions')
+          assert.equal(stress.turnOverlap,false,width+': the eleven-slot composition clears Turn over')
+          assert.equal(stress.areaScrolls,false,width+': the eleven-slot composition fits without scrolling')
+          await evaluate(`document.querySelector('.leaflet__products--city-collection').innerHTML=${JSON.stringify(originalBackMarkup)}`)
+          console.log('City fixed-slot stress layout '+width+'x'+height,JSON.stringify(stress))
+        }
+      } else if(width<=600) {
+        assert.equal(back.rows.length,2,width+': the narrow reverse stacks products for readable copy')
+        assert(back.turn.left>back.area.left+back.area.width*.5,width+': the mobile turn control stays right-aligned in the footer')
+      } else {
+        assert.equal(back.rows.length,1,width+': tablet reverse keeps two products side by side')
+        assert(back.turn.left>back.area.left+back.area.width*.5,width+': the tablet turn control stays right-aligned in the footer')
+      }
+      if(width<901) await screenshot('city-responsive-'+width+'x'+height)
+      results[width+'x'+height]={front,back}
+      console.log('City leaflet geometry '+width+'x'+height,JSON.stringify({front,back}))
+      await click('[aria-label="Close leaflet"]')
+    }
+    writeFileSync(dir+'/city-layout.json',JSON.stringify(results,null,2))
+    console.log('PASS City London/York artwork, real featured product, fixed top-first two-product row, responsive overflow and artwork bounds')
+  } else if (process.argv.includes('--disney-layout')) {
+    const sizes = [[1920,1080],[1440,900],[1280,800],[1200,800],[1024,768],[901,768],[900,768],[820,1000],[600,844],[390,844]]
+    const results = {}
+    for (const [width,height] of sizes) {
+      await viewport(width,height)
+      await call('Page.navigate',{url:frontendUrl+'/categories/disney'})
+      await ready('.category-opening__invitation button')
+      await evaluate("document.querySelector('.category-opening__invitation button').click()")
+      await ready('.leaflet-dialog[open]')
+      await evaluate("Promise.all(document.querySelector('.leaflet-dialog').getAnimations().map(animation=>animation.finished.catch(()=>{})))")
+      await settle()
+      await evaluate('Promise.all([...document.images].map(image=>image.decode().catch(()=>{})))')
+      const front=await evaluate(`(() => {
+        const sheet=document.querySelector('.leaflet'),image=sheet.querySelector('.leaflet__environment'),area=sheet.querySelector('.leaflet__print-area--disney-front'),artboard=sheet.querySelector('.leaflet__disney-artboard'),product=sheet.querySelector('.leaflet__disney-story > .leaflet-product--featured');
+        const box=element=>element?.getBoundingClientRect().toJSON()??null,ir=box(image),scale=image?Math.min(ir.width/image.naturalWidth,ir.height/image.naturalHeight):0;
+        const painted=image?{left:ir.left+(ir.width-image.naturalWidth*scale)/2,top:ir.top+(ir.height-image.naturalHeight*scale)/2,width:image.naturalWidth*scale,height:image.naturalHeight*scale}:null;
+        return {side:sheet.dataset.side,environment:image?.getAttribute('src'),visible:image?getComputedStyle(image).display!=='none':false,natural:image?{width:image.naturalWidth,height:image.naturalHeight}:null,
+          painted,artboard:box(artboard),area:box(area),featured:box(product),art:box(product?.querySelector('.leaflet-product__art')),copy:box(product?.querySelector('.leaflet-product__copy')),
+          featureId:product?.dataset.leafletProduct,title:product?.querySelector('h3')?.textContent,turn:box(sheet.querySelector('.leaflet__turn')),
+          areaOverflow:area?area.scrollWidth>area.clientWidth+1:false,areaScrolls:area?area.scrollHeight>area.clientHeight+1:false,viewportOverflow:document.documentElement.scrollWidth>innerWidth};
+      })()`)
+      await screenshot('disney-front-'+width+'x'+height)
+      console.log('Disney front measured bounds '+width+'x'+height,JSON.stringify(front))
+      assert(front.environment?.endsWith('/disney/environment-desktop.png'),width+': front resolves the supplied fairytale artwork')
+      assert.equal(front.featureId,'8811',width+': featured product comes from the Disney catalogue fixture')
+      assert.equal(front.title,'Enchanted Castle',width+': featured product title remains visible')
+      assert.equal(front.viewportOverflow,false,width+': front has no horizontal page overflow')
+      if(width>=901) {
+        assert.equal(front.visible,true,width+': desktop front shows its environment')
+        assert(front.artboard&&Math.abs(front.artboard.left-front.painted.left)<2&&Math.abs(front.artboard.top-front.painted.top)<2&&Math.abs(front.artboard.width-front.painted.width)<2&&Math.abs(front.artboard.height-front.painted.height)<2,width+': front content artboard tracks the contained painting')
+        assert(front.art.left>=front.painted.left+front.painted.width*.2&&front.art.right<=front.painted.left+front.painted.width*.8&&front.art.top>=front.painted.top+front.painted.height*.39&&front.art.bottom<=front.painted.top+front.painted.height*.78,width+': featured artwork stays within the pastel opening')
+        assert(front.copy.left>=front.painted.left+front.painted.width*.2&&front.copy.right<=front.painted.left+front.painted.width*.8&&front.copy.top>=front.painted.top+front.painted.height*.39&&front.copy.bottom<=front.painted.top+front.painted.height*.78,width+': featured information stays within the pastel opening')
+        assert(front.copy.right+8<=front.turn.left||front.turn.right+8<=front.copy.left||front.copy.bottom+8<=front.turn.top||front.turn.bottom+8<=front.copy.top,width+': featured copy clears the turn control')
+      }
+      await click('.leaflet__turn')
+      await ready('.leaflet[data-side="back"]:not([aria-busy="true"])')
+      await settle()
+      await evaluate('Promise.all([...document.images].map(image=>image.decode().catch(()=>{})))')
+      const back=await evaluate(`(() => {
+        const sheet=document.querySelector('.leaflet'),image=sheet.querySelector('.leaflet__environment'),area=sheet.querySelector('.leaflet__print-area--disney-back'),grid=sheet.querySelector('.leaflet__products--disney-collection'),artboard=sheet.querySelector('.leaflet__disney-back-artboard');
+        const box=element=>element?.getBoundingClientRect().toJSON()??null,ir=box(image),scale=image?Math.min(ir.width/image.naturalWidth,ir.height/image.naturalHeight):0;
+        const painted=image?{left:ir.left+(ir.width-image.naturalWidth*scale)/2,top:ir.top+(ir.height-image.naturalHeight*scale)/2,width:image.naturalWidth*scale,height:image.naturalHeight*scale}:null;
+        const slots=grid?[...grid.querySelectorAll(':scope > .leaflet__disney-row')].map(row=>({row:Number(row.dataset.disneyRow),count:row.querySelectorAll('.leaflet-product--browse').length,box:box(row)})):[];
+        const products=grid?[...grid.querySelectorAll('.leaflet-product--browse')].map(item=>({box:box(item),image:box(item.querySelector('.leaflet-product__art')),copy:box(item.querySelector('.leaflet-product__copy')),title:item.querySelector('h3')?.textContent})):[];
+        const rows=[];for(const item of products){let row=rows.find(value=>Math.abs(value.top-item.box.top)<2);if(!row)rows.push(row={top:item.box.top,count:0});row.count++;}
+        return {side:sheet.dataset.side,environment:image?.getAttribute('src'),visible:image?getComputedStyle(image).display!=='none':false,natural:image?{width:image.naturalWidth,height:image.naturalHeight}:null,
+          painted,artboard:box(artboard),area:box(area),grid:box(grid),slots,products,rows,heading:!!area?.querySelector('.leaflet__collection-heading'),turn:box(sheet.querySelector('.leaflet__turn')),
+          areaOverflow:area?area.scrollWidth>area.clientWidth+1:false,areaScrolls:area?area.scrollHeight>area.clientHeight+1:false,viewportOverflow:document.documentElement.scrollWidth>innerWidth};
+      })()`)
+      await screenshot('disney-back-'+width+'x'+height)
+      console.log('Disney back measured bounds '+width+'x'+height,JSON.stringify(back))
+      assert(back.environment?.endsWith('/disney/environment-desktop-back.png'),width+': back resolves the separate garden artwork')
+      assert.equal(back.heading,false,width+': the back has no collection heading')
+      assert.deepEqual(back.slots.map(slot=>[slot.row,slot.count]),[[1,2]],width+': two products occupy only the first fixed slot row')
+      assert.equal(back.viewportOverflow,false,width+': back has no horizontal page overflow')
+      if(width>=901) {
+        assert.equal(back.visible,true,width+': desktop back shows its environment')
+        assert(back.artboard&&Math.abs(back.artboard.left-back.painted.left)<2&&Math.abs(back.artboard.top-back.painted.top)<2&&Math.abs(back.artboard.width-back.painted.width)<2&&Math.abs(back.artboard.height-back.painted.height)<2,width+': back content artboard tracks the contained painting')
+        assert(Math.abs((back.area.left-back.artboard.left)/back.artboard.width-.20)<.01&&Math.abs((back.area.top-back.artboard.top)/back.artboard.height-.40)<.01&&Math.abs(back.area.width/back.artboard.width-.60)<.01&&Math.abs(back.area.height/back.artboard.height-.47)<.01,width+': back products remain in the same artwork-relative clearing')
+        assert(back.products.every(item=>item.box.left>=back.area.left&&item.box.right<=back.area.right&&item.box.top>=back.area.top&&item.box.bottom<=back.area.bottom),width+': back products stay inside the safe area')
+        assert(back.products.every(item=>item.box.top<back.area.top+back.area.height*.32),width+': the two products remain in the top row with the opening below')
+        assert(back.slots[0].box.top<back.area.top+1,width+': the first fixed track stays anchored at the top of the opening')
+        assert(back.products.every(item=>item.box.bottom<=back.turn.top||item.box.top>=back.turn.bottom||item.box.right<=back.turn.left||item.box.left>=back.turn.right),width+': products clear the turn control')
+      } else if(width<=600) assert.equal(back.rows.length,2,width+': mobile stacks products for readable copy')
+      else assert.equal(back.rows.length,1,width+': tablet keeps the two products side by side')
+      results[width+'x'+height]={front,back}
+      await click('[aria-label="Close leaflet"]')
+    }
+    writeFileSync(dir+'/disney-layout.json',JSON.stringify(results,null,2))
+    console.log('PASS Disney front/back artwork, feature and collection, fixed top-first row and five responsive classes')
   } else if (process.argv.includes('--handoff')) {
     const beforeFix = process.argv.includes('--before')
     const measure = root => evaluate(`(() => {
@@ -953,4 +1183,4 @@ try {
   console.log('PASS live categories, featured listing '+featured.id+', '+teaserIds.length+' Front promotions, '+expectedBackIds.length+' remaining Back listings, desktop Front fit, scrollable Back, whole-sheet flip, details handoff, category links, Escape and reduced motion')
   }
   await send('Browser.close')
-} finally { clearTimeout(timeout); socket?.close(); browser.kill() }
+} finally { clearTimeout(timeout); socket?.close(); stopBrowser() }

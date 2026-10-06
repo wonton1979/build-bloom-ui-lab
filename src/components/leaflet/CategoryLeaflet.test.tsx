@@ -11,6 +11,10 @@ import harryPotterEnvironmentDesktop from '../../assets/leaflet-themes/harry-pot
 import harryPotterEnvironmentDesktopBack from '../../assets/leaflet-themes/harry-potter/environment-desktop-back.png'
 import vehiclesEnvironmentDesktop from '../../assets/leaflet-themes/vehicles/environment-desktop.png'
 import vehiclesEnvironmentDesktopBack from '../../assets/leaflet-themes/vehicles/environment-desktop-back.png'
+import cityEnvironmentDesktop from '../../assets/leaflet-themes/city/environment-desktop.png'
+import cityEnvironmentDesktopBack from '../../assets/leaflet-themes/city/environment-desktop-back.png'
+import disneyEnvironmentDesktop from '../../assets/leaflet-themes/disney/environment-desktop.png'
+import disneyEnvironmentDesktopBack from '../../assets/leaflet-themes/disney/environment-desktop-back.png'
 import starWarsEnvironmentDesktop from '../../assets/leaflet-themes/star-wars/environment-desktop.png'
 import starWarsEnvironmentDesktopBack from '../../assets/leaflet-themes/star-wars/environment-desktop-back.png'
 import friendsEnvironmentDesktop from '../../assets/leaflet-themes/friends/environment-desktop.png'
@@ -22,13 +26,108 @@ const printedIds = (markup: string) => [...markup.matchAll(/data-leaflet-product
 const harryPotter = { ...category, name: 'Harry Potter' }
 const starWars = { ...category, name: 'Star Wars', subtitle: 'Adventure among the stars', description: 'Build your own story among the stars.' }
 const friends = { ...category, name: 'Friends', subtitle: 'Welcome to Heartlake City' }
+const city = { ...category, name: 'City' }
+const disney = { ...category, name: 'Disney' }
 const genericCategory = { ...category, name: 'Creator' }
+const cityRowIds = (markup: string) => {
+  const container = document.createElement('div')
+  container.innerHTML = markup
+  return [...container.querySelectorAll<HTMLElement>('[data-city-row]')].map(row => [...row.querySelectorAll<HTMLElement>('[data-leaflet-product]')].map(item => Number(item.dataset.leafletProduct)))
+}
+const disneyRowIds = (markup: string) => {
+  const container = document.createElement('div')
+  container.innerHTML = markup
+  return [...container.querySelectorAll<HTMLElement>('[data-disney-row]')].map(row => [...row.querySelectorAll<HTMLElement>('[data-leaflet-product]')].map(item => Number(item.dataset.leafletProduct)))
+}
 const collectionProducts = (count: number) => Array.from({ length: count }, (_, index) => {
   const id = 100 + index
   return product(id, [offer(1000 + index, { legoProductId: id })], { title: `Collection build ${index + 1}`, setNumber: `764${index}` })
 })
 
 describe('Category advertising leaflet', () => {
+  it('renders City artwork and the catalogue feature on the front', () => {
+    const markup = renderToStaticMarkup(<CategoryLeaflet category={city} products={[others[0], feature, others[1]]} onClose={() => {}} onDetails={() => {}} />)
+    expect(markup).toContain(`src="${cityEnvironmentDesktop}"`)
+    expect(markup).not.toContain(`src="${cityEnvironmentDesktopBack}"`)
+    expect(markup).toContain('leaflet__print-area--city-front')
+    expect(printedIds(markup)).toEqual([feature.id])
+    expect(markup).toContain('£12.99')
+    expect(markup).toContain('1 available')
+    expect(markup).toContain('Turn over →')
+  })
+  it('renders City collection data in the York artwork', () => {
+    const collection = [feature, ...collectionProducts(11)]
+    const markup = renderToStaticMarkup(<CategoryLeaflet category={city} products={collection} side="back" onClose={() => {}} onDetails={() => {}} />)
+    expect(markup).toContain(`src="${cityEnvironmentDesktopBack}"`)
+    expect(markup).not.toContain(`src="${cityEnvironmentDesktop}"`)
+    expect(markup).toContain('leaflet__products--city-collection')
+    expect(markup).toContain('leaflet__city-back-layout')
+    expect(markup).toContain('leaflet__city-back-artboard')
+    expect(markup).not.toContain('The City Collection')
+    expect(markup).not.toContain('Choose a build to take a closer look.')
+    expect(printedIds(markup)).toEqual(collection.slice(1).map(item => item.id))
+    expect(markup).toContain('← Turn over')
+  })
+  it.each([
+    { count: 2, rows: [[100, 101]] },
+    { count: 3, rows: [[100, 101], [102]] },
+    { count: 5, rows: [[100, 101], [102, 103, 104]] },
+    { count: 9, rows: [[100, 101], [102, 103, 104], [105, 106, 107, 108]] },
+    { count: 11, rows: [[100, 101], [102, 103, 104], [105, 106, 107, 108], [109, 110]] },
+  ])('fills City back slots top-down for $count products', ({ count, rows }) => {
+    const collection = collectionProducts(count)
+    const markup = renderToStaticMarkup(<LeafletContent category={city} products={collection} collectionProducts={collection} side="back" onDetails={() => {}} />)
+    expect(cityRowIds(markup)).toEqual(rows)
+    expect(printedIds(markup)).toEqual(collection.map(item => item.id))
+  })
+  it('renders Disney featured data in its supplied front environment', () => {
+    const markup = renderToStaticMarkup(<CategoryLeaflet category={disney} products={[others[0], feature, others[1]]} onClose={() => {}} onDetails={() => {}} />)
+    expect(markup).toContain(`src="${disneyEnvironmentDesktop}"`)
+    expect(markup).not.toContain(`src="${disneyEnvironmentDesktopBack}"`)
+    expect(markup).toContain('leaflet__disney-layout')
+    expect(markup).toContain('leaflet__disney-artboard')
+    expect(markup).toContain('leaflet__print-area--disney-front')
+    expect(markup).toContain('leaflet__disney-story')
+    expect(printedIds(markup)).toEqual([feature.id])
+    expect(markup).toContain('API product 9')
+    expect(markup).toContain('123 pieces · Ages 9+')
+    expect(markup).toContain('£12.99')
+    expect(markup).toContain('1 available')
+    expect(markup).toContain('Take a closer look')
+    expect(markup).toContain('Turn over →')
+    expect(markup).not.toContain('Featured build')
+  })
+  it('renders the Disney collection in its distinct back artwork without a collection heading', () => {
+    const collection = [feature, ...collectionProducts(11)]
+    const markup = renderToStaticMarkup(<CategoryLeaflet category={disney} products={collection} side="back" onClose={() => {}} onDetails={() => {}} />)
+    expect(markup).toContain(`src="${disneyEnvironmentDesktopBack}"`)
+    expect(markup).not.toContain(`src="${disneyEnvironmentDesktop}"`)
+    expect(markup).toContain('leaflet__disney-back-layout')
+    expect(markup).toContain('leaflet__disney-back-artboard')
+    expect(markup).toContain('leaflet__print-area--disney-back')
+    expect(markup).toContain('leaflet__products--disney-collection')
+    expect(markup).not.toContain('The Disney Collection')
+    expect(markup).not.toContain('Choose a build to take a closer look.')
+    expect(printedIds(markup)).toEqual(collection.slice(1).map(item => item.id))
+    expect(markup).toContain('← Turn over')
+  })
+  it('leaves the Disney back artwork empty when no collection products are available', () => {
+    const markup = renderToStaticMarkup(<LeafletContent category={disney} products={[feature]} side="back" onDetails={() => {}} />)
+    expect(markup).not.toContain('More discoveries are on their way.')
+    expect(markup).not.toContain('leaflet-product--browse')
+  })
+  it.each([
+    { count: 2, rows: [[100, 101]] },
+    { count: 3, rows: [[100, 101], [102]] },
+    { count: 5, rows: [[100, 101], [102, 103, 104]] },
+    { count: 9, rows: [[100, 101], [102, 103, 104], [105, 106, 107, 108]] },
+    { count: 11, rows: [[100, 101], [102, 103, 104], [105, 106, 107, 108], [109, 110]] },
+  ])('fills Disney back slots from the top for $count products', ({ count, rows }) => {
+    const collection = collectionProducts(count)
+    const markup = renderToStaticMarkup(<LeafletContent category={disney} products={collection} collectionProducts={collection} side="back" onDetails={() => {}} />)
+    expect(disneyRowIds(markup)).toEqual(rows)
+    expect(printedIds(markup)).toEqual(collection.map(item => item.id))
+  })
   it('selects one product feature and preserves each product once', () => {
     const products = [others[0], feature, others[1], others[0]]
     expect(categoryProducts(products)).toEqual({ feature, others })
@@ -333,7 +432,7 @@ describe('Category advertising leaflet', () => {
 
     await act(async () => root.unmount())
   })
-  it.each(['Vehicles', 'Harry Potter', 'Star Wars', 'Friends'])('keeps a non-first %s Featured Build exclusively on the front', theme => {
+  it.each(['Vehicles', 'Harry Potter', 'Star Wars', 'Friends', 'City'])('keeps a non-first %s Featured Build exclusively on the front', theme => {
     const themedCategory = { ...category, name: theme }
     const featured = product(912, [offer(1912, { legoProductId: 912 })], { title: `${theme} feature`, isFeatureProduct: true })
     const standards = [product(914), product(915)]
@@ -350,7 +449,7 @@ describe('Category advertising leaflet', () => {
     expect(front).not.toContain('class="leaflet__products')
     expect(back).toContain('← Turn over')
   })
-  it.each(['Vehicles', 'Harry Potter', 'Star Wars', 'Friends'])('keeps a featured-only %s leaflet free of reverse duplicates', theme => {
+  it.each(['Vehicles', 'Harry Potter', 'Star Wars', 'Friends', 'City'])('keeps a featured-only %s leaflet free of reverse duplicates', theme => {
     const themedCategory = { ...category, name: theme }
     const featured = product(916, [offer(1916, { legoProductId: 916 })], { title: `${theme} only feature`, isFeatureProduct: true })
     const back = renderToStaticMarkup(<CategoryLeaflet category={themedCategory} products={[featured]} side="back" onClose={() => {}} onDetails={() => {}} />)
@@ -358,7 +457,7 @@ describe('Category advertising leaflet', () => {
     expect(back).not.toContain(`${theme} only feature`)
     expect(back).toContain('More discoveries are on their way.')
   })
-  it.each(['Vehicles', 'Harry Potter', 'Star Wars', 'Friends'])('keeps only the one non-feature product on a small %s reverse', theme => {
+  it.each(['Vehicles', 'Harry Potter', 'Star Wars', 'Friends', 'City'])('keeps only the one non-feature product on a small %s reverse', theme => {
     const themedCategory = { ...category, name: theme }
     const featured = product(917, [offer(1917, { legoProductId: 917 })], { title: `${theme} feature`, isFeatureProduct: true })
     const standard = product(918, [offer(1918, { legoProductId: 918 })], { title: `${theme} standard` })
@@ -376,6 +475,24 @@ afterEach(() => {
 })
 
 describe('Reverse collection product selection', () => {
+  it('turns City over and opens a real collection offer', async () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true, addListener: vi.fn(), removeListener: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn() })))
+    Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value() { this.setAttribute('open', '') } })
+    Object.defineProperty(HTMLDialogElement.prototype, 'close', { configurable: true, value() { this.removeAttribute('open') } })
+    const selected = product(88, [offer(808, { legoProductId: 88 })], { title: 'City train', setNumber: '60470' })
+    const onDetails = vi.fn()
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    await act(async () => { root.render(<CategoryLeaflet category={city} products={[feature, selected]} onClose={() => {}} onDetails={onDetails} />) })
+    expect(container.querySelector('.leaflet__environment')?.getAttribute('src')).toBe(cityEnvironmentDesktop)
+    await act(async () => { container.querySelector<HTMLButtonElement>('.leaflet__turn')!.click() })
+    expect(container.querySelector('.leaflet__environment')?.getAttribute('src')).toBe(cityEnvironmentDesktopBack)
+    expect(printedIds(container.innerHTML)).toEqual([selected.id])
+    await act(async () => { container.querySelector<HTMLButtonElement>('[data-leaflet-product="88"] .leaflet-product__title-button')!.click() })
+    expect(onDetails).toHaveBeenCalledWith(808)
+    await act(async () => root.unmount())
+  })
   it('keeps its random eleven-product selection stable through ordinary rerenders', async () => {
     vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true, addListener: vi.fn(), removeListener: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn() })))
     vi.spyOn(Math, 'random').mockReturnValue(.25)
@@ -454,6 +571,31 @@ describe('Reverse collection product selection', () => {
     expect(printedIds(container.innerHTML)).toEqual([selected.id])
     await act(async () => { container.querySelector<HTMLButtonElement>(`[data-leaflet-product="${selected.id}"] .leaflet-product__title-button`)!.click() })
     expect(onDetails).toHaveBeenCalledWith(1989)
+
+    await act(async () => root.unmount())
+  })
+
+  it('turns over Disney and opens a collection product through the existing details flow', async () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true, addListener: vi.fn(), removeListener: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn() })))
+    Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value() { this.setAttribute('open', '') } })
+    Object.defineProperty(HTMLDialogElement.prototype, 'close', { configurable: true, value() { this.removeAttribute('open') } })
+    const featured = product(501, [offer(1501, { legoProductId: 501 })], { title: 'Castle of the Lake', setNumber: '43200', isFeatureProduct: true })
+    const selected = product(502, [offer(1502, { legoProductId: 502 })], { title: 'Enchanted Garden', setNumber: '43201' })
+    const onDetails = vi.fn()
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    await act(async () => { root.render(<CategoryLeaflet category={disney} products={[featured, selected]} onClose={() => {}} onDetails={onDetails} />) })
+
+    expect(container.querySelector('.leaflet__environment')?.getAttribute('src')).toBe(disneyEnvironmentDesktop)
+    expect(printedIds(container.innerHTML)).toEqual([featured.id])
+    await act(async () => { container.querySelector<HTMLButtonElement>('.leaflet__turn')!.click() })
+    expect(container.querySelector('.leaflet[data-side="back"]')).not.toBeNull()
+    expect(container.querySelector('.leaflet__environment')?.getAttribute('src')).toBe(disneyEnvironmentDesktopBack)
+    expect(container.querySelector('.leaflet__collection-heading')).toBeNull()
+    expect(printedIds(container.innerHTML)).toEqual([selected.id])
+    await act(async () => { container.querySelector<HTMLButtonElement>(`[data-leaflet-product="${selected.id}"] .leaflet-product__title-button`)!.click() })
+    expect(onDetails).toHaveBeenCalledWith(1502)
 
     await act(async () => root.unmount())
   })

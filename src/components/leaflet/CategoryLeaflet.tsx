@@ -14,6 +14,10 @@ import starWarsEnvironmentDesktop from '../../assets/leaflet-themes/star-wars/en
 import starWarsEnvironmentDesktopBack from '../../assets/leaflet-themes/star-wars/environment-desktop-back.png'
 import friendsEnvironmentDesktop from '../../assets/leaflet-themes/friends/environment-desktop.png'
 import friendsEnvironmentDesktopBack from '../../assets/leaflet-themes/friends/environment-desktop-back.png'
+import cityEnvironmentDesktop from '../../assets/leaflet-themes/city/environment-desktop.png'
+import cityEnvironmentDesktopBack from '../../assets/leaflet-themes/city/environment-desktop-back.png'
+import disneyEnvironmentDesktop from '../../assets/leaflet-themes/disney/environment-desktop.png'
+import disneyEnvironmentDesktopBack from '../../assets/leaflet-themes/disney/environment-desktop-back.png'
 import './CategoryLeaflet.css'
 
 export type LeafletSide = 'front' | 'back'
@@ -22,7 +26,9 @@ const isHarryPotterCategory = (category: BackendCategory) => category.name.trim(
 const isVehiclesCategory = (category: BackendCategory) => category.name.trim().toLocaleLowerCase('en') === 'vehicles'
 const isStarWarsCategory = (category: BackendCategory) => category.name.trim().toLocaleLowerCase('en') === 'star wars'
 const isFriendsCategory = (category: BackendCategory) => category.name.trim().toLocaleLowerCase('en') === 'friends'
-const isThemedCollectionCategory = (category: BackendCategory) => isHarryPotterCategory(category) || isVehiclesCategory(category) || isStarWarsCategory(category) || isFriendsCategory(category)
+const isCityCategory = (category: BackendCategory) => category.name.trim().toLocaleLowerCase('en') === 'city'
+const isDisneyCategory = (category: BackendCategory) => category.name.trim().toLocaleLowerCase('en') === 'disney'
+const isThemedCollectionCategory = (category: BackendCategory) => isHarryPotterCategory(category) || isVehiclesCategory(category) || isStarWarsCategory(category) || isFriendsCategory(category) || isCityCategory(category) || isDisneyCategory(category)
 const starWarsFeaturedProductLimit = 1
 
 function categoryBackProducts(category: BackendCategory, products: readonly CatalogueProduct[]) {
@@ -45,15 +51,30 @@ export function LeafletContent({ category, products, collectionProducts, side, o
   const starWarsBack = side === 'back' && isStarWarsCategory(category)
   const friendsFront = side === 'front' && isFriendsCategory(category)
   const friendsBack = side === 'back' && isFriendsCategory(category)
+  const cityFront = side === 'front' && isCityCategory(category)
+  const cityBack = side === 'back' && isCityCategory(category)
+  const disneyFront = side === 'front' && isDisneyCategory(category)
+  const disneyBack = side === 'back' && isDisneyCategory(category)
   const collectionBack = side === 'back' && isThemedCollectionCategory(category)
-  const themedFront = harryPotterFront || vehiclesFront || starWarsFront || friendsFront
+  const themedFront = harryPotterFront || vehiclesFront || starWarsFront || friendsFront || cityFront || disneyFront
+  const backProducts = collectionProducts ?? ((starWarsBack || friendsBack || disneyBack) ? categoryBackProducts(category, products) : others)
+  const cityProductRows = cityBack ? [[0, 2], [2, 5], [5, 9], [9, 11]].map(([start, end], index) => ({
+    row: index + 1,
+    products: backProducts.slice(start, end),
+  })).filter(({ products }) => products.length > 0) : []
+  const disneyProductRows = disneyBack ? [[0, 2], [2, 5], [5, 9], [9, 11]].map(([start, end], index) => ({
+    row: index + 1,
+    products: backProducts.slice(start, end),
+  })).filter(({ products }) => products.length > 0) : []
   return <>
     {!themedFront && !collectionBack && <header className="leaflet__masthead"><span className="leaflet__brand">Build &amp; Bloom</span><span className="leaflet__motto">Small bricks.<br />Big possibilities.</span></header>}
     {!themedFront && !collectionBack && <div className="leaflet__category-band"><div><p className="leaflet__edition">The {category.name} collection</p><h1 id="leaflet-title">{side === 'front' ? category.name : 'More to explore'}</h1></div><p>{category.subtitle}</p></div>}
-    <div className={`leaflet__print-area leaflet__print-area--${side}${harryPotterFront ? ' leaflet__print-area--harry-potter-front' : ''}${harryPotterBack ? ' leaflet__print-area--harry-potter-back' : ''}${collectionBack ? ' leaflet__print-area--collection-back' : ''}${vehiclesFront ? ' leaflet__print-area--vehicles-front' : ''}${vehiclesBack ? ' leaflet__print-area--vehicles-back' : ''}${starWarsFront ? ' leaflet__print-area--star-wars-front' : ''}${starWarsBack ? ' leaflet__print-area--star-wars-back' : ''}${friendsFront ? ' leaflet__print-area--friends-front' : ''}${friendsBack ? ' leaflet__print-area--friends-back' : ''}`} key={side} id={friendsBack || starWarsFront || starWarsBack ? 'leaflet-title' : undefined} tabIndex={0} aria-label={harryPotterFront ? 'Featured story' : vehiclesFront ? 'Vehicles featured story' : starWarsFront ? 'Star Wars featured story' : friendsFront ? 'Friends featured story' : harryPotterBack ? 'Harry Potter collection products' : vehiclesBack ? 'Vehicles collection products' : starWarsBack ? 'Star Wars collection products' : friendsBack ? 'Friends collection products' : `${category.name} ${side === 'front' ? 'featured product' : 'other products'}`}>
+    <div className={`leaflet__print-area leaflet__print-area--${side}${harryPotterFront ? ' leaflet__print-area--harry-potter-front' : ''}${harryPotterBack ? ' leaflet__print-area--harry-potter-back' : ''}${collectionBack ? ' leaflet__print-area--collection-back' : ''}${vehiclesFront ? ' leaflet__print-area--vehicles-front' : ''}${cityFront ? ' leaflet__print-area--city-front' : ''}${cityBack ? ' leaflet__print-area--city-back' : ''}${disneyFront ? ' leaflet__print-area--disney-front' : ''}${disneyBack ? ' leaflet__print-area--disney-back' : ''}${vehiclesBack ? ' leaflet__print-area--vehicles-back' : ''}${starWarsFront ? ' leaflet__print-area--star-wars-front' : ''}${starWarsBack ? ' leaflet__print-area--star-wars-back' : ''}${friendsFront ? ' leaflet__print-area--friends-front' : ''}${friendsBack ? ' leaflet__print-area--friends-back' : ''}`} key={side} id={friendsBack || starWarsFront || starWarsBack || cityBack ? 'leaflet-title' : undefined} tabIndex={0} aria-label={harryPotterFront ? 'Featured story' : vehiclesFront ? 'Vehicles featured story' : cityFront ? 'City featured story' : disneyFront ? 'Disney featured story' : starWarsFront ? 'Star Wars featured story' : friendsFront ? 'Friends featured story' : harryPotterBack ? 'Harry Potter collection products' : vehiclesBack ? 'Vehicles collection products' : cityBack ? 'City collection products' : disneyBack ? 'Disney collection products' : starWarsBack ? 'Star Wars collection products' : friendsBack ? 'Friends collection products' : `${category.name} ${side === 'front' ? 'featured product' : 'other products'}`}>
       {side === 'front' ? harryPotterFront ? <div className="leaflet__harry-potter-story">
         {feature ? <LeafletProduct product={feature} featured showDescription={false} titleId="leaflet-title" onDetails={onDetails} /> : <div className="leaflet__no-feature"><h2 id="leaflet-title">A story is on its way</h2><p>Turn over to explore the collection.</p></div>}
-      </div> : vehiclesFront ? <>
+      </div> : disneyFront ? <div className="leaflet__disney-story">
+        {feature ? <LeafletProduct product={feature} featured showDescription={false} titleId="leaflet-title" onDetails={onDetails} /> : <div className="leaflet__no-feature"><h2 id="leaflet-title">A little world to discover</h2><p>{products.length ? 'Turn over to explore this collection.' : 'New builds will appear here when they are available.'}</p></div>}
+      </div> : vehiclesFront || cityFront ? <>
         <div className="leaflet__vehicles-story">
           {feature ? <LeafletProduct product={feature} featured showDescription={false} titleId="leaflet-title" onDetails={onDetails} /> : <div className="leaflet__no-feature"><h2 id="leaflet-title">A build is on its way</h2><p>Turn over to explore the collection.</p></div>}
         </div>
@@ -75,13 +96,17 @@ export function LeafletContent({ category, products, collectionProducts, side, o
         </div>
       </> : <>
         {collectionBack ? <>
-          {!friendsBack && !starWarsBack && <header className="leaflet__collection-heading">
+          {!friendsBack && !starWarsBack && !cityBack && !disneyBack && <header className="leaflet__collection-heading">
             <h1 id="leaflet-title">The {category.name} Collection</h1>
             <p>Choose a build to take a closer look.</p>
           </header>}
-          {(collectionProducts ?? ((starWarsBack || friendsBack) ? categoryBackProducts(category, products) : others)).length > 0 ? <div className={`leaflet__products leaflet__products--collection${vehiclesBack ? ' leaflet__products--vehicles-collection' : ''}${starWarsBack ? ' leaflet__products--star-wars-collection' : ''}${friendsBack ? ' leaflet__products--friends-collection' : ''}`}>
-            {(collectionProducts ?? ((starWarsBack || friendsBack) ? categoryBackProducts(category, products) : others)).map(product => <LeafletProduct key={product.id} product={product} browseOnly linkedArtwork linkedTitle onDetails={onDetails} />)}
-          </div> : <p className="leaflet__empty">More discoveries are on their way.</p>}
+          {backProducts.length > 0 ? <div className={`leaflet__products leaflet__products--collection${vehiclesBack ? ' leaflet__products--vehicles-collection' : ''}${cityBack ? ' leaflet__products--city-collection' : ''}${disneyBack ? ' leaflet__products--disney-collection' : ''}${starWarsBack ? ' leaflet__products--star-wars-collection' : ''}${friendsBack ? ' leaflet__products--friends-collection' : ''}`}>
+            {cityBack ? cityProductRows.map(({ row, products: rowProducts }) => <div className={`leaflet__city-row leaflet__city-row--${row}`} data-city-row={row} key={row}>
+              {rowProducts.map(product => <LeafletProduct key={product.id} product={product} browseOnly linkedArtwork linkedTitle onDetails={onDetails} />)}
+            </div>) : disneyBack ? disneyProductRows.map(({ row, products: rowProducts }) => <div className={`leaflet__disney-row leaflet__disney-row--${row}`} data-disney-row={row} key={row}>
+              {rowProducts.map(product => <LeafletProduct key={product.id} product={product} browseOnly linkedArtwork linkedTitle onDetails={onDetails} />)}
+            </div>) : backProducts.map(product => <LeafletProduct key={product.id} product={product} browseOnly linkedArtwork linkedTitle onDetails={onDetails} />)}
+          </div> : disneyBack ? null : <p className="leaflet__empty">More discoveries are on their way.</p>}
         </> : others.length > 0 ? <>
           <p className="leaflet__count">{others.length} {others.length === 1 ? 'more build' : 'more builds'} to spark your imagination</p>
           <div className="leaflet__products">{others.map(product => <LeafletProduct key={product.id} product={product} onDetails={onDetails} />)}</div>
@@ -143,7 +168,8 @@ export function CategoryLeaflet({ category, products, onClose, onDetails, side: 
   }
   const themedCollectionBack = side === 'back' && isThemedCollectionCategory(category)
   const vehiclesFront = side === 'front' && isVehiclesCategory(category)
-  return <LeafletShell sheetRef={sheet} side={side} categoryId={category.id} busy={turning} showBackNavigation={!(vehiclesFront || themedCollectionBack)} onClose={onClose}>
+  const disneyFront = side === 'front' && isDisneyCategory(category)
+  return <LeafletShell sheetRef={sheet} side={side} categoryId={category.id} busy={turning} showBackNavigation={!(vehiclesFront || isCityCategory(category) && side === 'front' || disneyFront || themedCollectionBack)} onClose={onClose}>
     <CategorySheetContent category={category} products={products} collectionProducts={collectionProducts} side={side} turning={turning} turnOver={turnOver} onDetails={onDetails} />
   </LeafletShell>
 }
@@ -155,16 +181,24 @@ function CategorySheetContent({ category, products, collectionProducts, side, tu
   const { leave, closing } = useLeafletActions()
   const content = <LeafletContent category={category} products={products} collectionProducts={collectionProducts} side={side} onDetails={id => void leave(() => onDetails(id))} />
   const collectionBack = side === 'back' && isThemedCollectionCategory(category)
-  const footer = <footer className="leaflet__footer">{!collectionBack && <span>Build. Play. Collect. Bloom.</span>}<button className="leaflet__turn" type="button" disabled={turning} onClick={() => void turnOver(closing)}>{side === 'front' ? 'Turn over →' : '← Turn over'}</button></footer>
+  const cityBack = side === 'back' && isCityCategory(category)
+  const disneyBack = side === 'back' && isDisneyCategory(category)
+  const footer = <footer className={`leaflet__footer${cityBack ? ' leaflet__city-back-footer' : ''}${disneyBack ? ' leaflet__disney-back-footer' : ''}`}>{!collectionBack && <span>Build. Play. Collect. Bloom.</span>}<button className="leaflet__turn" type="button" disabled={turning} onClick={() => void turnOver(closing)}>{side === 'front' ? 'Turn over →' : '← Turn over'}</button></footer>
   return <>
     {isHarryPotterCategory(category) ? <img className="leaflet__environment" src={side === 'back' ? harryPotterEnvironmentDesktopBack : harryPotterEnvironmentDesktop} alt="" aria-hidden="true" />
       : isVehiclesCategory(category) ? <img className="leaflet__environment" src={side === 'back' ? vehiclesEnvironmentDesktopBack : vehiclesEnvironmentDesktop} alt="" aria-hidden="true" />
+        : isCityCategory(category) ? <img className="leaflet__environment" src={side === 'back' ? cityEnvironmentDesktopBack : cityEnvironmentDesktop} alt="" aria-hidden="true" />
+        : isDisneyCategory(category) ? <img className="leaflet__environment" src={side === 'back' ? disneyEnvironmentDesktopBack : disneyEnvironmentDesktop} alt="" aria-hidden="true" />
         : isStarWarsCategory(category) ? <img className="leaflet__environment" src={side === 'back' ? starWarsEnvironmentDesktopBack : starWarsEnvironmentDesktop} alt="" aria-hidden="true" />
           : isFriendsCategory(category) && <img className="leaflet__environment" src={side === 'back' ? friendsEnvironmentDesktopBack : friendsEnvironmentDesktop} alt="" aria-hidden="true" />}
     {isStarWarsCategory(category)
       ? <div className="leaflet__star-wars-layout">{content}{footer}</div>
-      : side === 'front' && (isVehiclesCategory(category) || isFriendsCategory(category))
-      ? <div className={isVehiclesCategory(category) ? 'leaflet__vehicles-layout' : 'leaflet__friends-layout'}>{content}{footer}</div>
+      : cityBack
+      ? <div className="leaflet__city-back-layout"><div className="leaflet__city-back-artboard">{content}{footer}</div></div>
+      : disneyBack
+      ? <div className="leaflet__disney-back-layout"><div className="leaflet__disney-back-artboard">{content}{footer}</div></div>
+      : side === 'front' && (isVehiclesCategory(category) || isCityCategory(category) || isDisneyCategory(category) || isFriendsCategory(category))
+      ? <div className={isDisneyCategory(category) ? 'leaflet__disney-layout' : isCityCategory(category) ? 'leaflet__city-layout' : isVehiclesCategory(category) ? 'leaflet__vehicles-layout' : 'leaflet__friends-layout'}>{isDisneyCategory(category) ? <div className="leaflet__disney-artboard">{content}{footer}</div> : <>{content}{footer}</>}</div>
       : <>{content}{footer}</>}
     <span className="catalogue-spread-status" role="status">{category.name} leaflet, {side}</span>
   </>

@@ -619,6 +619,7 @@
 }
 
 .leaflet__vehicles-layout { display: contents; }
+.leaflet__city-layout { display: contents; }
 
 /* The full-size composition remains the reference. When the sheet is smaller,
    use the contained environment's cream opening as one grid coordinate system.
@@ -1208,4 +1209,321 @@
   .leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet__products--star-wars-collection .leaflet-product__art { height: min(18cqw, calc(var(--star-wars-row-height) * .24)); }
   .leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet__products--star-wars-collection .leaflet-product__set { margin-bottom: 2px; }
   .leaflet:has(.leaflet__environment) .leaflet__star-wars-layout .leaflet__products--star-wars-collection .leaflet-product__purchase--browse { margin-top: 2px; }
+}
+
+/* City uses the open water in the London and York paintings. Coordinates are
+   fractions of the contained artwork, so the composition follows sheet scale. */
+@media (min-width: 901px) {
+  .leaflet__city-layout,
+  .leaflet:has(.leaflet__print-area--city-back) {
+    --city-paper-width: min(calc(100cqw + 68px), calc((100cqh + 28px) * 1669 / 942));
+    --city-paper-height: min(calc(100cqh + 28px), calc((100cqw + 68px) * 942 / 1669));
+  }
+  .leaflet__city-layout {
+    display: grid;
+    position: absolute;
+    left: calc(50% - var(--city-paper-width) * .20);
+    top: calc(50% - var(--city-paper-height) * .06);
+    width: calc(var(--city-paper-width) * .48);
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    align-items: center;
+    column-gap: calc(var(--city-paper-width) * .025);
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__city-layout :is(.leaflet__print-area, .leaflet__vehicles-story, .leaflet-product--featured) { display: contents; }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__city-layout .leaflet__vehicles-story .leaflet-product__art {
+    grid-column: 1; grid-row: 1 / span 2; width: 100%;
+    height: calc(var(--city-paper-height) * .27); max-height: 250px;
+    border: 0; background: transparent; box-shadow: none; transform: none;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__city-layout .leaflet__vehicles-story .leaflet-product__copy {
+    grid-column: 2; grid-row: 1; width: 100%; min-width: 0;
+    padding: 0; margin: 0; transform: none; background: transparent;
+    border: 0; box-shadow: none;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__city-layout .leaflet__vehicles-story .leaflet-product__copy::before,
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__city-layout .leaflet__vehicles-story .leaflet-product__copy::after { content: none; }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__city-layout h3 { font-size: clamp(16px, calc(var(--city-paper-width) * .016), 23px); }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__city-layout :is(.leaflet-product__set, .leaflet-product__facts, .leaflet-product__stock) { font-size: clamp(10px, calc(var(--city-paper-width) * .008), 12px); }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__city-layout .leaflet-product__price strong { font-size: clamp(18px, calc(var(--city-paper-width) * .017), 25px); }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__city-layout .leaflet__footer { grid-column: 2; grid-row: 2; padding: 0; justify-content: flex-start; }
+  .leaflet__city-layout .leaflet__footer > span { display: none; }
+  .leaflet[data-side="front"]:has(.leaflet__environment) .leaflet__city-layout .leaflet__turn { position: static; min-height: 36px; padding: 4px 12px; font-size: 16px; }
+  .leaflet__city-layout .leaflet__no-feature { grid-column: 1 / -1; }
+
+  /* The York painting and its contents share the exact same contained-artwork
+     box. All positions and type sizes below are fractions of that artboard. */
+  .leaflet[data-side="back"]:has(.leaflet__city-back-layout) .leaflet__city-back-layout {
+    position: absolute; inset: 0; container-type: size; pointer-events: none;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__city-back-layout) .leaflet__city-back-artboard {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: min(100%, calc(100cqh * 1668 / 943));
+    height: min(100%, calc(100cqw * 943 / 1668));
+    aspect-ratio: 1668 / 943; container-type: size; pointer-events: none;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__city-back-layout) .leaflet__print-area--city-back {
+    position: absolute; left: 24%; top: 34%; width: 60%; height: 52%;
+    display: block; min-height: 0; padding: 0; margin: 0; overflow: hidden;
+    pointer-events: auto;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection {
+    position: absolute; inset: 0; display: grid;
+    grid-template-columns: minmax(0, 1fr); grid-template-rows: repeat(4, minmax(0, 1fr));
+    align-content: stretch; gap: 0; width: 100%; height: 100%; min-height: 0; margin: 0;
+  }
+  /* Four fixed tracks define the 2 / 3 / 4 / 2 slot Y positions; a short list
+     leaves the unused lower tracks empty instead of centering its occupied rows. */
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection > .leaflet__city-row {
+    display: flex; grid-column: 1; align-items: center; justify-content: center;
+    gap: .8cqw; width: 100%; min-width: 0; height: 100%; transform: translate(-17.84%, 23.0769%);
+  }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection > .leaflet__city-row--1 { grid-row: 1; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection > .leaflet__city-row--2 { grid-row: 2; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection > .leaflet__city-row--3 { grid-row: 3; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection > .leaflet__city-row--4 { grid-row: 4; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection > .leaflet__city-row--3 > .leaflet-product--browse { flex-basis: 20.5%; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection .leaflet-product--browse {
+    flex: 0 0 calc((100% - 3 * .8cqw) / 4); min-width: 0;
+    display: grid; grid-template-columns: minmax(40px, 36%) minmax(0, 1fr);
+    align-items: center; gap: .6cqw; padding: 0; background: transparent; border-radius: 0;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection .leaflet-product__art { height: clamp(42px, 10.5cqh, 80px); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection .leaflet-product__set { margin: 0 0 .3cqh; line-height: 1.1; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection .leaflet-product h3 { line-height: 1.15; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection .leaflet-product__price { margin: .4cqh 0; gap: .4cqw; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection .leaflet-product__purchase { gap: .3cqh .4cqw; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection .leaflet-product__set,
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection .leaflet-product__stock { font-size: clamp(9px, 1.1cqw, 11px); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection .leaflet-product h3 { font-size: clamp(11px, 1.1cqw, 14px); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection .leaflet-product__price strong { font-size: clamp(13px, 1.35cqw, 17px); }
+  .leaflet[data-side="back"]:has(.leaflet__city-back-layout) .leaflet__city-back-footer {
+    position: absolute; inset: 0; display: block; width: 100%; height: 100%;
+    margin: 0; padding: 0; border: 0; pointer-events: none;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__city-back-layout) .leaflet__city-back-footer .leaflet__turn {
+    position: absolute; left: 72%; top: 73%; right: auto; transform: none; z-index: 3;
+    min-height: clamp(28px, 4.5cqh, 38px); padding: clamp(3px, .45cqh, 7px) clamp(8px, .9cqw, 14px);
+    font-size: clamp(12px, 1.1cqw, 16px); pointer-events: auto;
+  }
+}
+
+@media (max-width: 900px) {
+  .leaflet[data-side="front"]:has(.leaflet__print-area--city-front) .leaflet__print-area--city-front { padding-top: 30px; }
+  .leaflet[data-side="front"]:has(.leaflet__print-area--city-front) .leaflet__vehicles-story { transform: none; margin-top: 12px; }
+  .leaflet[data-side="back"]:has(.leaflet__city-back-layout) .leaflet__city-back-layout {
+    position: relative; inset: auto; display: flex; flex: 1 1 auto; flex-direction: column;
+    width: 100%; min-width: 0; min-height: 0; container-type: normal; pointer-events: auto;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__city-back-layout) .leaflet__city-back-artboard {
+    position: relative; inset: auto; left: auto; top: auto; display: flex; flex: 1 1 auto;
+    flex-direction: column; width: 100%; height: 100%; min-width: 0; min-height: 0;
+    transform: none; aspect-ratio: auto; container-type: normal; pointer-events: auto;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__city-back-layout) .leaflet__print-area--city-back {
+    position: relative; inset: auto; width: 100%; height: auto; flex: 1 1 auto;
+    min-width: 0; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__city-back-layout) .leaflet__city-back-footer {
+    position: relative; inset: auto; display: flex; flex: 0 0 auto; width: auto; height: auto;
+    justify-content: flex-end; padding-top: 10px; border-top: 1px solid #b4a68177; pointer-events: auto;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__print-area--city-back { overflow-y: auto; overflow-x: hidden; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection {
+    display: flex; flex-direction: column; gap: 8px; width: 100%; margin: 0;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection > .leaflet__city-row {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px;
+    width: 100%; height: auto;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection .leaflet-product--browse { flex: none; grid-template-columns: minmax(64px, 76px) minmax(0, 1fr); gap: 8px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection .leaflet-product__art { height: 70px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection .leaflet-product__set,
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection .leaflet-product__stock { font-size: 10px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection .leaflet-product h3 { font-size: 13px; line-height: 1.2; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection .leaflet-product__price strong { font-size: 15px; }
+}
+@media (max-width: 600px) {
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection > .leaflet__city-row { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection .leaflet-product--browse { grid-template-columns: 84px minmax(0, 1fr); }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection .leaflet-product__art { height: 74px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection .leaflet-product h3 { font-size: 14px; }
+  .leaflet[data-side="back"]:has(.leaflet__environment) .leaflet__products--city-collection .leaflet-product__price strong { font-size: 16px; }
+}
+
+/* Disney's 3:2 paintings have their own clearings; keep their sheet and slot
+   coordinates tied to the artwork that is actually contained in the leaflet. */
+@media (min-width: 901px) {
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__disney-layout,
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__disney-back-layout {
+    position: absolute; inset: 0; container-type: size; pointer-events: none;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__disney-artboard,
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__disney-back-artboard {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: min(100%, calc(100cqh * 3 / 2)); height: min(100%, calc(100cqw * 2 / 3));
+    aspect-ratio: 3 / 2; container-type: size; pointer-events: none;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__print-area--disney-front {
+    position: absolute; left: 22%; top: 42.5%; width: 56%; height: 34%;
+    display: block; min-height: 0; padding: 0; margin: 0; overflow: visible; pointer-events: auto;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__disney-story {
+    display: flex; align-items: center; width: 100%; height: 100%;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__disney-story > .leaflet-product--featured {
+    display: grid; grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr); align-items: center;
+    gap: 1cqw; width: 100%; height: 100%; min-width: 0; padding: 0; background: transparent;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__disney-story .leaflet-product__art {
+    height: min(23cqh, 230px); min-height: 0; border: 0; background: transparent; box-shadow: none;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__disney-story .leaflet-product__copy {
+    min-width: 0; padding: 0; background: transparent; color: #51465c; text-shadow: 0 1px 6px #fffdf2d9;
+  }
+  .leaflet:has(.leaflet__disney-layout) .leaflet__disney-story .leaflet-product__copy::before,
+  .leaflet:has(.leaflet__disney-layout) .leaflet__disney-story .leaflet-product__copy::after { content: none; }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__disney-story .leaflet-product__set,
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__disney-story .leaflet-product__facts,
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__disney-story .leaflet-product__stock {
+    font-size: clamp(10px, .82cqw, 13px); line-height: 1.35; color: #615971;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__disney-story .leaflet-product__set { margin: 0 0 5px; }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__disney-story h3 {
+    font-size: clamp(17px, 1.65cqw, 25px); line-height: 1.2; color: #514568;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__disney-story .leaflet-product__facts { margin: 7px 0; }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__disney-story .leaflet-product__purchase {
+    justify-content: flex-start; column-gap: 12px;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__disney-story .leaflet-product__price { gap: 8px; margin: 5px 0; color: #55485a; }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__disney-story .leaflet-product__price strong { font-size: clamp(19px, 1.75cqw, 27px); }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__disney-story .leaflet-product__copy > button {
+    align-self: flex-start; min-height: 30px; margin-top: 5px; padding: 2px 0;
+    color: #514568; font-size: clamp(13px, 1.05cqw, 16px); text-decoration: underline dotted; text-underline-offset: 4px;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__disney-layout > .leaflet__disney-artboard > .leaflet__footer {
+    position: absolute; left: 60%; top: 73%; display: flex; width: 22%; margin: 0; padding: 0; border: 0;
+    justify-content: flex-start; pointer-events: none;
+  }
+  .leaflet__disney-layout .leaflet__footer > span,
+  .leaflet__disney-back-layout .leaflet__footer > span { display: none; }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__turn,
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__turn {
+    position: static; min-height: 34px; padding: 3px 10px; background: transparent; border-radius: 0;
+    color: #514568; font-size: clamp(13px, 1.05cqw, 16px); font-style: italic;
+    text-shadow: 0 1px 5px #fffdf2e6; transform: none; pointer-events: auto;
+  }
+
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__print-area--disney-back {
+    position: absolute; left: 20%; top: 40%; width: 60%; height: 47%;
+    display: block; min-height: 0; margin: 0; padding: 0; overflow: hidden; pointer-events: auto;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection {
+    position: absolute; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(4, minmax(0, 1fr)); align-content: stretch; gap: 0;
+    width: 100%; height: 100%; min-height: 0; margin: 0;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection > .leaflet__disney-row {
+    display: flex; grid-column: 1; align-items: center; justify-content: center;
+    gap: .65cqw; width: 100%; min-width: 0; height: 100%;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__disney-row--1 { grid-row: 1; }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__disney-row--2 { grid-row: 2; }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__disney-row--3 { grid-row: 3; }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__disney-row--4 { grid-row: 4; }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection .leaflet-product--browse {
+    flex: 0 0 calc((100% - 3 * .65cqw) / 4); min-width: 0; display: grid;
+    grid-template-columns: minmax(38px, 34%) minmax(0, 1fr); align-items: center;
+    gap: .55cqw; padding: 0; background: transparent; border-radius: 0;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection .leaflet-product__art {
+    height: clamp(42px, 7.1cqh, 74px); min-height: 0;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection .leaflet-product__set,
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection .leaflet-product__stock {
+    font-size: clamp(8.5px, .72cqw, 11px); line-height: 1.2;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection .leaflet-product__set { margin: 0 0 3px; }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection .leaflet-product h3 {
+    display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+    font-size: clamp(10px, .9cqw, 14px); line-height: 1.15; color: #514568;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection .leaflet-product__purchase--browse {
+    justify-content: flex-start; gap: 2px 6px; margin-top: 3px;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection .leaflet-product__price { margin: 0; gap: 4px; }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection .leaflet-product__price strong {
+    font-size: clamp(12px, 1.05cqw, 16px); color: #55485a;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__disney-back-artboard > .leaflet__disney-back-footer {
+    position: absolute; inset: 0; display: block; width: 100%; height: 100%; margin: 0; padding: 0;
+    border: 0; pointer-events: none;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__disney-back-footer .leaflet__turn {
+    position: absolute; left: 62%; top: 72%; right: auto; min-height: 34px;
+  }
+}
+
+@media (max-width: 900px) {
+  .leaflet__disney-layout,
+  .leaflet__disney-back-layout {
+    position: relative; inset: auto; display: flex; flex: 1 1 auto; flex-direction: column;
+    width: 100%; min-width: 0; min-height: 0; container-type: normal; pointer-events: auto;
+  }
+  .leaflet__disney-artboard,
+  .leaflet__disney-back-artboard {
+    position: relative; inset: auto; left: auto; top: auto; display: flex; flex: 1 1 auto; flex-direction: column;
+    width: 100%; height: 100%; min-width: 0; min-height: 0; transform: none; aspect-ratio: auto;
+    container-type: normal; pointer-events: auto;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__print-area--disney-front {
+    position: relative; inset: auto; display: flex; flex: 1 1 auto; flex-direction: column;
+    width: 100%; height: auto; min-height: 0; margin: 0; padding: 8px 4px; overflow-y: auto; overflow-x: hidden;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__disney-story { display: flex; flex: 1 1 auto; align-items: flex-start; }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__disney-story > .leaflet-product--featured {
+    display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; flex: 1 0 auto; padding: 0 8px 12px;
+    background: transparent;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__disney-story .leaflet-product__art { height: clamp(150px, 27svh, 230px); }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__disney-story .leaflet-product__copy { width: min(100%, 440px); justify-self: center; }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__disney-layout > .leaflet__disney-artboard > .leaflet__footer,
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__disney-back-artboard > .leaflet__disney-back-footer {
+    position: relative; inset: auto; display: flex; flex: 0 0 auto; width: auto; height: auto;
+    justify-content: flex-end; margin: 0; padding: 8px 0 0; border-top: 1px solid #b4a68177; pointer-events: auto;
+  }
+  .leaflet[data-side="front"]:has(.leaflet__disney-layout) .leaflet__turn,
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__turn {
+    position: static; min-height: 36px; padding: 4px 14px; font-size: 15px; transform: none;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__print-area--disney-back {
+    position: relative; inset: auto; flex: 1 1 auto; width: 100%; height: auto; min-height: 0;
+    margin: 0; padding: 8px 4px; overflow-y: auto; overflow-x: hidden;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection {
+    position: relative; inset: auto; display: flex; flex-direction: column; gap: 10px; width: 100%; height: auto; margin: 0;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection > .leaflet__disney-row {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; width: 100%; height: auto;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection .leaflet-product--browse {
+    flex: none; grid-template-columns: minmax(56px, 72px) minmax(0, 1fr); gap: 7px; align-items: center;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection .leaflet-product__art { height: 64px; }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection .leaflet-product__set,
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection .leaflet-product__stock { font-size: 10px; }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection .leaflet-product h3 { font-size: 13px; line-height: 1.2; }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection .leaflet-product__price strong { font-size: 15px; }
+}
+
+@media (max-width: 600px) {
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection > .leaflet__disney-row {
+    grid-template-columns: minmax(0, 1fr); gap: 8px;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection .leaflet-product--browse {
+    grid-template-columns: minmax(64px, 82px) minmax(0, 1fr); gap: 8px;
+  }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection .leaflet-product__art { height: 72px; }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection .leaflet-product h3 { font-size: 14px; }
+  .leaflet[data-side="back"]:has(.leaflet__disney-back-layout) .leaflet__products--disney-collection .leaflet-product__price strong { font-size: 16px; }
 }
