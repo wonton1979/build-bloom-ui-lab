@@ -172,6 +172,8 @@ function App() {
     }
     previousAuthStatus.current = authState.status
   }, [authState])
+  // Checkout replaces the stage DOM even when catalogueOpen stays false.
+  // Re-measure the new stage when navigation brings the storefront back.
   useLayoutEffect(() => {
     const stage = stageRef.current
     const page = stage?.querySelector<HTMLElement>('.book-shell__page--right')
@@ -185,7 +187,7 @@ function App() {
     const observer = new ResizeObserver(measure)
     observer.observe(page)
     return () => observer.disconnect()
-  }, [showReference, catalogueOpen])
+  }, [showReference, catalogueOpen, pathname])
   const openCatalogue = () => {
     if (catalogueOpen || opening || closing) return
     const measuredCover = stageRef.current?.querySelector('.closed-catalogue')?.getBoundingClientRect() ?? null
