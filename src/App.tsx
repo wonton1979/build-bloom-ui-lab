@@ -20,6 +20,7 @@ import { BookOwnedCart } from './components/catalogue/BookOwnedCart'
 import { BookOwnedUser } from './components/catalogue/BookOwnedUser'
 import { CustomerInformationFallback } from './components/homepage/CustomerInformationFallback'
 import { useAuth } from './features/auth/AuthProvider'
+import { isSignedIn } from './features/auth/state'
 import { useCart } from './features/cart/CartContext'
 import type { ProductListingOffer } from './features/catalogue/api'
 import { useCatalogueCategories } from './features/catalogue/useCatalogueCategories'
@@ -122,19 +123,19 @@ function App() {
     openAccount()
   }
   const openCart = () => {
-    if (authState.status !== 'authenticated') { showGuestHint('cart'); return }
+    if (!isSignedIn(authState)) { showGuestHint('cart'); return }
     cartOpenerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     dismissGuestHint()
     setCartOpen(true)
   }
   const confirmConditionOffer = (offer: ProductListingOffer) => {
-    if (authState.status !== 'authenticated') { showGuestHint('cart'); return }
+    if (!isSignedIn(authState)) { showGuestHint('cart'); return }
     void addListing(offer)
   }
   const conditionConfirmation = useConditionConfirmation(confirmConditionOffer)
   const addToCart = (offer: ProductListingOffer, productTitle: string) => {
     if (offer.condition === 'USED_LIKE_NEW') { conditionConfirmation.request(offer, productTitle); return }
-    if (authState.status !== 'authenticated') { showGuestHint('cart'); return }
+    if (!isSignedIn(authState)) { showGuestHint('cart'); return }
     void addListing(offer)
   }
   const closeCart = useCallback(() => {
@@ -311,7 +312,7 @@ function App() {
           </div>
           <div className="mobile-quick-controls" aria-label="Quick navigation">
             <button type="button" onClick={openAccount}>Account</button>
-            <button type="button" onClick={authState.status === 'authenticated' ? openCart : undefined}>Cart</button>
+            <button type="button" onClick={isSignedIn(authState) ? openCart : undefined}>Cart</button>
           </div>
           {!catalogueOpen && !opening && !closing && <CustomerInformationFallback />}
           <span className="catalogue-spread-status" role="status">
@@ -343,7 +344,7 @@ function App() {
       {!showReference && conditionConfirmation.pending && <ConditionConfirmationDialog offer={conditionConfirmation.pending.offer} productTitle={conditionConfirmation.pending.productTitle}
         onCancel={conditionConfirmation.cancel} onConfirm={conditionConfirmation.confirm} />}
       {!showReference && accountOpen && <AccountModal onClose={closeAccount} />}
-      {!showReference && cartOpen && authState.status === 'authenticated' && <CartModal onClose={closeCart}
+      {!showReference && cartOpen && isSignedIn(authState) && <CartModal onClose={closeCart}
         content={cartItems.length ? { kind: 'filled', items: <CartItems items={cartItems} />, actions: <button className="cart-modal__action" disabled={cartLoading || pendingItemIds.length > 0} onClick={() => { setCartOpen(false); navigateCheckout('/checkout') }}>Checkout</button> } : { kind: 'empty' }} />}
     </>
   )

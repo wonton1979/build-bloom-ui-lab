@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useAuth } from '../auth/AuthProvider'
+import { isSignedIn } from '../auth/state'
 import { addCartItem, deleteCartItem, getCart, updateCartItem, type PersistentCart } from './api'
 import { CartContext, offerQuantityLimit, quantityWithinStock, type CartContextValue, type CartItem } from './CartContext'
 
@@ -30,7 +31,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   useLayoutEffect(() => {
-    activeToken.current = authState.status === 'authenticated' ? authState.token : null
+    activeToken.current = isSignedIn(authState) ? authState.token : null
   }, [authState])
 
   // Register the authenticated hydration promise during commit, before the
@@ -39,7 +40,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // capture the pre-auth generation and be discarded.
   useLayoutEffect(() => {
     const currentGeneration = ++generation.current
-    if (authState.status !== 'authenticated') {
+    if (!isSignedIn(authState)) {
       hydration.current = Promise.resolve()
       pendingIds.current.clear()
       void Promise.resolve().then(() => {
@@ -70,7 +71,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [authState])
 
   const addListing = useCallback((listing: import('../catalogue/api').ProductListingOffer) => {
-    if (authState.status !== 'authenticated') return Promise.resolve()
+    if (!isSignedIn(authState)) return Promise.resolve()
     const existing = items.find(item => item.productListingId === listing.id)
     const currentQuantity = existing?.quantity ?? 0
     if (pendingIds.current.has(listing.id) || currentQuantity + 1 > offerQuantityLimit(listing)) return Promise.resolve()
@@ -98,7 +99,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [authState, items])
 
   const updateQuantity = useCallback((productListingId: number, quantity: number) => {
-    if (authState.status !== 'authenticated' || quantity < 1) return Promise.resolve(false)
+    if (!isSignedIn(authState) || quantity < 1) return Promise.resolve(false)
     const current = items.find(item => item.productListingId === productListingId)
     if (!current || !quantityWithinStock(current, quantity) || pendingIds.current.has(productListingId)) return Promise.resolve(false)
     markPending(productListingId)
@@ -119,7 +120,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [authState, items])
 
   const removeItem = useCallback((productListingId: number) => {
-    if (authState.status !== 'authenticated' || pendingIds.current.has(productListingId)) return Promise.resolve(false)
+    if (!isSignedIn(authState) || pendingIds.current.has(productListingId)) return Promise.resolve(false)
     if (!items.some(item => item.productListingId === productListingId)) return Promise.resolve(false)
     markPending(productListingId)
     const currentGeneration = generation.current
