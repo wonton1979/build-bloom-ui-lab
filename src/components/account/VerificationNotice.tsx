@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { resendVerification } from '../../features/auth/api'
 import './AccountExperience.css'
+import flower from '../../assets/decorations/catalogue-title-flower.png'
 
 export function VerificationNotice({ token, message = 'Please verify your email before continuing.', onVerified }: { token: string; message?: string; onVerified?: () => void }) {
   const { refreshAuth, logout } = useAuth()
@@ -35,13 +36,16 @@ export function VerificationNotice({ token, message = 'Please verify your email 
     } catch { if (mounted.current) setError('Unable to complete this request. Please try again.') }
     finally { locked.current = false; if (mounted.current) setPending(null) }
   }
-  return <section className="account-experience__task" aria-labelledby={titleId} aria-busy={pending !== null}>
-    <h2 id={titleId}>Verify your email</h2>
-    <p>{message}</p><p>Open the link in your verification email, then return here to continue.</p>
+  return <section className="verification-notice" aria-labelledby={titleId} aria-busy={pending !== null}>
+    <img className="account-experience__flower" src={flower} alt="" />
+    <h2 className="verification-notice__title" id={titleId}>Verify your email</h2>
+    <p>{message}</p><p className="verification-notice__guidance">Open the link in your verification email, then return here to continue.</p>
     {feedback && <p role="status">{feedback}</p>}
     {error && <p className="account-form__message account-form__message--error" role="alert">{error}</p>}
-    <button className="account-form__submit" disabled={pending !== null || cooldown} onClick={() => void perform('send')}>{pending === 'send' ? 'Sending verification email…' : cooldown ? 'Resend available shortly' : 'Resend verification email'}</button>
-    <button className="my-account__button" disabled={pending !== null} onClick={() => void perform('check')}>{pending === 'check' ? 'Checking verification…' : 'I’ve verified my email'}</button>
-    <button className="my-account__button" disabled={pending !== null} onClick={logout}>Sign out</button>
+    <div className="verification-notice__actions">
+      <button className="account-form__submit" disabled={pending !== null || cooldown} onClick={() => void perform('send')}>{pending === 'send' ? 'Sending verification email…' : cooldown ? 'Resend available shortly' : 'Resend verification email'}</button>
+      <button className="verification-notice__continue" disabled={pending !== null} onClick={() => void perform('check')}>{pending === 'check' ? 'Checking verification…' : 'I’ve verified my email'}</button>
+    </div>
+    <button className="verification-notice__signout" disabled={pending !== null} onClick={logout}>Sign out</button>
   </section>
 }

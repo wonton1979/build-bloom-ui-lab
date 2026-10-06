@@ -287,3 +287,57 @@
     text-align: center;
   }
 }
+
+/* A single verification task uses the same paper and controls in a compact surface. */
+.account-modal__surface--verification {
+  width: min(520px, calc(100vw - 32px));
+  height: auto;
+  max-height: calc(100dvh - 32px);
+  border: 1px solid #d9d1b9;
+  border-radius: 16px;
+}
+.verification-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 36px;
+}
+.verification-notice .account-experience__flower { margin: 0; }
+.verification-notice .verification-notice__title {
+  margin: 0;
+  color: #3e6962;
+  font: 700 30px/1.25 Georgia, serif;
+}
+.verification-notice p { margin: 0; line-height: 1.6; }
+.verification-notice__guidance { color: #686453; }
+.verification-notice__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 8px; }
+.verification-notice .account-form__submit { width: auto; margin: 0; padding-inline: 20px; }
+.verification-notice .verification-notice__continue {
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 20px;
+  border: 1px solid #527f78;
+  border-radius: 10px;
+  background: transparent;
+  color: #416b66;
+  font: 600 15px/1.4 'Segoe UI', system-ui, sans-serif;
+  cursor: pointer;
+}
+.verification-notice .verification-notice__signout {
+  align-self: flex-start;
+  margin: 4px 0 0;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: #686453;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.verification-notice button:disabled { opacity: .65; cursor: default; }
+.verification-notice button:focus-visible { outline: 2px solid #527f78; outline-offset: 4px; }
+@media (max-width: 600px) {
+  .verification-notice { padding: 32px 24px; }
+  .verification-notice__actions { align-items: stretch; flex-direction: column; }
+}

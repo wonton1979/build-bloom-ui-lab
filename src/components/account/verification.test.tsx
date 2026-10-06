@@ -8,6 +8,8 @@ import { VerifyEmail } from './VerifyEmail'
 import { VerificationNotice } from './VerificationNotice'
 import { AccountForms } from './AccountForms'
 import App from '../../App'
+import { readAttempt, saveAttempt } from '../../features/checkout/state'
+import { AccountModal } from '../homepage/AccountModal'
 
 vi.mock('../../features/auth/api', async original => ({ ...await original<typeof import('../../features/auth/api')>(), getCurrentUser: vi.fn(), verifyEmail: vi.fn(), resendVerification: vi.fn(), signIn: vi.fn(), signUp: vi.fn() }))
 vi.mock('../../features/catalogue/useCatalogueCategories', () => ({ useCatalogueCategories: () => ({ state: { status: 'loading' }, retry: vi.fn() }) }))
@@ -16,6 +18,7 @@ let root: Root | null = null
 let container: HTMLDivElement
 let auth: ReturnType<typeof useAuth>
 const user = { id: 1, email: 'test@example.com', firstName: 'Test', lastName: null, phone: null }
+const savedAttempt = { key: 'original-checkout-key', input: { items: [{ productListingId: 16901, quantity: 2 }] }, rejection: 'EMAIL_VERIFICATION_REQUIRED' as const }
 const verificationError = () => new AuthApiError(403, 'Verify', 'Different backend wording', 'EMAIL_VERIFICATION_REQUIRED')
 function Capture() { const value = useAuth(); useEffect(() => { auth = value }, [value]); return <p data-auth>{value.state.status}</p> }
 async function mount(element: ReactNode, strict = false) {
@@ -40,6 +43,49 @@ describe('verification route and token handling', () => {
     expect(JSON.stringify(sessionStorage)).not.toContain('test-verification-token')
     expect(auth.state.status).toBe('authenticated')
   })
+  it('shows a single shopping CTA for normal signup verification without a checkout', async () => {
+    sessionStorage.setItem(AUTH_STORAGE_KEY, 'jwt')
+    await mount(<VerifyEmail onAccount={vi.fn()} />)
+    expect(container.querySelector('h1')?.textContent).toBe('Email verified')
+    expect(container.textContent).toContain('Your Build & Bloom account is ready')
+    expect(container.textContent).toContain('Continue shopping')
+    for (const text of ['Continue to checkout', 'saved request', 'Open account', 'refresh your account', 'Back to storefront', 'Sign in']) expect(container.textContent).not.toContain(text)
+    expect(container.querySelectorAll('button')).toHaveLength(1)
+    await click('Continue shopping'); expect(location.pathname).toBe('/')
+  })
+  it('does not require sign-in just to continue shopping from an email opened without a session', async () => {
+    await mount(<VerifyEmail onAccount={vi.fn()} />)
+    expect(container.textContent).toContain('Continue shopping'); expect(container.querySelectorAll('button')).toHaveLength(1)
+    expect(container.textContent).not.toContain('Sign in'); expect(container.textContent).not.toContain('Continue to checkout')
+  })
+  it('finishes the existing auth refresh before choosing success actions', async () => {
+    sessionStorage.setItem(AUTH_STORAGE_KEY, 'jwt')
+    let finish!: (value: typeof user) => void
+    vi.mocked(getCurrentUser).mockImplementation(() => new Promise(resolve => { finish = resolve }))
+    await mount(<VerifyEmail onAccount={vi.fn()} />)
+    expect(container.textContent).toContain('Verifying your email'); expect(container.textContent).not.toContain('Continue shopping'); expect(container.textContent).not.toContain('Sign in')
+    await act(async () => finish(user))
+    expect(container.textContent).toContain('Continue shopping'); expect(auth.state.status).toBe('authenticated')
+  })
+  it.each(['another customer', 'no verification rejection', 'empty items', 'invalid key', 'invalid quantity'])('does not infer checkout intent from %s', async reason => {
+    sessionStorage.setItem(AUTH_STORAGE_KEY, 'jwt')
+    const attempt = { ...savedAttempt, input: { ...savedAttempt.input } }
+    if (reason === 'no verification rejection') saveAttempt(1, { key: attempt.key, input: attempt.input })
+    else {
+      if (reason === 'empty items') attempt.input.items = []
+      if (reason === 'invalid key') attempt.key = 'invalid key with spaces'
+      if (reason === 'invalid quantity') attempt.input.items = [{ productListingId: 16901, quantity: 0 }]
+      saveAttempt(reason === 'another customer' ? 2 : 1, attempt)
+    }
+    await mount(<VerifyEmail onAccount={vi.fn()} />)
+    expect(container.textContent).toContain('Continue shopping'); expect(container.textContent).not.toContain('Continue to checkout')
+  })
+  it('offers a clearly named sign-in only when an existing session actually expired', async () => {
+    sessionStorage.setItem(AUTH_STORAGE_KEY, 'expired-jwt'); vi.mocked(getCurrentUser).mockRejectedValue(new AuthApiError(401, 'Expired'))
+    const onAccount = vi.fn(); await mount(<VerifyEmail onAccount={onAccount} />)
+    expect(container.textContent).toContain('Your session has expired'); expect(container.textContent).not.toContain('Open account'); expect(container.textContent).not.toContain('refresh your account')
+    await click('Sign in'); expect(onAccount).toHaveBeenCalledOnce()
+  })
   it('renders a verifying state while the request is pending', async () => {
     vi.mocked(verifyEmail).mockImplementation(() => new Promise(() => {}))
     await mount(<VerifyEmail onAccount={vi.fn()} />)
@@ -62,10 +108,13 @@ describe('verification route and token handling', () => {
   })
   it('refreshes backend-authoritative auth after verification and requires explicit checkout continuation', async () => {
     sessionStorage.setItem(AUTH_STORAGE_KEY, 'jwt')
+    saveAttempt(user.id, savedAttempt)
     vi.mocked(getCurrentUser).mockRejectedValueOnce(verificationError()).mockResolvedValue(user)
     await mount(<VerifyEmail onAccount={vi.fn()} />)
     expect(auth.state.status).toBe('authenticated'); expect(getCurrentUser).toHaveBeenCalledTimes(2)
-    expect(location.pathname).toBe('/verify-email'); await click('Continue to checkout'); expect(location.pathname).toBe('/checkout')
+    expect(location.pathname).toBe('/verify-email'); expect(container.textContent).not.toContain('Continue shopping')
+    expect(readAttempt(user.id)).toEqual(savedAttempt)
+    await click('Continue to checkout'); expect(location.pathname).toBe('/checkout'); expect(readAttempt(user.id)?.key).toBe(savedAttempt.key)
   })
 })
 
@@ -105,6 +154,18 @@ describe('unverified account and resend UX', () => {
     vi.mocked(resendVerification).mockRejectedValue(new Error('SES/internal error'))
     await mount(<VerificationNotice token="jwt" />); await click('Resend verification')
     expect(container.textContent).toContain('Unable to complete'); expect(container.textContent).not.toContain('SES/internal')
+  })
+  it('keeps the compact modal labelled and its sign-out action working', async () => {
+    sessionStorage.setItem(AUTH_STORAGE_KEY, 'jwt'); vi.mocked(getCurrentUser).mockRejectedValue(verificationError())
+    await mount(<AccountModal onClose={vi.fn()} />)
+    const dialog = container.querySelector('[role="dialog"]')!
+    expect(dialog.getAttribute('aria-modal')).toBe('true')
+    expect(container.querySelector('.account-modal__surface--verification')).not.toBeNull()
+    const notice = container.querySelector('.verification-notice')!
+    expect(document.getElementById(notice.getAttribute('aria-labelledby')!)?.textContent).toBe('Verify your email')
+    expect(notice.querySelectorAll('.verification-notice__actions button')).toHaveLength(2)
+    expect(notice.querySelector('.verification-notice__signout')?.textContent).toBe('Sign out')
+    await click('Sign out'); expect(auth.state.status).toBe('signedOut'); expect(sessionStorage.getItem(AUTH_STORAGE_KEY)).toBeNull()
   })
   it('cannot declare verification complete while the backend still rejects the profile', async () => {
     sessionStorage.setItem(AUTH_STORAGE_KEY, 'jwt'); vi.mocked(getCurrentUser).mockRejectedValue(verificationError())
