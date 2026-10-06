@@ -8,9 +8,10 @@ import ordersParcel from '../../assets/account/account-hub-orders-parcel.png'
 import foliageBottomLeft from '../../assets/account/account-hub-foliage-bottom-left.png'
 import foliageBottomRight from '../../assets/account/account-hub-foliage-bottom-right.png'
 import dividerLeaf from '../../assets/shared/hr-leaf.png'
+import { navigateCheckout } from '../../features/checkout/state'
 import { PersonalInformation } from '../account/PersonalInformation'
 
-export function AuthenticatedAccountHub({ email, onSignOut, onOpenAccount }: { email: string; onSignOut: () => void; onOpenAccount?: () => void }) {
+export function AuthenticatedAccountHub({ email, onSignOut, onOpenAccount, onOpenOrders }: { email: string; onSignOut: () => void; onOpenAccount?: () => void; onOpenOrders?: () => void }) {
   return (
     <div className="account-experience account-experience--authenticated">
       <div className="account-experience__task">
@@ -22,7 +23,7 @@ export function AuthenticatedAccountHub({ email, onSignOut, onOpenAccount }: { e
           </header>
           <img className="account-hub__cat-books" src={catBooks} alt="" aria-hidden="true" />
         </div>
-        <div className="account-hub__cards" aria-label="Future account destinations">
+        <div className="account-hub__cards" aria-label="Account destinations">
           <article className="account-hub-card" aria-labelledby="account-hub-account-title">
             <img className="account-hub-card__sprig" src={cardSprig} alt="" aria-hidden="true" />
             <div className="account-hub-card__copy">
@@ -39,6 +40,7 @@ export function AuthenticatedAccountHub({ email, onSignOut, onOpenAccount }: { e
               <p>Orders, delivery &amp; order history</p>
             </div>
             <img className="account-hub-card__feature account-hub-card__feature--parcel" src={ordersParcel} alt="" aria-hidden="true" />
+            {onOpenOrders && <button className="account-hub-card__action" type="button" aria-label="Open My Orders" onClick={onOpenOrders} />}
           </article>
         </div>
         <div className="account-hub__divider" aria-hidden="true"><span><img src={dividerLeaf} alt="" /></span></div>
@@ -82,7 +84,7 @@ export function AccountModal({ onClose }: { onClose: () => void }) {
       <section className={`account-modal__surface${state.status === 'authenticated' ? activeView === 'personal' ? ' account-modal__surface--personal' : ' account-modal__surface--hub' : state.status === 'verificationRequired' ? ' account-modal__surface--verification' : ''}`}>
         <AccountModalCloseButton closeRef={closeRef} onClose={onClose} />
         <h1 id="account-modal-title" className="account-modal__accessible-title">My Account</h1>
-        {state.status === 'authenticated' ? activeView === 'personal' ? <PersonalInformation onBack={() => setView('hub')} /> : <AuthenticatedAccountHub email={state.user.email} onOpenAccount={() => setView('personal')} onSignOut={() => { logout(); onClose() }} /> : <AccountForms />}
+        {state.status === 'authenticated' ? activeView === 'personal' ? <PersonalInformation onBack={() => setView('hub')} /> : <AuthenticatedAccountHub email={state.user.email} onOpenAccount={() => setView('personal')} onOpenOrders={() => { onClose(); navigateCheckout('/account/orders') }} onSignOut={() => { logout(); onClose() }} /> : <AccountForms />}
       </section>
     </div>
   )
