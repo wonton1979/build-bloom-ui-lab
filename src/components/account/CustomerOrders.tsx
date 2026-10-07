@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { AuthApiError, isVerificationRequired } from '../../features/auth/api'
 import { listOrders, readOrder, type OrderSummary, type OrderDetail } from '../../features/orders/api'
-import { canResumeCheckout, displayDate, orderDetailId, orderStatusLabel, paymentStatusLabel } from '../../features/orders/presentation'
-import { navigateCheckout } from '../../features/checkout/state'
+import { canCheckPayment, canResumeCheckout, displayDate, orderDetailId, orderStatusLabel, paymentStatusLabel } from '../../features/orders/presentation'
+import { CheckoutApiError, recoverPayment } from '../../features/checkout/api'
+import { isConfirmed, navigateCheckout } from '../../features/checkout/state'
 import { formatGbp, priceToPence } from '../../features/cart/CartContext'
 import { VerificationNotice } from './VerificationNotice'
 import { BotanicalDivider } from '../shared/BotanicalDivider'
@@ -28,31 +29,59 @@ export function CustomerOrders({ path, onAccount, onAuthenticate }: Props) {
 type ReadState = { phase: 'loading' } | { phase: 'ready'; orders: OrderSummary[]; detail: OrderDetail | null } | { phase: 'error' } | { phase: 'auth' } | { phase: 'verification' } | { phase: 'unavailable' }
 function VerifiedOrders({ token, id, onAuthenticate }: { token: string; id: number | null; onAuthenticate: () => void }) {
   const [state, setState] = useState<ReadState>({ phase: 'loading' })
+  const recovering = useRef(false)
+  const generation = useRef(0)
+  const [checking, setChecking] = useState(false)
+  const [feedback, setFeedback] = useState('')
   const [revision, setRevision] = useState(0)
-  const reload = () => { setState({ phase: 'loading' }); setRevision(value => value + 1) }
+  const reload = () => { setFeedback(''); setState({ phase: 'loading' }); setRevision(value => value + 1) }
   useEffect(() => {
     let active = true
+    generation.current += 1
     const request = id === null ? listOrders(token).then(orders => ({ orders, detail: null })) : readOrder(token, id).then(detail => ({ orders: [], detail }))
     void request.then(result => { if (active) setState({ phase: 'ready', ...result }) }, reason => {
       if (!active) return
       setState({ phase: isVerificationRequired(reason) ? 'verification' : reason instanceof AuthApiError && reason.status === 401 ? 'auth' : reason instanceof AuthApiError && [403, 404].includes(reason.status) ? 'unavailable' : 'error' })
     })
-    return () => { active = false }
+    return () => { active = false; generation.current += 1 }
   }, [token, id, revision])
+  const checkPayment = async () => {
+    if (recovering.current || state.phase !== 'ready' || !state.detail || !canCheckPayment(state.detail)) return
+    recovering.current = true
+    setChecking(true)
+    setFeedback('')
+    const current = generation.current
+    const detail = state.detail
+    try {
+      const recovered = await recoverPayment(token, detail.id)
+      if (generation.current !== current) return
+      setState({ phase: 'ready', orders: [], detail: { ...detail, ...recovered } })
+      setFeedback(isConfirmed(recovered) ? 'Your payment and order are confirmed.' : 'Payment confirmation has not completed yet. You can check again later.')
+    } catch (reason) {
+      if (generation.current !== current) return
+      if (reason instanceof CheckoutApiError && reason.code === 'EMAIL_VERIFICATION_REQUIRED') setState({ phase: 'verification' })
+      else if (reason instanceof CheckoutApiError && reason.status === 401) setState({ phase: 'auth' })
+      else if (reason instanceof CheckoutApiError && [403, 404].includes(reason.status)) setState({ phase: 'unavailable' })
+      else setFeedback('We could not check your payment status. Please try again later.')
+    } finally {
+      recovering.current = false
+      if (generation.current === current) setChecking(false)
+    }
+  }
   if (state.phase === 'loading') return <p role="status">{id === null ? 'Loading your orders…' : 'Loading your order…'}</p>
   if (state.phase === 'verification') return <VerificationNotice token={token} message="Please verify your email to view your orders." onVerified={reload} />
   if (state.phase === 'auth') return <><p role="alert">Please sign in again to view your orders.</p><button onClick={onAuthenticate}>Sign in</button></>
   if (state.phase === 'unavailable') return <p role="alert">We cannot display this order information for your account.</p>
   if (state.phase === 'error') return <><p role="alert">Unable to load your orders. Please try again.</p><button onClick={reload}>Retry</button></>
   return <>
-    {state.detail ? <Detail order={state.detail} /> : state.orders.length ? <ul className="checkout__items">{state.orders.map(order => <li key={order.id}>
+    {state.detail ? <><Detail order={state.detail} checking={checking} />{canCheckPayment(state.detail) && <button disabled={checking} onClick={() => void checkPayment()}>{checking ? 'Checking payment status…' : 'Check payment status'}</button>}{feedback && <p role="status">{feedback}</p>}</> : state.orders.length ? <ul className="checkout__items">{state.orders.map(order => <li key={order.id}>
       <h2>Order #{order.id}</h2><p>Placed {displayDate(order.createdAt)}</p>
       <p>Order status: {orderStatusLabel(order.status)}</p>
       <p>{order.orderItems.reduce((sum, item) => sum + item.quantity, 0)} items · {order.orderItems.map(item => item.productListing.legoProduct.title).join(', ')}</p>
       <p className="checkout__total">Order total <strong>{formatGbp(priceToPence(order.totalAmount))}</strong></p>
       <button onClick={() => navigateCheckout(`/account/orders/${order.id}`)}>View order #{order.id}</button>
     </li>)}</ul> : <p>You haven’t placed any orders yet.</p>}
-    <button className="checkout__secondary" onClick={reload}>Refresh {id === null ? 'orders' : 'order'}</button>
+    <button className="checkout__secondary" disabled={checking} onClick={reload}>Refresh {id === null ? 'orders' : 'order'}</button>
   </>
 }
 
@@ -64,7 +93,7 @@ function Address({ order, kind }: { order: OrderDetail; kind: 'delivery' | 'bill
     {order[`${kind}Phone`] && <><br />{order[`${kind}Phone`]}</>}
   </address>
 }
-function Detail({ order }: { order: OrderDetail }) {
+function Detail({ order, checking }: { order: OrderDetail; checking: boolean }) {
   return <>
     <p>Placed {displayDate(order.createdAt)}</p><p>Order status: {orderStatusLabel(order.status)}</p>
     <p>Payment status: {paymentStatusLabel(order.payment?.status)}</p>
@@ -79,6 +108,6 @@ function Detail({ order }: { order: OrderDetail }) {
     {order.status === 'PENDING' && order.payment?.status !== 'SUCCEEDED' && order.reservationExpiresAt && <p>Reservation expires {displayDate(order.reservationExpiresAt)}.</p>}
     {order.status === 'DISPATCHED' && <p>{order.dispatchedAt && <>Dispatched {displayDate(order.dispatchedAt)}. </>}{order.shippingCarrier}{order.trackingNumber && <> · Tracking {order.trackingNumber}</>}</p>}
     {order.status === 'COMPLETED' && order.completedAt && <p>Completed {displayDate(order.completedAt)}.</p>}
-    {canResumeCheckout(order) && <button onClick={() => navigateCheckout(`/checkout/orders/${order.id}`)}>Resume checkout</button>}
+    {canResumeCheckout(order) && <button disabled={checking} onClick={() => navigateCheckout(`/checkout/orders/${order.id}`)}>Resume checkout</button>}
   </>
 }
