@@ -1,4 +1,4 @@
-import { discardSession, logoutSession, sessionGeneration, SessionError, subscribeSession } from './session'
+import { beginAuthenticationIntent, discardSession, logoutSession, sessionGeneration, SessionError, subscribeSession } from './session'
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type PropsWithChildren } from 'react'
 import { AuthApiError, clearStoredToken, getCurrentUser, isVerificationRequired, readStoredToken, signIn, signUp, storeSession, updateCurrentUser, type CurrentUser, type UpdateCurrentUser } from './api'
@@ -24,6 +24,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [state, dispatch] = useReducer(authReducer, initialToken ? { status: 'resolving' } : { status: 'signedOut' })
   const profileRequest = useRef(0)
   const resolving = useRef(0)
+  const authIntent = useRef(0)
+  const pendingIntent = useRef<number | null>(null)
 
   const resolve = useCallback(async (token: string, registered = false) => {
     const request = ++profileRequest.current
@@ -49,6 +51,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [])
 
   useEffect(() => subscribeSession(() => {
+    if (pendingIntent.current !== null) return
     const token = readStoredToken()
     if (!token) { profileRequest.current += 1; dispatch({ type: 'signedOut' }) }
     else if (!resolving.current) void resolve(token)
@@ -57,35 +60,41 @@ export function AuthProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     const token = readStoredToken()
     if (token) void resolve(token)
-    return () => { profileRequest.current += 1 }
+    return () => { profileRequest.current += 1; authIntent.current += 1 }
   }, [resolve])
 
   const authenticate = useCallback(async (mode: 'signin' | 'signup', credentials: Credentials) => {
-    const request = ++profileRequest.current
+    const intent = ++authIntent.current
+    pendingIntent.current = intent
+    profileRequest.current += 1
+    beginAuthenticationIntent()
     dispatch({ type: 'authenticate', mode })
     try {
       const response = mode === 'signup' ? await signUp(credentials.email, credentials.password) : await signIn(credentials.email, credentials.password)
-      if (request !== profileRequest.current) { discardSession(response); return }
+      if (intent !== authIntent.current) { discardSession(response); return }
       storeSession(response)
       await resolve(response.token, mode === 'signup')
     } catch (error) {
-      if (request !== profileRequest.current) return
+      if (intent !== authIntent.current) return
       if (error instanceof AuthApiError && error.status === 401) {
         clearStoredToken()
         dispatch({ type: 'signedOut', error: error.message })
         return
       }
       dispatch({ type: 'error', message: errorMessage(error) })
-    }
+    } finally { if (pendingIntent.current === intent) pendingIntent.current = null }
   }, [resolve])
 
   const refreshAuth = useCallback(async () => {
+    if (pendingIntent.current !== null) return false
     const token = readStoredToken()
     if (!token) return false
     return resolve(token)
   }, [resolve])
 
   const logout = useCallback(() => {
+    authIntent.current += 1
+    pendingIntent.current = null
     profileRequest.current += 1
     logoutSession()
     dispatch({ type: 'signedOut' })

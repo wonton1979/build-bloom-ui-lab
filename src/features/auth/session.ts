@@ -19,6 +19,10 @@ function retireSession() {
 }
 let refreshing: Promise<string> | null = null
 export const sessionGeneration = () => generation
+// An explicit authentication intent supersedes already-running background work,
+// even before its replacement credentials have arrived. Keep stored credentials
+// until that intent succeeds; a temporary login failure is not a logout.
+export function beginAuthenticationIntent() { generation += 1 }
 export function subscribeSession(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener) } }
 const notify = () => listeners.forEach(listener => listener())
 

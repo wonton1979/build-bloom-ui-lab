@@ -261,6 +261,61 @@ describe('additional session safety boundaries', () => {
 })
 
 describe('stale credentials and mutation response boundaries', () => {
+  const customerB = { ...user, id: 2, firstName: 'Second' }
+  const sessionB = { ...original, token: 'synthetic-second-access', refreshToken: 'c'.repeat(43) }
+  it.each(['refresh-first', 'login-first', 'invalid-refresh', 'temporary-refresh', 'logout'] as const)('explicit login owns auth while older renewal completes: %s', async scenario => {
+    storeSession(original); await mount()
+    let finishRefresh!: (response: Response) => void
+    let finishLogin!: (response: Response) => void
+    fetcher.mockImplementation((url: string, init: RequestInit) => {
+      if (url === '/api/auth/refresh') return new Promise(resolve => { finishRefresh = resolve })
+      if (url === '/api/auth/login') return new Promise(resolve => { finishLogin = resolve })
+      if (url === '/api/auth/logout') return Promise.resolve(new Response(null, { status: 204 }))
+      return Promise.resolve(new Headers(init.headers).get('Authorization') === 'Bearer ' + sessionB.token ? result(customerB) : rejected())
+    })
+    const background = getCurrentUser(original.token).catch(() => undefined)
+    await vi.waitFor(() => expect(fetcher.mock.calls.filter(([url]) => url === '/api/auth/refresh')).toHaveLength(1))
+    let login!: Promise<void>
+    await act(async () => { login = auth.authenticate('signin', { email: customerB.email, password: 'Synthetic-test-password' }) })
+    if (scenario === 'logout') await act(async () => auth.logout())
+    if (scenario === 'login-first') await act(async () => { finishLogin(result(sessionB)); await login })
+    await act(async () => {
+      finishRefresh(scenario === 'invalid-refresh' ? rejected() : scenario === 'temporary-refresh' ? result({}, 503) : result(replacement))
+      await background
+    })
+    if (scenario !== 'login-first') {
+      if (scenario !== 'logout') expect(auth.state.status).toBe('authenticating')
+      await act(async () => { finishLogin(result(sessionB)); await login })
+    }
+    expect(auth.state.status).toBe(scenario === 'logout' ? 'signedOut' : 'authenticated')
+    expect(auth.state.status === 'authenticated' && auth.state.user.id === customerB.id).toBe(scenario !== 'logout')
+    expect(readSession()?.token === sessionB.token).toBe(scenario !== 'logout')
+    expect(fetcher.mock.calls.filter(([url]) => url === '/api/auth/refresh')).toHaveLength(1)
+    const revokedB = fetcher.mock.calls.some(([url, init]) => url === '/api/auth/logout' && JSON.parse(String(init.body)).refreshToken === sessionB.refreshToken)
+    expect(revokedB).toBe(scenario === 'logout')
+    expect(fetcher.mock.calls.every(([url, init]) => ['GET', 'HEAD'].includes(init.method ?? 'GET') || ['/api/auth/login', '/api/auth/refresh', '/api/auth/logout'].includes(url))).toBe(true)
+  })
+  it.each(['older-first', 'newer-first'])('newest competing login wins: %s', async order => {
+    await mount()
+    const responses: Array<(response: Response) => void> = []
+    fetcher.mockImplementation((url: string) => {
+      if (url === '/api/auth/login') return new Promise(resolve => { responses.push(resolve) })
+      if (url === '/api/auth/logout') return Promise.resolve(new Response(null, { status: 204 }))
+      return Promise.resolve(result(customerB))
+    })
+    let older!: Promise<void>; let newer!: Promise<void>
+    await act(async () => { older = auth.authenticate('signin', { email: user.email, password: 'Synthetic-test-password' }) })
+    await act(async () => { newer = auth.authenticate('signin', { email: customerB.email, password: 'Synthetic-test-password' }) })
+    for (const index of order === 'older-first' ? [0, 1] : [1, 0]) {
+      await act(async () => { responses[index](result(index === 0 ? original : sessionB)); await (index === 0 ? older : newer) })
+    }
+    expect(auth.state.status === 'authenticated' && auth.state.user.id === customerB.id).toBe(true)
+    expect(readSession()?.token === sessionB.token).toBe(true)
+    expect(fetcher.mock.calls.filter(([url]) => url === '/api/auth/refresh')).toHaveLength(0)
+    const revocations = fetcher.mock.calls.filter(([url]) => url === '/api/auth/logout')
+    expect(revocations).toHaveLength(1)
+    expect(JSON.parse(String(revocations[0][1].body)).refreshToken === original.refreshToken).toBe(true)
+  })
   it('does not send retired credentials from a callback after logout', async () => {
     storeSession(original); clearStoredToken()
     const outcome = await getCurrentUser(original.token).then(() => false, () => true)
