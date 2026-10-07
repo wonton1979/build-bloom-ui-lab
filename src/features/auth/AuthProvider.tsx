@@ -1,6 +1,7 @@
+import { discardSession, logoutSession, sessionGeneration, SessionError, subscribeSession } from './session'
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type PropsWithChildren } from 'react'
-import { AuthApiError, clearStoredToken, getCurrentUser, isVerificationRequired, readStoredToken, signIn, signUp, storeToken, updateCurrentUser, type CurrentUser, type UpdateCurrentUser } from './api'
+import { AuthApiError, clearStoredToken, getCurrentUser, isVerificationRequired, readStoredToken, signIn, signUp, storeSession, updateCurrentUser, type CurrentUser, type UpdateCurrentUser } from './api'
 import { authReducer, type AuthState } from './state'
 
 type Credentials = { email: string; password: string }
@@ -22,41 +23,53 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const initialToken = readStoredToken()
   const [state, dispatch] = useReducer(authReducer, initialToken ? { status: 'resolving' } : { status: 'signedOut' })
   const profileRequest = useRef(0)
+  const resolving = useRef(0)
 
   const resolve = useCallback(async (token: string, registered = false) => {
     const request = ++profileRequest.current
+    const current = sessionGeneration()
+    resolving.current += 1
     try {
       const user = await getCurrentUser(token)
-      if (request !== profileRequest.current || readStoredToken() !== token) return false
-      dispatch({ type: 'authenticated', token, user })
+      if (request !== profileRequest.current || sessionGeneration() !== current || !readStoredToken()) return false
+      dispatch({ type: 'authenticated', token: readStoredToken()!, user })
       return true
     } catch (error) {
-      if (request !== profileRequest.current || readStoredToken() !== token) return false
-      if (error instanceof AuthApiError && error.status === 401) {
+      if (request !== profileRequest.current || sessionGeneration() !== current || !readStoredToken()) return false
+      if ((error instanceof AuthApiError && error.status === 401) || (error instanceof SessionError && error.invalid)) {
         clearStoredToken()
         dispatch({ type: 'signedOut' })
       } else if (isVerificationRequired(error)) {
-        dispatch({ type: 'verificationRequired', token, message: registered ? 'Your account was created. A verification email has been sent. Please verify your email before continuing.' : 'Please verify your email before continuing.' })
+        dispatch({ type: 'verificationRequired', token: readStoredToken()!, message: registered ? 'Your account was created. A verification email has been sent. Please verify your email before continuing.' : 'Please verify your email before continuing.' })
       } else {
-        dispatch({ type: 'error', token, message: `${registered ? 'Your account was created. A verification email has been sent. Verify your email, then sign in again. ' : ''}${errorMessage(error)}` })
+        dispatch({ type: 'error', token: readStoredToken()!, message: `${registered ? 'Your account was created. A verification email has been sent. Verify your email, then sign in again. ' : ''}${errorMessage(error)}` })
       }
       return false
-    }
+    } finally { resolving.current -= 1 }
   }, [])
+
+  useEffect(() => subscribeSession(() => {
+    const token = readStoredToken()
+    if (!token) { profileRequest.current += 1; dispatch({ type: 'signedOut' }) }
+    else if (!resolving.current) void resolve(token)
+  }), [resolve])
 
   useEffect(() => {
     const token = readStoredToken()
     if (token) void resolve(token)
+    return () => { profileRequest.current += 1 }
   }, [resolve])
 
   const authenticate = useCallback(async (mode: 'signin' | 'signup', credentials: Credentials) => {
-    profileRequest.current += 1
+    const request = ++profileRequest.current
     dispatch({ type: 'authenticate', mode })
     try {
       const response = mode === 'signup' ? await signUp(credentials.email, credentials.password) : await signIn(credentials.email, credentials.password)
-      storeToken(response.token)
+      if (request !== profileRequest.current) { discardSession(response); return }
+      storeSession(response)
       await resolve(response.token, mode === 'signup')
     } catch (error) {
+      if (request !== profileRequest.current) return
       if (error instanceof AuthApiError && error.status === 401) {
         clearStoredToken()
         dispatch({ type: 'signedOut', error: error.message })
@@ -74,7 +87,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const logout = useCallback(() => {
     profileRequest.current += 1
-    clearStoredToken()
+    logoutSession()
     dispatch({ type: 'signedOut' })
   }, [])
 
@@ -84,7 +97,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const token = state.token
     const updated = await updateCurrentUser(token, profile)
     if (request !== profileRequest.current || readStoredToken() !== token) throw new Error('Authentication changed while saving your profile')
-    dispatch({ type: 'authenticated', token, user: updated })
+    dispatch({ type: 'authenticated', token: readStoredToken()!, user: updated })
     return updated
   }, [state])
 

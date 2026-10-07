@@ -1,3 +1,4 @@
+import { authenticatedFetch } from '../auth/session'
 import type { CartProductListing } from '../catalogue/api'
 
 export type PersistentCartItem = {
@@ -16,7 +17,7 @@ async function requestJson<T>(path: string, token: string, init: RequestInit = {
   const headers = new Headers(init.headers)
   headers.set('Content-Type', 'application/json')
   headers.set('Authorization', `Bearer ${token}`)
-  const response = await fetch(`${apiBase()}${path}`, { ...init, headers })
+  const response = await authenticatedFetch(`${apiBase()}${path}`, { ...init, headers }, token)
   let body: unknown = null
   try { body = await response.json() } catch { /* Error response may have no JSON body. */ }
   if (!response.ok) {

@@ -182,6 +182,11 @@ function App() {
     return () => window.cancelAnimationFrame(frame)
   }, [backendCategoriesState.status, resolvedCategories])
   useEffect(() => {
+    if (authState.status !== 'signedOut') {
+      if (guestHintTimer.current !== null) window.clearTimeout(guestHintTimer.current)
+      guestHintTimer.current = null
+      void Promise.resolve().then(() => setGuestHint(null))
+    }
     if (previousAuthStatus.current === 'authenticating' && authState.status === 'authenticated') {
       startUserWelcome(authState.user.firstName)
     }
@@ -313,7 +318,7 @@ function App() {
               onGuestHint={() => { if (authState.status === 'signedOut') showGuestHint('user') }}
             />
             <BookOwnedCart onGuestClick={openCart} />
-            {guestHint && <button className="guest-cart-bubble" type="button" onClick={openAccount}>
+            {authState.status === 'signedOut' && guestHint && <button className="guest-cart-bubble" type="button" onClick={openAccount}>
               {guestHint === 'user' ? <>Hi! Sign in or<br />create an account.</> : <>Hi! Sign in to<br />use your cart.</>}
               <span aria-hidden="true" />
             </button>}
