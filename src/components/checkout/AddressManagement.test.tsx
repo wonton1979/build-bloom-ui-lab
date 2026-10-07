@@ -14,7 +14,7 @@ vi.mock('../../features/account/addressApi', async original => ({ ...await origi
 vi.mock('../../features/checkout/api', async original => ({ ...await original<typeof import('../../features/checkout/api')>(), createOrder: vi.fn(), preparePayment: vi.fn(), recoverPayment: vi.fn() }))
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const first: Address = { id: 1, recipientName: 'Jane Smith', line1: '1 Street', line2: null, city: 'London', postcode: 'SW1A 1AA', country: 'United Kingdom', phone: null, isDefaultShipping: true, isDefaultBilling: true }
-const cart: CartContextValue = { items: [{ productListingId: 900, listing: cartListing(offer(900)), quantity: 1 }], isLoading: false, error: null, pendingItemIds: [], addListing: vi.fn(), updateQuantity: vi.fn(), removeItem: vi.fn() }
+const cart: CartContextValue = { items: [{ productListingId: 900, listing: cartListing(offer(900)), quantity: 1 }], isLoading: false, error: null, pendingItemIds: [], refreshCart: vi.fn().mockResolvedValue(undefined), addListing: vi.fn(), updateQuantity: vi.fn(), removeItem: vi.fn() }
 let root: Root
 let container: HTMLDivElement
 let book: Address[]

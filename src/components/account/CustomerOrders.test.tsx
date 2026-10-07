@@ -1,3 +1,4 @@
+import { CartContext, type CartContextValue } from '../../features/cart/CartContext'
 // @vitest-environment jsdom
 import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -253,5 +254,36 @@ describe('recovered authoritative confirmation semantics', () => {
     expect(container.textContent).not.toContain('Check payment status')
     expect(container.textContent?.includes('Your payment and order are confirmed')).toBe(status !== 'PENDING')
     if (status === 'PENDING') expect(container.textContent).toContain('Payment confirmation has not completed yet')
+  })
+})
+
+describe('order confirmation cart refresh and country presentation', () => {
+  const value = (): CartContextValue => ({ items: [], pendingItemIds: [], isLoading: false, error: null, refreshCart: vi.fn().mockResolvedValue(undefined), addListing: vi.fn(), updateQuantity: vi.fn(), removeItem: vi.fn() })
+  it('refreshes the shared cart after explicit recovery without client subtraction', async () => {
+    const cart = value()
+    const paid = { ...detail, status: 'CONFIRMED', payment: { status: 'SUCCEEDED', paidAt: null }, billingCountryCode: 'United Kingdom', deliveryCountryCode: 'GB' }
+    fetcher.mockImplementation((url: string) => response(url.endsWith('/reconcile') ? paid : { ...detail, payment: { status: 'PROCESSING', paidAt: null } }))
+    history.replaceState({}, '', '/account/orders/41')
+    await mount(<CartContext.Provider value={cart}><App /></CartContext.Provider>)
+    expect(cart.refreshCart).not.toHaveBeenCalled()
+    await click('Check payment status')
+    expect(cart.refreshCart).toHaveBeenCalledTimes(1)
+    expect(cart.removeItem).not.toHaveBeenCalled(); expect(cart.updateQuantity).not.toHaveBeenCalled()
+    expect(container.textContent).toContain('Order status: Confirmed')
+    expect([...container.querySelectorAll('address')].every(node => node.textContent?.includes('United Kingdom'))).toBe(true)
+    expect(paid.deliveryCountryCode).toBe('GB')
+    await click('Refresh order')
+    expect(cart.refreshCart).toHaveBeenCalledTimes(1)
+  })
+  it('refreshes legacy confirmed reads on re-entry without payment or cart writes', async () => {
+    const cart = value()
+    fetcher.mockImplementation((url: string) => response(url === '/api/orders' ? [summary] : { ...detail, status: 'COMPLETED', payment: { status: 'SUCCEEDED', paidAt: null } }))
+    history.replaceState({}, '', '/account/orders/41')
+    await mount(<CartContext.Provider value={cart}><App /></CartContext.Provider>)
+    expect(cart.refreshCart).toHaveBeenCalledTimes(1)
+    await navigate('/account/orders'); await navigate('/account/orders/41')
+    expect(cart.refreshCart).toHaveBeenCalledTimes(2)
+    expect(cart.removeItem).not.toHaveBeenCalled(); expect(cart.updateQuantity).not.toHaveBeenCalled()
+    expect(fetcher.mock.calls.every(([, init]) => init.method === 'GET')).toBe(true)
   })
 })

@@ -28,7 +28,7 @@ beforeEach(() => {
     return this.classList.contains('book-shell__page--right') ? new DOMRect(0, 0, 520, 580) : getBounds.call(this)
   })
   window.matchMedia = vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })
-  cart = { items: [{ productListingId: 11, listing: cartListing(offer(11)), quantity: 2 }], isLoading: false, pendingItemIds: [], error: null, addListing: vi.fn(), updateQuantity: vi.fn(), removeItem: vi.fn() }
+  cart = { items: [{ productListingId: 11, listing: cartListing(offer(11)), quantity: 2 }], isLoading: false, pendingItemIds: [], error: null, refreshCart: vi.fn().mockResolvedValue(undefined), addListing: vi.fn(), updateQuantity: vi.fn(), removeItem: vi.fn() }
 })
 afterEach(async () => { await act(async () => root?.unmount()); document.body.innerHTML = ''; vi.unstubAllGlobals(); vi.restoreAllMocks() })
 async function mount() { container = document.createElement('div'); document.body.append(container); root = createRoot(container); await act(async () => root.render(<CartContext.Provider value={cart}><App /></CartContext.Provider>)) }

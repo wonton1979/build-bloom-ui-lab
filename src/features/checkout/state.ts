@@ -1,5 +1,5 @@
 import type { Address } from '../account/addressApi'
-import type { CartItem } from '../cart/CartContext'
+import { checkoutQuantity, type CartItem } from '../cart/CartContext'
 import type { DeliveryAddress, Order, OrderInput } from './api'
 
 export function deliverySnapshot(address: Address): DeliveryAddress {
@@ -11,7 +11,7 @@ export function deliverySnapshot(address: Address): DeliveryAddress {
   for (const field of ['recipientName', 'line1', 'city', 'postcode'] as const) if (!address[field].trim()) throw new Error('Please complete the required fields in your saved delivery address.')
   return { recipientName: address.recipientName.trim(), line1: address.line1.trim(), city: address.city.trim(), postcode: address.postcode.trim(), countryCode, ...(address.line2?.trim() ? { line2: address.line2.trim() } : {}), ...(address.phone?.trim() ? { phone: address.phone.trim() } : {}) }
 }
-export const orderInput = (items: CartItem[], address: Address): OrderInput => ({ items: items.map(({ productListingId, quantity }) => ({ productListingId, quantity })), deliveryAddress: deliverySnapshot(address) })
+export const orderInput = (items: CartItem[], address: Address): OrderInput => ({ items: items.map(item => { const quantity = checkoutQuantity(item); if (quantity === null) throw new Error('Please refresh your cart before checking out.'); return { productListingId: item.productListingId, quantity } }).filter(item => item.quantity > 0), deliveryAddress: deliverySnapshot(address) })
 export const isConfirmed = (order: Order) => order.payment?.status === 'SUCCEEDED' && ['CONFIRMED', 'DISPATCHED', 'COMPLETED'].includes(order.status)
 export function isExpired(order: Order, now = Date.now()) {
   return order.status === 'EXPIRED' || (order.payment?.status !== 'SUCCEEDED' && order.reservationExpiresAt !== null && Date.parse(order.reservationExpiresAt) <= now)

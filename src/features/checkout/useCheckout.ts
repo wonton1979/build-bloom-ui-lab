@@ -1,12 +1,14 @@
+import { useCart } from '../cart/CartContext'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CheckoutApiError, createOrder, getOrder, preparePayment, recoverPayment, type Order, type OrderInput } from './api'
 import { clearAttempt, isConfirmed, isTerminal, navigateCheckout, readAttempt, saveAttempt, type CreationAttempt } from './state'
 import { AuthApiError, getCurrentUser, isVerificationRequired } from '../auth/api'
 
-export type Phase = 'ready' | 'creating' | 'loading' | 'reserved' | 'preparing' | 'payment' | 'waiting' | 'pending' | 'confirmed' | 'failure' | 'terminal' | 'auth' | 'verification'
+export type Phase = 'ready' | 'creating' | 'loading' | 'reserved' | 'preparing' | 'payment' | 'waiting' | 'pending' | 'confirmed' | 'failure' | 'terminal' | 'auth' | 'verification' | 'cart-conflict'
 export const verificationDelays = [0, 1000, 2000, 3000, 5000, 8000, 10000]
 
 export function useCheckout(token: string, userId: number, orderId: number | null) {
+  const { refreshCart } = useCart()
   const [order, setOrder] = useState<Order | null>(null)
   const [phase, setPhase] = useState<Phase>(orderId ? 'loading' : 'ready')
   const [message, setMessage] = useState<string | null>(null)
@@ -49,6 +51,7 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
 
   const create = async (input: OrderInput) => {
     if (busy.current || obtainedOrderId.current || orderId || order || phase === 'verification') return
+    if (!attemptRef.current && input.items.length === 0) return
     busy.current = true; setMessage(null); setPhase('creating')
     try {
       if (attemptRef.current?.rejection === 'EMAIL_VERIFICATION_REQUIRED') {
@@ -72,6 +75,13 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
       window.dispatchEvent(new PopStateEvent('popstate'))
     } catch (reason) {
       if (active.current) {
+        if (reason instanceof CheckoutApiError && reason.status === 409 && reason.code === 'CART_QUANTITY_UNAVAILABLE') {
+          // Definite rejection: retire this identity, never rewrite an ambiguous request.
+          clearAttempt(userId); attemptRef.current = null; setAttempt(null)
+          setMessage(reason.message); setPhase('cart-conflict')
+          await refreshCart()
+          return
+        }
         if (reason instanceof CheckoutApiError && reason.status === 403 && reason.code === 'EMAIL_VERIFICATION_REQUIRED' && attemptRef.current) {
           const rejected: CreationAttempt = { ...attemptRef.current, rejection: 'EMAIL_VERIFICATION_REQUIRED' }
           attemptRef.current = rejected; setAttempt(rejected)

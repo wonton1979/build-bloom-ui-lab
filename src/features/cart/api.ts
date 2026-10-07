@@ -3,6 +3,8 @@ import type { CartProductListing } from '../catalogue/api'
 export type PersistentCartItem = {
   productListingId: number
   quantity: number
+  allocatedQuantity?: number
+  unallocatedQuantity?: number
   productListing: CartProductListing
 }
 

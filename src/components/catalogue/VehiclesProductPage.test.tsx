@@ -211,7 +211,7 @@ describe('product-level Catalogue cards and Product Details offers', () => {
   it('shows stock for the selected offer and cart quantity by listing ID', () => {
     const selected = cartListing(twoOffers.offers[1], twoOffers)
     const markup = renderToStaticMarkup(<CartContext.Provider value={{
-      items: [{ productListingId: 32, listing: selected, quantity: 1 }], addListing: vi.fn(), updateQuantity: vi.fn(), removeItem: vi.fn(), pendingItemIds: [], isLoading: false, error: null,
+      items: [{ productListingId: 32, listing: selected, quantity: 1 }], refreshCart: vi.fn().mockResolvedValue(undefined), addListing: vi.fn(), updateQuantity: vi.fn(), removeItem: vi.fn(), pendingItemIds: [], isLoading: false, error: null,
     }}><CatalogueProductDetails product={twoOffers} selectedOfferId={32} side="right" onAddToCart={vi.fn()} /></CartContext.Provider>)
     expect(markup).toContain('Stock: 1')
     expect(markup).toContain('In cart: 1 · Maximum available')

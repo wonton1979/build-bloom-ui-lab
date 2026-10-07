@@ -15,6 +15,7 @@ export class CheckoutApiError extends Error {
   readonly code?: string
   constructor(status: number, code?: string, detail?: string) {
     const messages: Record<string, string> = {
+      CART_QUANTITY_UNAVAILABLE: 'Some cart quantity is already in another pending order or has changed. Review your cart or visit My Orders before trying again.',
       ORDER_IDEMPOTENCY_MISMATCH: 'This checkout request changed. Please return to your cart to start a new checkout.',
       INVALID_IDEMPOTENCY_KEY: 'This checkout request could not be accepted. Please start a new checkout.',
       ORDER_EXPIRED: 'Your inventory reservation has expired. Return to your cart to start again.',

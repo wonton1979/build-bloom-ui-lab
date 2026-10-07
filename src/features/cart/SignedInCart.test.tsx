@@ -53,6 +53,7 @@ describe('signed-in cart regardless of email verification', () => {
     expect(getCart).toHaveBeenCalledExactlyOnceWith('customer-jwt'); expect(cart.items[0].quantity).toBe(1)
     await click('.catalogue-stage__open-underlay button')
     expect(addCartItem).toHaveBeenCalledExactlyOnceWith('customer-jwt', 42, 1)
+    vi.mocked(getCart).mockResolvedValue({ items: [{ ...populated.items[0], quantity: 2 }] })
     await click('.stage-cart'); expect(container.querySelector('.cart-modal')).not.toBeNull()
     expect(container.textContent).toContain('Quantity: 2'); expect(container.textContent).not.toContain('Hi! Sign in to')
     await act(async () => { expect(await cart.updateQuantity(42, 1)).toBe(true) })
@@ -74,5 +75,90 @@ describe('signed-in cart regardless of email verification', () => {
     expect(container.querySelector('.cart-modal')).toBeNull(); expect(container.textContent).toContain('Hi! Sign in to')
     await act(async () => { await cart.addListing(offer(42)); expect(await cart.updateQuantity(42, 1)).toBe(false); expect(await cart.removeItem(42)).toBe(false) })
     for (const api of [getCart, addCartItem, updateCartItem, deleteCartItem]) expect(api).not.toHaveBeenCalled()
+  })
+})
+
+describe('authoritative cart refresh and allocation mutations', () => {
+  async function signIn() {
+    sessionStorage.setItem(AUTH_STORAGE_KEY, 'customer-jwt')
+    vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, email: 'customer@example.com', firstName: null, lastName: null, phone: null })
+    await mount()
+  }
+  it('preserves total PATCH targets, retains allocation metadata, and delegates removal to backend', async () => {
+    const allocated = { items: [{ ...populated.items[0], quantity: 2, allocatedQuantity: 1, unallocatedQuantity: 1 }] }
+    vi.mocked(getCart).mockResolvedValue(allocated)
+    vi.mocked(updateCartItem).mockResolvedValue({ items: [{ ...allocated.items[0], quantity: 3, unallocatedQuantity: 2 }] })
+    await signIn()
+    expect(cart.items[0]).toMatchObject({ quantity: 2, allocatedQuantity: 1, unallocatedQuantity: 1 })
+    await act(async () => { expect(await cart.updateQuantity(42, 3)).toBe(true) })
+    expect(updateCartItem).toHaveBeenCalledExactlyOnceWith('customer-jwt', 42, 3)
+    expect(cart.items[0].quantity).toBe(3)
+    await act(async () => { await cart.removeItem(42) })
+    expect(deleteCartItem).toHaveBeenCalledExactlyOnceWith('customer-jwt', 42)
+    expect(cart.items).toEqual([])
+  })
+  it('GET refresh can retain pending cleanup, then cart reopening obtains cleaned authoritative state', async () => {
+    await signIn()
+    await act(async () => { await cart.refreshCart() })
+    expect(cart.items).toHaveLength(1)
+    expect(addCartItem).not.toHaveBeenCalled(); expect(updateCartItem).not.toHaveBeenCalled(); expect(deleteCartItem).not.toHaveBeenCalled()
+    vi.mocked(getCart).mockResolvedValue({ items: [] })
+    await click('.stage-cart')
+    expect(cart.items).toEqual([])
+    expect(getCart).toHaveBeenCalledTimes(3)
+  })
+  it('coalesces concurrent refresh calls and leaves cached items intact on failure', async () => {
+    await signIn()
+    let finish!: (value: typeof populated) => void
+    vi.mocked(getCart).mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+    await act(async () => { void cart.refreshCart(); void cart.refreshCart() })
+    expect(getCart).toHaveBeenCalledTimes(2)
+    await act(async () => finish(populated))
+    vi.mocked(getCart).mockRejectedValueOnce(new Error('Offline'))
+    await act(async () => { await cart.refreshCart() })
+    expect(cart.items).toHaveLength(1); expect(cart.error).toBe('Offline')
+    await act(async () => { await cart.refreshCart() })
+    expect(cart.error).toBeNull()
+  })
+  it('does not let refresh overwrite a subsequent queued cart mutation', async () => {
+    await signIn()
+    let finish!: (value: typeof populated) => void
+    vi.mocked(getCart).mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+    await act(async () => { void cart.refreshCart(); void cart.addListing(offer(42)) })
+    expect(addCartItem).not.toHaveBeenCalled()
+    await act(async () => finish(populated))
+    expect(cart.items[0].quantity).toBe(2)
+  })
+  it('discards a refresh that finishes after sign out and never refreshes guests', async () => {
+    await signIn()
+    let finish!: (value: typeof populated) => void
+    vi.mocked(getCart).mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+    await act(async () => { void cart.refreshCart() })
+    await act(async () => auth.logout())
+    await act(async () => finish(populated))
+    expect(cart.items).toEqual([])
+    await act(async () => { await cart.refreshCart() })
+    expect(getCart).toHaveBeenCalledTimes(2)
+  })
+  it('fails closed on malformed allocation metadata without corrupting the cache', async () => {
+    await signIn()
+    vi.mocked(getCart).mockResolvedValue({ items: [{ ...populated.items[0], allocatedQuantity: 1, unallocatedQuantity: 10 }] })
+    await act(async () => { await cart.refreshCart() })
+    expect(cart.error).toContain('cart quantities')
+    expect(cart.items[0].quantity).toBe(1)
+  })
+})
+
+describe('new allocation-aware addition', () => {
+  it('adds one new unit without sending or detaching existing allocated quantities', async () => {
+    sessionStorage.setItem(AUTH_STORAGE_KEY, 'customer-jwt')
+    vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, email: 'customer@example.com', firstName: null, lastName: null, phone: null })
+    const lowStock = cartListing(offer(42, { availableStock: 1 }))
+    vi.mocked(getCart).mockResolvedValue({ items: [{ productListingId: 42, productListing: lowStock, quantity: 2, allocatedQuantity: 2, unallocatedQuantity: 0 }] })
+    vi.mocked(addCartItem).mockResolvedValue({ items: [{ productListingId: 42, productListing: lowStock, quantity: 3, allocatedQuantity: 2, unallocatedQuantity: 1 }] })
+    await mount()
+    await act(async () => { await cart.addListing(offer(42, { availableStock: 1 })) })
+    expect(addCartItem).toHaveBeenCalledExactlyOnceWith('customer-jwt', 42, 1)
+    expect(cart.items[0]).toMatchObject({ quantity: 3, allocatedQuantity: 2, unallocatedQuantity: 1 })
   })
 })
