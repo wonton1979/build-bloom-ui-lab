@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { AuthApiError } from '../../features/auth/api'
+import { countryLabel, deliverySelection, isUsableUkAddress } from '../../features/account/addressState'
 import { getAddresses, type Address } from '../../features/account/addressApi'
 import { cartTotalPence, formatGbp, lineAmountPence, priceToPence, useCart } from '../../features/cart/CartContext'
 import { checkoutOrderId, isExpired, navigateCheckout, orderInput } from '../../features/checkout/state'
@@ -10,12 +11,12 @@ import { BotanicalDivider } from '../shared/BotanicalDivider'
 import './Checkout.css'
 import { VerificationNotice } from '../account/VerificationNotice'
 
-export function Checkout({ onAccount }: { onAccount: () => void }) {
+export function Checkout({ onAccount, onAddresses = onAccount, addressRevision = 0 }: { onAccount: () => void; onAddresses?: () => void; addressRevision?: number }) {
   const { state, logout } = useAuth()
   const validLocation = /^\/checkout\/?$/.test(window.location.pathname) || checkoutOrderId(window.location.pathname) !== null
   return <main className="checkout" tabIndex={-1}>
     <div className="checkout__paper">
-      {!validLocation ? <><h1>Checkout</h1><p role="alert">This order link is invalid. Please return to the storefront.</p></> : state.status === 'authenticated' ? <AuthenticatedCheckout token={state.token} userId={state.user.id} onAccount={onAccount} onAuthenticate={() => { logout(); onAccount() }} /> : <>
+      {!validLocation ? <><h1>Checkout</h1><p role="alert">This order link is invalid. Please return to the storefront.</p></> : state.status === 'authenticated' ? <AuthenticatedCheckout token={state.token} userId={state.user.id} onAddresses={onAddresses} addressRevision={addressRevision} onAuthenticate={() => { logout(); onAccount() }} /> : <>
         <h1>Checkout</h1>
         {state.status === 'verificationRequired' ? <VerificationNotice token={state.token} message="Verify your email before an order can be created. Your saved checkout request will be retained." /> : <p role="status">{state.status === 'resolving' ? 'Restoring your account…' : 'Please sign in to continue your checkout.'}</p>}
         {state.status !== 'resolving' && <button onClick={onAccount}>Open account</button>}
@@ -27,15 +28,17 @@ export function Checkout({ onAccount }: { onAccount: () => void }) {
 }
 
 function AddressCopy({ name, line1, line2, city, postcode, country }: { name: string; line1: string; line2?: string | null; city: string; postcode: string; country: string }) {
-  return <address>{name}<br />{line1}<br />{line2 && <>{line2}<br /></>}{city}<br />{postcode}<br />{country}</address>
+  return <address>{name}<br />{line1}<br />{line2 && <>{line2}<br /></>}{city}<br />{postcode}<br />{countryLabel(country)}</address>
 }
 
-function AuthenticatedCheckout({ token, userId, onAccount, onAuthenticate }: { token: string; userId: number; onAccount: () => void; onAuthenticate: () => void }) {
+function AuthenticatedCheckout({ token, userId, onAddresses, addressRevision, onAuthenticate }: { token: string; userId: number; onAddresses: () => void; addressRevision: number; onAuthenticate: () => void }) {
   const cart = useCart()
   const orderId = checkoutOrderId(window.location.pathname)
   const checkout = useCheckout(token, userId, orderId)
   const { order, phase, message, secret, attempt } = checkout
   const [addresses, setAddresses] = useState<Address[]>([])
+  const deliberateDelivery = useRef(false)
+  const selectedDelivery = useRef<number | null>(null)
   const [addressId, setAddressId] = useState<number | null>(null)
   const [addressLoading, setAddressLoading] = useState(!orderId)
   const [addressError, setAddressError] = useState<string | null>(null)
@@ -45,9 +48,13 @@ function AuthenticatedCheckout({ token, userId, onAccount, onAuthenticate }: { t
   useEffect(() => {
     if (orderId) return
     let active = true
+    void Promise.resolve().then(() => { if (active) setAddressLoading(true) })
     void getAddresses(token).then(result => {
       if (!active) return
-      setAddresses(result); setAddressId((result.find(address => address.isDefaultShipping) ?? result[0])?.id ?? null); setAddressError(null); setAddressAuthRequired(false)
+      const nextId = deliverySelection(result, selectedDelivery.current, deliberateDelivery.current)
+      if (nextId !== selectedDelivery.current) deliberateDelivery.current = false
+      selectedDelivery.current = nextId
+      setAddresses(result); setAddressId(nextId); setAddressError(null); setAddressAuthRequired(false)
     }).catch(reason => {
       if (!active) return
       const authRequired = reason instanceof AuthApiError && [401, 403].includes(reason.status)
@@ -55,7 +62,7 @@ function AuthenticatedCheckout({ token, userId, onAccount, onAuthenticate }: { t
       setAddressError(authRequired ? 'Please sign in and verify your account to load saved addresses.' : 'Unable to load saved addresses. Please try again.')
     }).finally(() => { if (active) setAddressLoading(false) })
     return () => { active = false }
-  }, [orderId, token, reload])
+  }, [orderId, token, reload, addressRevision])
   const selected = addresses.find(address => address.id === addressId)
   const billing = addresses.find(address => address.isDefaultBilling)
   const pending = ['creating', 'loading', 'preparing', 'waiting'].includes(phase)
@@ -63,7 +70,7 @@ function AuthenticatedCheckout({ token, userId, onAccount, onAuthenticate }: { t
   const frozen = Boolean(attempt)
   const verificationBlocked = phase === 'verification'
   const definiteRejection = attempt?.rejection === 'EMAIL_VERIFICATION_REQUIRED'
-  const canCreate = !orderId && !order && !pending && phase !== 'terminal' && !verificationBlocked && (frozen || (cart.items.length > 0 && !cart.isLoading && !cart.pendingItemIds.length && Boolean(selected && billing) && !addressLoading))
+  const canCreate = !orderId && !order && !pending && phase !== 'terminal' && !verificationBlocked && (frozen || (cart.items.length > 0 && !cart.isLoading && !cart.pendingItemIds.length && Boolean(selected && isUsableUkAddress(selected) && billing && isUsableUkAddress(billing)) && !addressError && !addressLoading))
 
   return <>
     <p className="checkout__eyebrow">Build &amp; Bloom · Your purchase</p>
@@ -88,14 +95,14 @@ function AuthenticatedCheckout({ token, userId, onAccount, onAuthenticate }: { t
       <section aria-labelledby="checkout-delivery"><h2 id="checkout-delivery">Delivery address</h2>
         {order ? <AddressCopy name={order.deliveryRecipientName} line1={order.deliveryLine1} line2={order.deliveryLine2} city={order.deliveryCity} postcode={order.deliveryPostcode} country={order.deliveryCountryCode} /> : <>
           {frozen ? <><p>{definiteRejection ? 'Your checkout request is saved. Continuing after verification uses the same items and delivery address.' : 'A checkout request is saved. Retry uses the original items and delivery address, even if your cart has since changed.'}</p><ul>{attempt?.input.items.map(item => <li key={item.productListingId}>Listing #{item.productListingId} · Quantity {item.quantity}</li>)}</ul>{attempt?.input.deliveryAddress && <AddressCopy name={attempt.input.deliveryAddress.recipientName} line1={attempt.input.deliveryAddress.line1} line2={attempt.input.deliveryAddress.line2} city={attempt.input.deliveryAddress.city} postcode={attempt.input.deliveryAddress.postcode} country={attempt.input.deliveryAddress.countryCode} />}</> : addressLoading ? <p role="status">Loading addresses…</p> : <>
-            <label>Saved delivery address<select value={addressId ?? ''} onChange={event => { setAddressId(Number(event.target.value)); setInputError(null) }} disabled={pending}><option value="" disabled>Choose an address</option>{addresses.map(address => <option key={address.id} value={address.id}>{address.recipientName} · {address.line1} · {address.postcode}</option>)}</select></label>
-            {selected && <AddressCopy name={selected.recipientName} line1={selected.line1} line2={selected.line2} city={selected.city} postcode={selected.postcode} country={selected.country} />}
+            {addresses.length === 0 ? <><p>You need a delivery address before continuing.</p><button disabled={pending} onClick={onAddresses}>Add delivery address</button></> : <><label>Saved delivery address<select value={addressId ?? ''} onChange={event => { deliberateDelivery.current = true; selectedDelivery.current = Number(event.target.value); setAddressId(selectedDelivery.current); setInputError(null) }} disabled={pending}><option value="" disabled>Choose an address</option>{addresses.map(address => <option key={address.id} value={address.id}>{address.recipientName} · {address.line1} · {address.postcode}</option>)}</select></label>
+            {(!selected || !isUsableUkAddress(selected)) && <p>Please add or update a valid United Kingdom delivery address before continuing.</p>}{selected && <AddressCopy name={selected.recipientName} line1={selected.line1} line2={selected.line2} city={selected.city} postcode={selected.postcode} country={selected.country} />}</>}
           </>}
-          <button className="checkout__secondary" disabled={pending} onClick={onAccount}>Manage saved addresses in My Account</button>
-          <button className="checkout__secondary" disabled={pending} onClick={() => { setAddressLoading(true); setReload(value => value + 1) }}>Reload addresses</button>
+          {(addresses.length > 0 || frozen) && <button className="checkout__secondary" disabled={pending} onClick={onAddresses}>Manage saved addresses in My Account</button>}
+          {addressError && <button className="checkout__secondary" disabled={pending} onClick={() => { setAddressLoading(true); setReload(value => value + 1) }}>Try loading addresses again</button>}
         </>}
         <h2>Billing address</h2>
-        {order ? <AddressCopy name={order.billingRecipientName} line1={order.billingLine1} line2={order.billingLine2} city={order.billingCity} postcode={order.billingPostcode} country={order.billingCountryCode} /> : billing ? <AddressCopy name={billing.recipientName} line1={billing.line1} line2={billing.line2} city={billing.city} postcode={billing.postcode} country={billing.country} /> : !addressLoading && <p>Add a default billing address in My Account before continuing.</p>}
+        {order ? <AddressCopy name={order.billingRecipientName} line1={order.billingLine1} line2={order.billingLine2} city={order.billingCity} postcode={order.billingPostcode} country={order.billingCountryCode} /> : billing && isUsableUkAddress(billing) ? <AddressCopy name={billing.recipientName} line1={billing.line1} line2={billing.line2} city={billing.city} postcode={billing.postcode} country={billing.country} /> : !addressLoading && <><p>You need a default billing address before continuing.</p>{addresses.length > 0 && <button disabled={pending} onClick={onAddresses}>Set up billing address</button>}</>}
         {!order && <p>Your saved default billing address will be used. Delivery selection does not change it.</p>}
       </section>
     </div>}

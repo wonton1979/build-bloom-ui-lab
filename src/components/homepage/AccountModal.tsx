@@ -59,11 +59,11 @@ export function AccountModalCloseButton({ onClose, closeRef }: { onClose: () => 
   return <button ref={closeRef} type="button" className="account-modal__close" aria-label="Close account dialog" onClick={onClose}>×</button>
 }
 
-export function AccountModal({ onClose }: { onClose: () => void }) {
+export function AccountModal({ onClose, initialView = 'hub' }: { onClose: () => void; initialView?: 'hub' | 'personal' }) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const previousStatus = useRef<string | undefined>(undefined)
   const { state, logout } = useAuth()
-  const [view, setView] = useState<'hub' | 'personal'>('hub')
+  const [view, setView] = useState<'hub' | 'personal'>(initialView)
   useEffect(() => {
     closeRef.current?.focus()
     const onKeyDown = (event: KeyboardEvent) => {
