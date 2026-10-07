@@ -72,7 +72,7 @@ describe('My Orders entry and list', () => {
     expect(location.pathname).toBe('/account/orders/41'); expect(container.textContent).toContain('Delivery Customer')
     fetcher.mockImplementation((url: string) => response(url === '/api/orders' ? [summary] : { ...detail, status: 'CONFIRMED', payment: { status: 'SUCCEEDED', paidAt: '2026-10-02T12:00:00Z' } }))
     await click('Refresh order'); expect(fetcher.mock.calls.filter(([url]) => url === '/api/orders/41')).toHaveLength(2)
-    expect(container.textContent).toContain('Payment status: Confirmed'); expect(container.textContent).not.toContain('Resume checkout')
+    expect(container.textContent).toContain('Payment status: Succeeded'); expect(container.textContent).not.toContain('Resume checkout')
     await navigate('/account/orders'); await navigate('/account/orders/41')
     expect(fetcher.mock.calls.filter(([url]) => url === '/api/orders/41')).toHaveLength(3)
   })
@@ -102,7 +102,7 @@ describe('Order Detail and resume', () => {
     history.replaceState({}, '', '/account/orders/41')
     fetcher.mockImplementation(() => response({ ...detail, status, payment: { status: 'SUCCEEDED', paidAt: '2026-10-02T12:00:00Z' } }))
     await mount(); expect(container.textContent).toContain(`Order status: ${orderStatusLabel(status)}`)
-    expect(container.textContent).toContain('Payment status: Confirmed'); expect(container.textContent).toContain('Paid ')
+    expect(container.textContent).toContain('Payment status: Succeeded'); expect(container.textContent).toContain('Paid ')
     expect(container.textContent).not.toContain('Resume checkout')
   })
   it.each(['EXPIRED', 'CANCELLED', 'RETURNED'])('keeps %s terminal', async status => {
@@ -164,5 +164,94 @@ describe('conservative status/URL presentation', () => {
     expect(canResumeCheckout({ ...detail, reservationExpiresAt: '2000-01-01T00:00:00Z' })).toBe(false)
     expect(orderDetailId('/account/orders/-1')).toBeNull(); expect(orderDetailId('/account/orders/41')).toBe(41)
     expect(orderStatusLabel('__proto__')).toBe('Status unavailable'); expect(paymentStatusLabel('__proto__')).toBe('Status unavailable')
+  })
+})
+
+describe('explicit Order Detail payment recovery', () => {
+  const stuck = { ...detail, reservationExpiresAt: '2020-01-01T00:00:00Z', payment: { status: 'PROCESSING', paidAt: null } }
+  async function open() { history.replaceState({}, '', '/account/orders/41'); await mount() }
+  it('recovers an expired started payment once, preserving checkout identity and updating authoritative state', async () => {
+    let finish!: (response: Response) => void
+    const saved = 'original saved checkout identity'
+    sessionStorage.setItem('colorful-life:checkout-attempt:1', saved)
+    const uuid = vi.spyOn(crypto, 'randomUUID')
+    fetcher.mockImplementation((url: string) => url.endsWith('/reconcile') ? new Promise(resolve => { finish = resolve }) : response(stuck))
+    await open()
+    expect(container.textContent).toContain('Check payment status')
+    expect(container.textContent).not.toContain('Resume checkout')
+    await click('Check payment status')
+    await click('Checking payment status…')
+    expect(fetcher).toHaveBeenCalledTimes(2)
+    expect(fetcher.mock.calls[1]).toEqual(['/api/orders/41/payments/stripe/reconcile', expect.objectContaining({ method: 'POST', headers: expect.objectContaining({ Authorization: 'Bearer jwt' }) })])
+    await act(async () => finish(new Response(JSON.stringify({ ...stuck, status: 'CONFIRMED', payment: { status: 'SUCCEEDED', paidAt: null } }))))
+    expect(container.textContent).toContain('Order status: Confirmed')
+    expect(container.textContent).toContain('Payment status: Succeeded')
+    expect(container.textContent).toContain('Your payment and order are confirmed')
+    expect(container.textContent).not.toContain('Check payment status')
+    expect(uuid).not.toHaveBeenCalled(); uuid.mockRestore()
+    expect(sessionStorage.getItem('colorful-life:checkout-attempt:1')).toBe(saved)
+    expect(fetcher.mock.calls.map(([url]) => url)).toEqual(['/api/orders/41', '/api/orders/41/payments/stripe/reconcile'])
+  })
+  it('does not equate HTTP success with confirmation and permits repeated explicit recheck', async () => {
+    fetcher.mockImplementation(() => response(stuck))
+    await open(); await click('Refresh order')
+    expect(fetcher.mock.calls.every(([, init]) => init.method === 'GET')).toBe(true)
+    await click('Check payment status'); await click('Check payment status')
+    expect(container.textContent).toContain('Payment confirmation has not completed yet')
+    expect(container.textContent).toContain('Payment status: Processing')
+    expect(container.textContent).not.toContain('Your payment and order are confirmed')
+    expect(fetcher.mock.calls.filter(([, init]) => init.method === 'POST')).toHaveLength(2)
+  })
+  it('keeps failures retryable without changing the displayed order or initiating payment', async () => {
+    fetcher.mockImplementation((url: string) => url.endsWith('/reconcile') ? Promise.reject(new Error('private provider error')) : response(stuck))
+    await open(); await click('Check payment status')
+    expect(container.textContent).toContain('We could not check your payment status')
+    expect(container.textContent).toContain('Order status: Pending')
+    expect(container.textContent).toContain('Payment status: Processing')
+    expect(container.textContent).not.toContain('private provider')
+    await click('Check payment status')
+    expect(fetcher.mock.calls.map(([url]) => url)).toEqual(['/api/orders/41', '/api/orders/41/payments/stripe/reconcile', '/api/orders/41/payments/stripe/reconcile'])
+  })
+  it.each(['CONFIRMED', 'DISPATCHED', 'COMPLETED', 'CANCELLED', 'EXPIRED', 'RETURNED'])('does not offer recovery for %s', async status => {
+    fetcher.mockImplementation(() => response({ ...stuck, status }))
+    await open(); expect(container.textContent).not.toContain('Check payment status')
+  })
+  it.each([null, { status: 'PENDING', paidAt: null }, { status: 'SUCCEEDED', paidAt: null }])('does not offer recovery without an eligible started payment: %s', async payment => {
+    fetcher.mockImplementation(() => response({ ...stuck, payment }))
+    await open(); expect(container.textContent).not.toContain('Check payment status')
+  })
+  it.each([401, 403, 404])('preserves authentication and owner-safe handling for recovery HTTP %s', async status => {
+    fetcher.mockImplementation((url: string) => response(url.endsWith('/reconcile') ? {} : stuck, url.endsWith('/reconcile') ? status : 200))
+    await open(); await click('Check payment status')
+    expect(container.textContent).not.toContain('Delivery Customer')
+    expect(container.textContent).toContain(status === 401 ? 'Please sign in again' : 'cannot display this order information')
+  })
+  it('preserves the verification gate on recovery', async () => {
+    fetcher.mockImplementation((url: string) => url.endsWith('/reconcile') ? response({ error: { code: 'EMAIL_VERIFICATION_REQUIRED' } }, 403) : response(stuck))
+    await open(); await click('Check payment status')
+    expect(container.textContent).toContain('Please verify your email to view your orders')
+    expect(container.textContent).not.toContain('Delivery Customer')
+  })
+  it('discards recovery responses after navigating away', async () => {
+    let finish!: (value: Response) => void
+    fetcher.mockImplementation((url: string) => url.endsWith('/reconcile') ? new Promise(resolve => { finish = resolve }) : response(url === '/api/orders' ? [summary] : stuck))
+    await open(); await click('Check payment status'); await click('Back to My Orders')
+    await act(async () => finish(new Response(JSON.stringify({ ...stuck, status: 'CONFIRMED', payment: { status: 'SUCCEEDED', paidAt: null } }))))
+    expect(container.textContent).toContain('My Orders')
+    expect(container.textContent).not.toContain('Your payment and order are confirmed')
+  })
+})
+
+describe('recovered authoritative confirmation semantics', () => {
+  it.each(['CONFIRMED', 'DISPATCHED', 'COMPLETED', 'PENDING'])('recognizes recovered SUCCEEDED with %s correctly', async status => {
+    const processing = { ...detail, payment: { status: 'PROCESSING', paidAt: null } }
+    fetcher.mockImplementation((url: string) => response(url.endsWith('/reconcile') ? { ...detail, status, payment: { status: 'SUCCEEDED', paidAt: null } } : processing))
+    history.replaceState({}, '', '/account/orders/41'); await mount()
+    expect(container.textContent).toContain('Check payment status')
+    await click('Check payment status')
+    expect(container.textContent).toContain('Payment status: Succeeded')
+    expect(container.textContent).not.toContain('Check payment status')
+    expect(container.textContent?.includes('Your payment and order are confirmed')).toBe(status !== 'PENDING')
+    if (status === 'PENDING') expect(container.textContent).toContain('Payment confirmation has not completed yet')
   })
 })
