@@ -3,10 +3,14 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode
 import { useAuth } from '../auth/AuthProvider'
 import { isSignedIn } from '../auth/state'
 import { addCartItem, deleteCartItem, getCart, updateCartItem, type PersistentCart } from './api'
-import { CartContext, offerQuantityLimit, quantityWithinStock, type CartContextValue, type CartItem } from './CartContext'
+import { CartContext, checkoutQuantity, cartQuantityLimit, quantityWithinStock, type CartContextValue, type CartItem } from './CartContext'
 
 export function mapCart(cart: PersistentCart): CartItem[] {
-  return cart.items.map(item => ({ productListingId: item.productListingId, quantity: item.quantity, listing: item.productListing }))
+  return cart.items.map(item => {
+    if (checkoutQuantity(item) === null) throw new Error('Unable to read your cart quantities. Please refresh your cart.')
+    return { productListingId: item.productListingId, quantity: item.quantity, listing: item.productListing,
+      ...(item.allocatedQuantity !== undefined ? { allocatedQuantity: item.allocatedQuantity, unallocatedQuantity: item.unallocatedQuantity } : {}) }
+  })
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
@@ -16,6 +20,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const [pendingItemIds, setPendingItemIds] = useState<number[]>([])
   const generation = useRef(0)
+  const refreshing = useRef<Promise<void> | null>(null)
   const hydration = useRef<Promise<void>>(Promise.resolve())
   const writes = useRef<Promise<void>>(Promise.resolve())
   const pendingIds = useRef(new Set<number>())
@@ -40,6 +45,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // capture the pre-auth generation and be discarded.
   useLayoutEffect(() => {
     const currentGeneration = ++generation.current
+    refreshing.current = null
     if (!isSignedIn(authState)) {
       hydration.current = Promise.resolve()
       pendingIds.current.clear()
@@ -70,11 +76,34 @@ export function CartProvider({ children }: { children: ReactNode }) {
     hydration.current = restore
   }, [authState])
 
+  const refreshCart = useCallback(() => {
+    if (!isSignedIn(authState)) return Promise.resolve()
+    if (refreshing.current) return refreshing.current
+    const currentGeneration = generation.current
+    const token = authState.token
+    setIsLoading(true)
+    const operation = writes.current.then(async () => {
+      await hydration.current
+      if (generation.current !== currentGeneration || activeToken.current !== token) return
+      const cart = await getCart(token)
+      if (generation.current !== currentGeneration || activeToken.current !== token) return
+      setItems(mapCart(cart)); setError(null)
+    }).catch((reason: unknown) => {
+      if (generation.current === currentGeneration) setError(reason instanceof Error ? reason.message : 'Unable to refresh your cart')
+    }).finally(() => {
+      if (generation.current === currentGeneration) setIsLoading(false)
+      if (refreshing.current === operation) refreshing.current = null
+    })
+    refreshing.current = operation
+    writes.current = operation
+    return operation
+  }, [authState])
+
   const addListing = useCallback((listing: import('../catalogue/api').ProductListingOffer) => {
     if (!isSignedIn(authState)) return Promise.resolve()
     const existing = items.find(item => item.productListingId === listing.id)
     const currentQuantity = existing?.quantity ?? 0
-    if (pendingIds.current.has(listing.id) || currentQuantity + 1 > offerQuantityLimit(listing)) return Promise.resolve()
+    if (pendingIds.current.has(listing.id) || currentQuantity + 1 > cartQuantityLimit({ listing, allocatedQuantity: existing?.allocatedQuantity })) return Promise.resolve()
     markPending(listing.id)
     const operation = writes.current.then(async () => {
       // Let the authentication effect establish the current hydration promise
@@ -141,12 +170,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<CartContextValue>(() => ({
     items,
+    refreshCart,
     addListing,
     updateQuantity,
     removeItem,
     pendingItemIds,
     isLoading,
     error,
-  }), [addListing, error, isLoading, items, pendingItemIds, removeItem, updateQuantity])
+  }), [refreshCart, addListing, error, isLoading, items, pendingItemIds, removeItem, updateQuantity])
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }

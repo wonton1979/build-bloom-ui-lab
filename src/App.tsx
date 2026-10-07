@@ -64,7 +64,7 @@ function App() {
   const previouslyOpen = useRef(false)
   const previousAuthStatus = useRef<string | undefined>(undefined)
   const { state: authState, logout } = useAuth()
-  const { items: cartItems, addListing, isLoading: cartLoading, pendingItemIds } = useCart()
+  const { items: cartItems, refreshCart, addListing, isLoading: cartLoading, pendingItemIds } = useCart()
   const showReference = import.meta.env.DEV && view === 'reference'
   const showGuestHint = (source: 'user' | 'cart') => {
     if (guestHintTimer.current !== null) window.clearTimeout(guestHintTimer.current)
@@ -131,6 +131,7 @@ function App() {
     if (!isSignedIn(authState)) { showGuestHint('cart'); return }
     cartOpenerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     dismissGuestHint()
+    void refreshCart()
     setCartOpen(true)
   }
   const confirmConditionOffer = (offer: ProductListingOffer) => {

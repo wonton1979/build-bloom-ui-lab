@@ -1,8 +1,9 @@
+import { orderInput } from '../checkout/state'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { CartItems } from '../../components/cart/CartItems'
 import { cartListing, damaged10759, offer } from '../catalogue/catalogueFixtures'
-import { addListingOnce, cartTotalPence, formatGbp, lineAmountPence, listingUnitPricePence, priceToPence, quantityWithinStock } from './CartContext'
+import { checkoutQuantity, addListingOnce, cartTotalPence, formatGbp, lineAmountPence, listingUnitPricePence, priceToPence, quantityWithinStock } from './CartContext'
 import { mapCart } from './CartProvider'
 
 describe('frontend cart listing identity and quantity', () => {
@@ -79,5 +80,42 @@ describe('frontend cart listing identity and quantity', () => {
     expect(markup).toContain('£89.98')
     expect(markup).toContain('Unit price £8.01')
     expect(markup).toContain('£97.99')
+  })
+})
+
+describe('old and new cart allocation contracts', () => {
+  const listing = cartListing(offer(41))
+  const address = { id: 1, recipientName: 'Customer', line1: '1 Street', line2: null, city: 'Bath', postcode: 'BA1', country: 'GB', phone: null, isDefaultBilling: true, isDefaultShipping: true }
+  it('retains authoritative metadata while showing total quantity and available intent', () => {
+    const items = mapCart({ items: [{ productListingId: 41, productListing: listing, quantity: 2, allocatedQuantity: 1, unallocatedQuantity: 1 }] })
+    expect(items[0]).toMatchObject({ quantity: 2, allocatedQuantity: 1, unallocatedQuantity: 1 })
+    const html = renderToStaticMarkup(<CartItems items={items} />)
+    expect(html).toContain('Quantity: 2'); expect(html).toContain('1 in pending order'); expect(html).toContain('1 available')
+    expect(orderInput(items, address).items).toEqual([{ productListingId: 41, quantity: 1 }])
+  })
+  it('preserves old totals and omits allocation wording when there are none', () => {
+    const old = mapCart({ items: [{ productListingId: 41, productListing: listing, quantity: 2 }] })
+    expect(checkoutQuantity(old[0])).toBe(2); expect(orderInput(old, address).items[0].quantity).toBe(2)
+    expect(renderToStaticMarkup(<CartItems items={old} />)).not.toContain('pending order')
+    expect(renderToStaticMarkup(<CartItems items={[{ ...old[0], allocatedQuantity: 0, unallocatedQuantity: 2 }]} />)).not.toContain('pending order')
+  })
+  it('excludes fully allocated lines and keeps exact listing identities', () => {
+    const items = [{ productListingId: 41, listing, quantity: 2, allocatedQuantity: 2, unallocatedQuantity: 0 }, { productListingId: 42, listing, quantity: 3, allocatedQuantity: 1, unallocatedQuantity: 2 }]
+    expect(orderInput(items, address).items).toEqual([{ productListingId: 42, quantity: 2 }])
+  })
+  it.each([
+    { allocatedQuantity: 1 }, { unallocatedQuantity: 1 },
+    { allocatedQuantity: -1, unallocatedQuantity: 3 },
+    { allocatedQuantity: 0.5, unallocatedQuantity: 1.5 },
+    { allocatedQuantity: 1, unallocatedQuantity: 2 },
+    { allocatedQuantity: NaN, unallocatedQuantity: 2 },
+  ])('rejects malformed allocation data safely: %j', fields => {
+    expect(() => mapCart({ items: [{ productListingId: 41, productListing: listing, quantity: 2, ...fields }] })).toThrow('cart quantities')
+    expect(checkoutQuantity({ quantity: 2, ...fields })).toBeNull()
+  })
+  it('stock limits apply to new intent while quantity targets stay total', () => {
+    const item = { listing: cartListing(offer(41, { availableStock: 2 })), allocatedQuantity: 1 }
+    expect(quantityWithinStock(item, 3)).toBe(true)
+    expect(quantityWithinStock(item, 4)).toBe(false)
   })
 })

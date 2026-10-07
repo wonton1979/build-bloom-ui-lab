@@ -5,9 +5,12 @@ export interface CartItem {
   productListingId: CartProductListing['id']
   listing: CartProductListing
   quantity: number
+  allocatedQuantity?: number
+  unallocatedQuantity?: number
 }
 
 export interface CartContextValue {
+  refreshCart: () => Promise<void>
   items: CartItem[]
   addListing: (listing: ProductListingOffer) => Promise<void>
   updateQuantity: (productListingId: number, quantity: number) => Promise<boolean>
@@ -45,7 +48,7 @@ export function formatGbp(pence: number): string {
   return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(pence / 100)
 }
 
-export const CartContext = createContext<CartContextValue>({ items: [], addListing: async () => {}, updateQuantity: async () => false, removeItem: async () => false, pendingItemIds: [], isLoading: false, error: null })
+export const CartContext = createContext<CartContextValue>({ refreshCart: async () => {}, items: [], addListing: async () => {}, updateQuantity: async () => false, removeItem: async () => false, pendingItemIds: [], isLoading: false, error: null })
 
 export function offerQuantityLimit(listing: Pick<ProductListingOffer, 'condition' | 'availableStock'>): number {
   return listing.condition === 'USED_LIKE_NEW' ? Math.min(1, listing.availableStock) : listing.availableStock
@@ -62,8 +65,18 @@ export function addListingOnce(items: readonly CartItem[], listing: CartProductL
   return [...items, { productListingId: listing.id, listing, quantity: 1 }]
 }
 
-export function quantityWithinStock(item: Pick<CartItem, 'listing'>, quantity: number): boolean {
-  return quantity >= 1 && quantity <= offerQuantityLimit(item.listing)
+// Missing additive fields preserve the original backend contract. Partial or
+// inconsistent metadata must never make already ordered quantity purchasable.
+export function checkoutQuantity(item: Pick<CartItem, 'quantity' | 'allocatedQuantity' | 'unallocatedQuantity'>): number | null {
+  const { quantity, allocatedQuantity: allocated, unallocatedQuantity: available } = item
+  if (allocated === undefined && available === undefined) return quantity
+  if (typeof allocated !== 'number' || typeof available !== 'number' || !Number.isSafeInteger(allocated) || !Number.isSafeInteger(available) || allocated < 0 || available < 0 || allocated + available !== quantity) return null
+  return available
+}
+export const cartQuantityLimit = (item: { listing: Pick<ProductListingOffer, 'condition' | 'availableStock'>; allocatedQuantity?: number }) => offerQuantityLimit(item.listing) + (item.allocatedQuantity ?? 0)
+
+export function quantityWithinStock(item: Pick<CartItem, 'listing' | 'allocatedQuantity'>, quantity: number): boolean {
+  return quantity >= 1 && quantity <= cartQuantityLimit(item)
 }
 
 export function useCart(): CartContextValue {

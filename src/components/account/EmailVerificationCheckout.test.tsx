@@ -35,7 +35,7 @@ const orderCalls = () => fetcher.mock.calls.filter(([url]) => url === '/api/orde
 beforeEach(() => {
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
   verified = true; ambiguous = false; sessionStorage.clear(); sessionStorage.setItem(AUTH_STORAGE_KEY, 'jwt'); history.replaceState({}, '', '/checkout')
-  cart = { items: [{ productListingId: 16901, listing: cartListing(offer(16901)), quantity: 2 }], isLoading: false, error: null, pendingItemIds: [], addListing: vi.fn(), updateQuantity: vi.fn(), removeItem: vi.fn() }
+  cart = { items: [{ productListingId: 16901, listing: cartListing(offer(16901)), quantity: 2 }], isLoading: false, error: null, pendingItemIds: [], refreshCart: vi.fn().mockResolvedValue(undefined), addListing: vi.fn(), updateQuantity: vi.fn(), removeItem: vi.fn() }
   fetcher = vi.fn((url: string) => {
     if (url === '/api/users/me') return verified ? response(user) : required()
     if (url === '/api/users/me/addresses') return response([address])

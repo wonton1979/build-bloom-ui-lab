@@ -1,3 +1,5 @@
+import { countryLabel } from '../../features/account/addressState'
+import { useConfirmedCartRefresh } from '../../features/cart/useConfirmedCartRefresh'
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { AuthApiError, isVerificationRequired } from '../../features/auth/api'
@@ -33,6 +35,7 @@ function VerifiedOrders({ token, id, onAuthenticate }: { token: string; id: numb
   const generation = useRef(0)
   const [checking, setChecking] = useState(false)
   const [feedback, setFeedback] = useState('')
+  useConfirmedCartRefresh(state.phase === 'ready' ? state.detail : null)
   const [revision, setRevision] = useState(0)
   const reload = () => { setFeedback(''); setState({ phase: 'loading' }); setRevision(value => value + 1) }
   useEffect(() => {
@@ -89,7 +92,7 @@ function Address({ order, kind }: { order: OrderDetail; kind: 'delivery' | 'bill
   return <address>{order[`${kind}RecipientName`]}<br />{order[`${kind}Line1`]}<br />
     {order[`${kind}Line2`] && <>{order[`${kind}Line2`]}<br /></>}
     {order[`${kind}City`]}<br />{order[`${kind}County`] && <>{order[`${kind}County`]}<br /></>}
-    {order[`${kind}Postcode`]}<br />{order[`${kind}CountryCode`]}
+    {order[`${kind}Postcode`]}<br />{countryLabel(order[`${kind}CountryCode`])}
     {order[`${kind}Phone`] && <><br />{order[`${kind}Phone`]}</>}
   </address>
 }

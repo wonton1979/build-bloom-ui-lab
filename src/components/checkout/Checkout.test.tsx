@@ -20,7 +20,7 @@ let container: HTMLDivElement
 let cart: CartContextValue
 async function mount() { container = document.createElement('div'); document.body.append(container); root = createRoot(container); await act(async () => root.render(<CartContext.Provider value={cart}><Checkout onAccount={vi.fn()} /></CartContext.Provider>)) }
 async function click(text: string) { await act(async () => { const button = [...container.querySelectorAll('button')].find(button => button.textContent?.includes(text)); if (!button) throw new Error(`Button missing: ${text}`); button.click() }) }
-beforeEach(() => { vi.resetAllMocks(); mocks.auth.status = 'authenticated'; sessionStorage.clear(); history.replaceState({}, '', '/checkout'); mocks.addresses.mockResolvedValue(addresses); mocks.read.mockResolvedValue(order); mocks.prepare.mockResolvedValue('secret'); cart = { items: [{ productListingId: 16901, listing, quantity: 1 }], isLoading: false, error: null, pendingItemIds: [], addListing: vi.fn(), updateQuantity: vi.fn(), removeItem: vi.fn() } })
+beforeEach(() => { vi.resetAllMocks(); mocks.auth.status = 'authenticated'; sessionStorage.clear(); history.replaceState({}, '', '/checkout'); mocks.addresses.mockResolvedValue(addresses); mocks.read.mockResolvedValue(order); mocks.prepare.mockResolvedValue('secret'); cart = { items: [{ productListingId: 16901, listing, quantity: 1 }], isLoading: false, error: null, pendingItemIds: [], refreshCart: vi.fn().mockResolvedValue(undefined), addListing: vi.fn(), updateQuantity: vi.fn(), removeItem: vi.fn() } })
 afterEach(async () => { if (root) await act(async () => root.unmount()); vi.useRealTimers(); document.body.innerHTML = '' })
 describe('Checkout purchase UI', () => {
   it('prevents checkout with an empty cart', async () => { cart.items = []; await mount(); expect(container.textContent).toContain('cart is empty'); expect([...container.querySelectorAll('button')].find(button => button.textContent?.includes('Create order'))?.disabled).toBe(true) })
@@ -29,7 +29,7 @@ describe('Checkout purchase UI', () => {
   it('blocks invalid country without sending an order', async () => { mocks.addresses.mockResolvedValue([{ ...addresses[0], country: 'Unknown land', isDefaultBilling: true }]); await mount(); await click('Create order'); expect(container.textContent).toContain('valid United Kingdom'); expect([...container.querySelectorAll('button')].find(button => button.textContent?.includes('Create order'))?.disabled).toBe(true); expect(mocks.create).not.toHaveBeenCalled() })
   it('submits the selected saved delivery without changing default billing', async () => { mocks.create.mockResolvedValue({ id: 41 }); await mount(); await click('Create order'); expect(mocks.create).toHaveBeenCalledWith('jwt', { items: [{ productListingId: 16901, quantity: 1 }], deliveryAddress: { recipientName: 'Delivery', line1: '1 Street', city: 'London', postcode: 'SW1A 1AA', countryCode: 'GB' } }, expect.any(String)); expect(cart.removeItem).not.toHaveBeenCalled(); expect(cart.updateQuantity).not.toHaveBeenCalled() })
   it('recovery replaces estimates with server totals and only mounts payment after setup', async () => { history.replaceState({}, '', '/checkout/orders/41'); await mount(); expect(container.textContent).toContain('£20.50'); expect(container.textContent).not.toContain('£18.75'); expect(mocks.payment).not.toHaveBeenCalled(); await click('Continue to secure payment'); expect(mocks.prepare).toHaveBeenCalledWith('jwt', 41); expect(mocks.payment).toHaveBeenCalled(); expect(cart.removeItem).not.toHaveBeenCalled() })
-  it('keeps backend pending after browser completion and preserves all cart changes', async () => { vi.useFakeTimers(); history.replaceState({}, '', '/checkout/orders/41'); await mount(); await click('Continue to secure payment'); await click('Fake payment completed'); expect(container.textContent).toContain('being verified'); expect(container.textContent).not.toContain('Thank you'); expect(cart.removeItem).not.toHaveBeenCalled(); await act(async () => vi.advanceTimersByTimeAsync(29000)); expect(container.textContent).toContain('still pending'); mocks.recover.mockResolvedValue({ ...order, status: 'CONFIRMED', payment: { status: 'SUCCEEDED', paidAt: '2026-10-06' } }); await click('Recheck order'); expect(mocks.recover).toHaveBeenCalledExactlyOnceWith('jwt', 41); expect(mocks.create).not.toHaveBeenCalled(); expect(mocks.prepare).toHaveBeenCalledTimes(1); expect(container.textContent).toContain('Thank you'); expect(container.textContent).toContain('Payment confirmed'); expect(container.textContent).toContain('cart has been preserved'); expect(cart.removeItem).not.toHaveBeenCalled(); expect(cart.updateQuantity).not.toHaveBeenCalled() })
+  it('keeps backend pending after browser completion and preserves all cart changes', async () => { vi.useFakeTimers(); history.replaceState({}, '', '/checkout/orders/41'); await mount(); await click('Continue to secure payment'); await click('Fake payment completed'); expect(container.textContent).toContain('being verified'); expect(container.textContent).not.toContain('Thank you'); expect(cart.removeItem).not.toHaveBeenCalled(); await act(async () => vi.advanceTimersByTimeAsync(29000)); expect(container.textContent).toContain('still pending'); mocks.recover.mockResolvedValue({ ...order, status: 'CONFIRMED', payment: { status: 'SUCCEEDED', paidAt: '2026-10-06' } }); await click('Recheck order'); expect(mocks.recover).toHaveBeenCalledExactlyOnceWith('jwt', 41); expect(mocks.create).not.toHaveBeenCalled(); expect(mocks.prepare).toHaveBeenCalledTimes(1); expect(container.textContent).toContain('Thank you'); expect(container.textContent).toContain('Payment confirmed'); expect(cart.refreshCart).toHaveBeenCalledTimes(1); expect(cart.removeItem).not.toHaveBeenCalled(); expect(cart.updateQuantity).not.toHaveBeenCalled() })
   it('keeps recovery errors safely recheckable without offering payment setup', async () => {
     vi.useFakeTimers(); history.replaceState({}, '', '/checkout/orders/41')
     await mount(); await click('Continue to secure payment'); await click('Fake payment completed')
@@ -78,4 +78,92 @@ describe('Checkout purchase UI', () => {
     await click('Create order'); expect(mocks.create).not.toHaveBeenCalled()
   })
   it('revisits paid dispatched orders without payment controls', async () => { history.replaceState({}, '', '/checkout/orders/41'); mocks.read.mockResolvedValue({ ...order, status: 'DISPATCHED', payment: { status: 'SUCCEEDED', paidAt: '2026-10-06' } }); await mount(); expect(container.textContent).toContain('Order dispatched'); expect(mocks.prepare).not.toHaveBeenCalled(); expect(mocks.create).not.toHaveBeenCalled() })
+})
+
+describe('allocation-aware checkout compatibility', () => {
+  it('submits only new intent and excludes fully attached lines', async () => {
+    cart.items = [
+      { ...cart.items[0], quantity: 2, allocatedQuantity: 1, unallocatedQuantity: 1 },
+      { ...cart.items[0], productListingId: 900, quantity: 2, allocatedQuantity: 2, unallocatedQuantity: 0 },
+    ]
+    mocks.create.mockResolvedValue({ id: 41 })
+    await mount(); expect(container.textContent).toContain('Quantity 1')
+    expect(container.textContent).toContain('Estimated total £18.75')
+    await click('Create order')
+    expect(mocks.create.mock.calls[0][1].items).toEqual([{ productListingId: 16901, quantity: 1 }])
+  })
+  it('blocks an entirely attached cart and offers My Orders without any business action', async () => {
+    cart.items[0] = { ...cart.items[0], allocatedQuantity: 1, unallocatedQuantity: 0 }
+    await mount(); await click('Create order')
+    expect(mocks.create).not.toHaveBeenCalled(); expect(mocks.prepare).not.toHaveBeenCalled()
+    expect(container.textContent).toContain('already in pending orders')
+    await click('View My Orders'); expect(location.pathname).toBe('/account/orders')
+  })
+  it('never recomputes an ambiguous frozen payload from allocation metadata', async () => {
+    const saved = { key: 'original-key', input: { items: [{ productListingId: 16901, quantity: 2 }] } }
+    sessionStorage.setItem('colorful-life:checkout-attempt:1', JSON.stringify(saved))
+    cart.items[0] = { ...cart.items[0], quantity: 2, allocatedQuantity: 2, unallocatedQuantity: 0 }
+    mocks.create.mockRejectedValue(new Error('Lost response'))
+    await mount(); await click('Retry saved order request'); await click('Retry saved order request')
+    expect(mocks.create).toHaveBeenCalledTimes(2)
+    for (const call of mocks.create.mock.calls) expect(call).toEqual(['jwt', saved.input, saved.key])
+    expect(JSON.parse(sessionStorage.getItem('colorful-life:checkout-attempt:1')!)).toEqual(saved)
+  })
+  it('retires a definite allocation conflict, refreshes cart, and requires explicit new customer action', async () => {
+    mocks.create.mockRejectedValueOnce(new CheckoutApiError(409, 'CART_QUANTITY_UNAVAILABLE'))
+    cart.refreshCart = vi.fn(async () => { cart.items = [{ ...cart.items[0], allocatedQuantity: 1, unallocatedQuantity: 0 }] })
+    await mount(); await click('Create order')
+    expect(cart.refreshCart).toHaveBeenCalledTimes(1)
+    expect(sessionStorage.getItem('colorful-life:checkout-attempt:1')).toBeNull()
+    expect(container.textContent).not.toContain('Retry saved order request')
+    expect(container.textContent).not.toContain('previous response was lost')
+    expect(container.textContent).toContain('another pending order')
+    expect(mocks.create).toHaveBeenCalledTimes(1); expect(mocks.prepare).not.toHaveBeenCalled(); expect(mocks.recover).not.toHaveBeenCalled()
+    expect(container.textContent).toContain('View My Orders')
+  })
+  it('refreshes on ordinary authoritative confirmation while preserving paid status and legacy items', async () => {
+    mocks.read.mockResolvedValue({ ...order, status: 'CONFIRMED', payment: { status: 'SUCCEEDED', paidAt: null } })
+    history.replaceState({}, '', '/checkout/orders/41')
+    await mount()
+    expect(cart.refreshCart).toHaveBeenCalledTimes(1)
+    expect(container.textContent).toContain('Payment confirmed')
+    expect(cart.items[0].quantity).toBe(1)
+    expect(cart.removeItem).not.toHaveBeenCalled(); expect(cart.updateQuantity).not.toHaveBeenCalled()
+    expect(mocks.prepare).not.toHaveBeenCalled()
+  })
+})
+
+describe('safe confirmation and rejected-attempt continuation', () => {
+  it('keeps confirmed status when cart refresh reports failure', async () => {
+    mocks.read.mockResolvedValue({ ...order, status: 'CONFIRMED', payment: { status: 'SUCCEEDED', paidAt: null } })
+    cart.refreshCart = vi.fn(async () => { cart.error = 'Unable to refresh your cart' })
+    history.replaceState({}, '', '/checkout/orders/41')
+    await mount()
+    expect(cart.refreshCart).toHaveBeenCalledTimes(1)
+    expect(container.textContent).toContain('Payment confirmed')
+    expect(cart.updateQuantity).not.toHaveBeenCalled(); expect(cart.removeItem).not.toHaveBeenCalled()
+    expect(mocks.prepare).not.toHaveBeenCalled(); expect(mocks.recover).not.toHaveBeenCalled()
+  })
+  it('does not refresh cart from browser success but does refresh when normal GET polling proves confirmation', async () => {
+    mocks.read.mockResolvedValueOnce(order).mockResolvedValueOnce(order).mockResolvedValue({ ...order, status: 'CONFIRMED', payment: { status: 'SUCCEEDED', paidAt: null } })
+    history.replaceState({}, '', '/checkout/orders/41')
+    await mount(); await click('Continue to secure payment')
+    expect(cart.refreshCart).not.toHaveBeenCalled()
+    await click('Fake payment completed')
+    expect(cart.refreshCart).toHaveBeenCalledTimes(1)
+    expect(container.textContent).toContain('Payment confirmed')
+    expect(mocks.recover).not.toHaveBeenCalled()
+  })
+  it('uses a new identity only after a definite rejected request and an explicit new submission', async () => {
+    cart.items[0] = { ...cart.items[0], quantity: 2, allocatedQuantity: 0, unallocatedQuantity: 2 }
+    mocks.create.mockRejectedValueOnce(new CheckoutApiError(409, 'CART_QUANTITY_UNAVAILABLE')).mockResolvedValueOnce({ id: 41 })
+    cart.refreshCart = vi.fn(async () => { cart.items = [{ ...cart.items[0], allocatedQuantity: 1, unallocatedQuantity: 1 }] })
+    await mount(); await click('Create order')
+    expect(mocks.create).toHaveBeenCalledTimes(1)
+    const originalKey = mocks.create.mock.calls[0][2]
+    await click('Create order')
+    expect(mocks.create).toHaveBeenCalledTimes(2)
+    expect(mocks.create.mock.calls[1][1].items).toEqual([{ productListingId: 16901, quantity: 1 }])
+    expect(mocks.create.mock.calls[1][2]).not.toBe(originalKey)
+  })
 })
