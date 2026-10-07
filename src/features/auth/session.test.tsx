@@ -56,6 +56,44 @@ afterEach(async () => {
 })
 
 describe('real provider session restoration', () => {
+  it.each(['invalid', 'rejected-retry', 'network', 'server', 'verified', 'unverified'])('converges after explicit login profile restoration: %s', async kind => {
+    await mount(true); await click('Open your account')
+    fetcher.mockImplementation((url: string) => {
+      if (url === '/api/auth/login') return Promise.resolve(result(original))
+      if (url === '/api/auth/refresh') {
+        if (kind === 'network') return Promise.reject(new Error('Synthetic network outage'))
+        return Promise.resolve(kind === 'invalid' ? rejected() : kind === 'server' ? result({}, 503) : result(replacement))
+      }
+      if (url === '/api/users/me') {
+        if (kind === 'verified') return Promise.resolve(result(user))
+        if (kind === 'unverified') return Promise.resolve(result({ error: { code: 'EMAIL_VERIFICATION_REQUIRED' } }, 403))
+        return Promise.resolve(rejected())
+      }
+      throw new Error('Unexpected test endpoint')
+    })
+    await act(async () => auth.authenticate('signin', { email: user.email, password: 'Synthetic-test-password' }))
+    const terminal = kind === 'invalid' || kind === 'rejected-retry'
+    expect(auth.state.status).toBe(terminal ? 'signedOut' : kind === 'verified' ? 'authenticated' : kind === 'unverified' ? 'verificationRequired' : 'error')
+    expect(readSession() === null).toBe(terminal)
+    expect(auth.state.status === 'authenticated' && auth.state.user.id === user.id).toBe(kind === 'verified')
+    expect(fetcher.mock.calls.filter(([url]) => url === '/api/auth/refresh')).toHaveLength(['verified', 'unverified'].includes(kind) ? 0 : 1)
+    expect(fetcher.mock.calls.filter(([url]) => url === '/api/users/me')).toHaveLength(kind === 'rejected-retry' ? 2 : 1)
+    expect(fetcher.mock.calls.filter(([url]) => url === '/api/auth/login')).toHaveLength(1)
+    expect(fetcher.mock.calls.every(([url, init]) => url === '/api/auth/login' || url === '/api/auth/refresh' || (init.method ?? 'GET') === 'GET')).toBe(true)
+    if (terminal) {
+      const signIn = [...container.querySelectorAll('button')].find(button => button.textContent === 'Sign In' && button.type === 'submit')
+      expect(Boolean(signIn && !signIn.disabled)).toBe(true)
+      fetcher.mockImplementation((url: string) => Promise.resolve(result(url === '/api/auth/login' ? original : user)))
+      await act(async () => auth.authenticate('signin', { email: user.email, password: 'Synthetic-test-password' }))
+      expect(auth.state.status).toBe('authenticated')
+    } else if (kind === 'network' || kind === 'server') {
+      expect(readSession()?.refreshToken === original.refreshToken).toBe(true)
+      expect(container.textContent).toContain('Retry connection')
+      fetcher.mockImplementation((url: string) => Promise.resolve(result(url === '/api/auth/refresh' ? replacement : user)))
+      await click('Retry connection')
+      expect(auth.state.status).toBe('authenticated')
+    }
+  })
   it('restores a valid stored renewable session without rotating it', async () => {
     storeSession(original); await mount()
     expect(auth.state.status).toBe('authenticated')

@@ -29,6 +29,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const resolve = useCallback(async (token: string, registered = false) => {
     const request = ++profileRequest.current
+    const intent = authIntent.current
     const current = sessionGeneration()
     resolving.current += 1
     try {
@@ -37,7 +38,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
       dispatch({ type: 'authenticated', token: readStoredToken()!, user })
       return true
     } catch (error) {
-      if (request !== profileRequest.current || sessionGeneration() !== current || !readStoredToken()) return false
+      if (request !== profileRequest.current || intent !== authIntent.current) return false
+      // Renewal can invalidate this intent's own session and advance its
+      // generation. Its pending-intent listener deliberately ignores events;
+      // the owning profile operation must still settle the UI after cleanup.
+      // Older operations cannot reach this branch after login/logout supersedes them.
+      if (!readStoredToken()) {
+        dispatch({ type: 'signedOut' })
+        return false
+      }
+      if (sessionGeneration() !== current) return false
       if ((error instanceof AuthApiError && error.status === 401) || (error instanceof SessionError && error.invalid)) {
         clearStoredToken()
         dispatch({ type: 'signedOut' })
