@@ -12,7 +12,7 @@ describe('storefront auth API', () => {
   })
 
   it('logs in with email and password', async () => {
-    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ token: 'login-token' }), { status: 200 }))
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ token: 'login-token', refreshToken: 'r'.repeat(43), accessTokenExpiresAt: '2030-01-01T00:00:00Z', refreshExpiresAt: '2030-02-01T00:00:00Z' }), { status: 200 }))
     vi.stubGlobal('fetch', fetcher)
     await signIn('person@example.com', 'Abcdef1!')
     expect(fetcher.mock.calls[0][1]).toEqual(expect.objectContaining({ body: JSON.stringify({ email: 'person@example.com', password: 'Abcdef1!' }) }))

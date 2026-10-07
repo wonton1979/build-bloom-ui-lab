@@ -113,7 +113,9 @@ export function AccountForms() {
   const [drafts, setDrafts] = useState({ signin: emptyDraft, create: emptyDraft })
   const container = useRef<HTMLDivElement>(null)
   const previousMode = useRef(mode)
-  const { state, authenticate } = useAuth()
+  const { state, authenticate, refreshAuth } = useAuth()
+  const [restoring, setRestoring] = useState(false)
+  const restoringLock = useRef(false)
   const [formError, setFormError] = useState<string>()
   const submitting = state.status === 'authenticating'
   const serverError = state.status === 'signedOut' ? state.error : state.status === 'error' ? state.message : state.status === 'verificationRequired' ? state.message : undefined
@@ -141,6 +143,11 @@ export function AccountForms() {
   if (state.status === 'verificationRequired') return <VerificationNotice token={state.token} message={state.message} />
   return (
     <div ref={container}>
+      {state.status === 'error' && state.token && <button type="button" disabled={restoring} onClick={() => {
+        if (restoringLock.current) return
+        restoringLock.current = true; setRestoring(true)
+        void refreshAuth().finally(() => { restoringLock.current = false; setRestoring(false) })
+      }}>{restoring ? 'Reconnecting…' : 'Retry connection'}</button>}
       <AccountView mode={mode} onModeChange={setMode} draft={drafts[mode]}
         onSubmit={submit} error={formError || serverError} submitting={submitting}
         onFieldChange={(name, value) => { setFormError(undefined); setDrafts((current) => ({ ...current, [mode]: { ...current[mode], [name]: value } })) }} />

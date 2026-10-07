@@ -1,4 +1,5 @@
-export const AUTH_STORAGE_KEY = 'colorful-life:storefront:jwt'
+import { authenticatedFetch, apiBase, parseSession, type Session } from './session'
+export { AUTH_STORAGE_KEY, apiBase, clearStoredToken, readStoredToken, storeToken, storeSession } from './session'
 
 export type CurrentUser = {
   id: number
@@ -22,13 +23,11 @@ export class AuthApiError extends Error {
   }
 }
 
-export const apiBase = () => (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
-
 export async function requestJson<T>(path: string, init: RequestInit = {}, token?: string): Promise<T> {
   const headers = new Headers(init.headers)
   headers.set('Content-Type', 'application/json')
   if (token) headers.set('Authorization', `Bearer ${token}`)
-  const response = await fetch(`${apiBase()}${path}`, { ...init, headers })
+  const response = token ? await authenticatedFetch(`${apiBase()}${path}`, { ...init, headers }, token) : await fetch(`${apiBase()}${path}`, { ...init, headers })
   let body: unknown = null
   try { body = await response.json() } catch { /* Empty error responses are handled below. */ }
   if (!response.ok) {
@@ -54,16 +53,21 @@ export function resendVerification(token: string) {
   return requestJson<void>('/auth/resend-verification', { method: 'POST' }, token)
 }
 
-export function signUp(email: string, password: string) {
-  return requestJson<{ token: string }>('/auth/signup', { method: 'POST', body: JSON.stringify({ email, password }) })
+export async function signUp(email: string, password: string): Promise<Session> {
+  return parseSession(await requestJson<unknown>('/auth/signup', { method: 'POST', body: JSON.stringify({ email, password }) }), false)
 }
 
-export function signIn(email: string, password: string) {
-  return requestJson<{ token: string }>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) })
+export async function signIn(email: string, password: string): Promise<Session> {
+  return parseSession(await requestJson<unknown>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }), true)
 }
 
-export function getCurrentUser(token: string) {
-  return requestJson<CurrentUser>('/users/me', { method: 'GET' }, token)
+export async function getCurrentUser(token: string): Promise<CurrentUser> {
+  const result = await requestJson<CurrentUser>('/users/me', { method: 'GET' }, token)
+  if (!result || !Number.isSafeInteger(result.id) || result.id < 1 || typeof result.email !== 'string'
+    || !['firstName', 'lastName', 'phone'].every(key => result[key as keyof CurrentUser] === null || typeof result[key as keyof CurrentUser] === 'string')) {
+    throw new Error('Unable to read your account. Please try again.')
+  }
+  return result
 }
 
 export type UpdateCurrentUser = Partial<Pick<CurrentUser, 'firstName' | 'lastName' | 'phone'>>
@@ -73,16 +77,4 @@ export function updateCurrentUser(token: string, profile: UpdateCurrentUser) {
     method: 'PATCH',
     body: JSON.stringify(profile),
   }, token)
-}
-
-export function readStoredToken(): string | null {
-  try { return window.sessionStorage.getItem(AUTH_STORAGE_KEY) } catch { return null }
-}
-
-export function storeToken(token: string) {
-  window.sessionStorage.setItem(AUTH_STORAGE_KEY, token)
-}
-
-export function clearStoredToken() {
-  try { window.sessionStorage.removeItem(AUTH_STORAGE_KEY) } catch { /* Storage may be unavailable in privacy mode. */ }
 }

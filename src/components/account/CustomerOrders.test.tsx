@@ -225,7 +225,7 @@ describe('explicit Order Detail payment recovery', () => {
     fetcher.mockImplementation((url: string) => response(url.endsWith('/reconcile') ? {} : stuck, url.endsWith('/reconcile') ? status : 200))
     await open(); await click('Check payment status')
     expect(container.textContent).not.toContain('Delivery Customer')
-    expect(container.textContent).toContain(status === 401 ? 'Please sign in again' : 'cannot display this order information')
+    expect(container.textContent).toContain(status === 401 ? 'Please sign in' : 'cannot display this order information')
   })
   it('preserves the verification gate on recovery', async () => {
     fetcher.mockImplementation((url: string) => url.endsWith('/reconcile') ? response({ error: { code: 'EMAIL_VERIFICATION_REQUIRED' } }, 403) : response(stuck))

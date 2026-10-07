@@ -41,7 +41,7 @@ beforeEach(() => {
     if (url === '/api/users/me/addresses') return response([address])
     if (url === '/api/orders') return ambiguous ? Promise.reject(new Error('offline')) : verified ? response({ id: 41 }, 201) : required()
     if (url === '/api/auth/verify-email') { verified = true; return response({ message: 'Email verified' }) }
-    if (url === '/api/auth/login') return response({ token: 'jwt' })
+    if (url === '/api/auth/login') return response({ token: 'jwt', refreshToken: 'r'.repeat(43), accessTokenExpiresAt: '2030-01-01T00:00:00Z', refreshExpiresAt: '2030-02-01T00:00:00Z' })
     if (url === '/api/auth/resend-verification') return response({ message: 'Requested' })
     if (url === '/api/orders/41') return response({ id: 41, status: 'PENDING', totalAmount: '20.00', reservationExpiresAt: null, payment: null, orderItems: [], billingRecipientName: 'Test', billingLine1: '1 Street', billingCity: 'London', billingPostcode: 'SW1A 1AA', billingCountryCode: 'GB', deliveryRecipientName: 'Test', deliveryLine1: '1 Street', deliveryCity: 'London', deliveryPostcode: 'SW1A 1AA', deliveryCountryCode: 'GB' })
     throw new Error(`Unexpected endpoint ${url}`)

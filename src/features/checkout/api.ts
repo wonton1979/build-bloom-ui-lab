@@ -1,3 +1,4 @@
+import { authenticatedFetch } from '../auth/session'
 import { apiBase } from '../auth/api'
 
 export type DeliveryAddress = { recipientName: string; line1: string; line2?: string; city: string; county?: string; postcode: string; countryCode: string; phone?: string }
@@ -31,7 +32,7 @@ export class CheckoutApiError extends Error {
 async function request<T>(token: string, path: string, init: RequestInit = {}): Promise<T> {
   let response: Response
   try {
-    response = await fetch(`${apiBase()}${path}`, { ...init, signal: AbortSignal.timeout(10000), headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...init.headers } })
+    response = await authenticatedFetch(`${apiBase()}${path}`, { ...init, signal: AbortSignal.timeout(10000), headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...init.headers } }, token)
   } catch { throw new Error('Connection interrupted. Please retry this saved checkout or recheck your order.') }
   const body = await response.json().catch(() => null)
   if (!response.ok) throw new CheckoutApiError(response.status, body?.error?.code, typeof body?.error === 'string' ? body.error : body?.error?.message)
